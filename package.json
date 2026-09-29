@@ -1,0 +1,129 @@
+{
+  "name": "scholar-meta",
+  "version": "0.2.0",
+  "description": "Honest research-evidence views for platforms that publish academic articles with tags: which chart a body of studies can truthfully support, provenance-carrying tag→topic bindings, reliability-aware view models, and a framework-free service / HTTP / client interface.",
+  "keywords": [
+    "evidence-synthesis",
+    "meta-analysis",
+    "forest-plot",
+    "evidence-gap-map",
+    "folksonomy",
+    "tags",
+    "openalex",
+    "bibliometrics",
+    "visualization",
+    "research"
+  ],
+  "license": "MIT",
+  "author": "sairaisaika",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sairaisaika/scholar-meta-visulization.git"
+  },
+  "homepage": "https://github.com/sairaisaika/scholar-meta-visulization#readme",
+  "bugs": {
+    "url": "https://github.com/sairaisaika/scholar-meta-visulization/issues"
+  },
+  "type": "commonjs",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./openalex": "./src/openalex.ts",
+    "./service": "./src/service.ts",
+    "./http": "./src/http.ts",
+    "./client": "./src/client.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.mts",
+          "default": "./dist/index.mjs"
+        },
+        "require": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        }
+      },
+      "./client": {
+        "import": {
+          "types": "./dist/client.d.mts",
+          "default": "./dist/client.mjs"
+        },
+        "require": {
+          "types": "./dist/client.d.ts",
+          "default": "./dist/client.js"
+        }
+      },
+      "./service": {
+        "import": {
+          "types": "./dist/service.d.mts",
+          "default": "./dist/service.mjs"
+        },
+        "require": {
+          "types": "./dist/service.d.ts",
+          "default": "./dist/service.js"
+        }
+      },
+      "./http": {
+        "import": {
+          "types": "./dist/http.d.mts",
+          "default": "./dist/http.mjs"
+        },
+        "require": {
+          "types": "./dist/http.d.ts",
+          "default": "./dist/http.js"
+        }
+      },
+      "./openalex": {
+        "import": {
+          "types": "./dist/openalex.d.mts",
+          "default": "./dist/openalex.mjs"
+        },
+        "require": {
+          "types": "./dist/openalex.d.ts",
+          "default": "./dist/openalex.js"
+        }
+      },
+      "./package.json": "./package.json"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "docs",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "scholar-meta.manifest.json"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "typecheck:src": "tsc -p tsconfig.src.json",
+    "test": "jest",
+    "build": "tsup && node scripts/check-dist.mjs && node scripts/manifest.mjs --check",
+    "check:boundary": "bash scripts/check-boundary.sh",
+    "check:private": "bash scripts/check-private-terms.sh",
+    "check": "pnpm typecheck && pnpm typecheck:src && pnpm check:boundary && pnpm check:private && pnpm test && pnpm build",
+    "prepublishOnly": "pnpm check",
+    "manifest": "tsup && node scripts/manifest.mjs"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
+    "tsup": "^8.5.1",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

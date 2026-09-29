@@ -1,0 +1,609 @@
+{
+  "manifest_version": 1,
+  "id": "scholar-meta",
+  "version": "0.2.0",
+  "contract_version": "0.2.0",
+  "repository": "https://github.com/sairaisaika/scholar-meta-visulization",
+  "changelog": "CHANGELOG.md",
+  "entries": [
+    "scholar-meta",
+    "scholar-meta/client",
+    "scholar-meta/service",
+    "scholar-meta/http",
+    "scholar-meta/openalex"
+  ],
+  "routes": {
+    "map": "/map",
+    "counts": "/counts",
+    "tag_counts": "/tags/counts",
+    "tag_graph": "/tags/graph"
+  },
+  "features": [
+    {
+      "id": "evidence_map",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "node_map",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "evidence_view",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "pooling",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "tag_binding",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "record_edges",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "external_counts",
+      "audience": "reader",
+      "route": "counts"
+    },
+    {
+      "id": "chart_availability",
+      "audience": "reader",
+      "route": "counts"
+    },
+    {
+      "id": "onsite_counts",
+      "audience": "reader",
+      "route": "tag_counts"
+    },
+    {
+      "id": "tag_graph",
+      "audience": "reader",
+      "route": "tag_graph"
+    },
+    {
+      "id": "article_intake",
+      "audience": "author",
+      "route": null
+    },
+    {
+      "id": "binding_suggestions",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "binding_queue",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "plugin_settings",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "plugin_manifest",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "auto_tagging",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "tag_ledger",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "tag_change_requests",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "tag_contributions",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "curation",
+      "audience": "editor",
+      "route": null
+    }
+  ],
+  "settings": [
+    {
+      "key": "binding.machinePolicy",
+      "group": "binding",
+      "type": "enum",
+      "options": [
+        "first_hit",
+        "exact_only",
+        "off"
+      ],
+      "default": "first_hit",
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "机器绑定策略",
+        "en": "Automatic binding policy"
+      },
+      "help": {
+        "zh": "编辑还没确认的标签，要不要按外部库的自动补全结果自动对应主题。",
+        "en": "Whether tags without an editor decision are matched to a topic automatically from the external autocomplete."
+      },
+      "option_labels": {
+        "zh": {
+          "first_hit": "第一条候选就用（图上标「未经确认」）",
+          "exact_only": "名称完全相同才用，其余等编辑",
+          "off": "只用编辑确认的"
+        },
+        "en": {
+          "first_hit": "Use the first candidate (marked as unreviewed)",
+          "exact_only": "Exact name matches only; the rest wait for an editor",
+          "off": "Editor-confirmed bindings only"
+        }
+      }
+    },
+    {
+      "key": "external.gate",
+      "group": "external",
+      "type": "enum",
+      "options": [
+        "onsite_tags_only",
+        "any"
+      ],
+      "default": "onsite_tags_only",
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "外部查询范围",
+        "en": "External query scope"
+      },
+      "help": {
+        "zh": "哪些标签会拿去问外部文献库。只问公开文章里出现过的标签，读者随手输入的字符串就不会变成对第三方的查询。",
+        "en": "Which tags are sent to the external index. Querying only tags used in public articles keeps arbitrary reader input from becoming third-party queries."
+      },
+      "option_labels": {
+        "zh": {
+          "onsite_tags_only": "只问公开文章里出现过的标签（推荐）",
+          "any": "任何标签都问"
+        },
+        "en": {
+          "onsite_tags_only": "Only tags used in public articles (recommended)",
+          "any": "Any tag"
+        }
+      }
+    },
+    {
+      "key": "external.dailyCreditBudget",
+      "group": "external",
+      "type": "integer",
+      "min": 0,
+      "max": 10000000,
+      "default": 5000,
+      "unit": "credits",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "外部库每日额度",
+        "en": "Daily external credit budget"
+      },
+      "help": {
+        "zh": "每个 UTC 日最多花多少 OpenAlex credit；花完后收费请求暂停到第二天，免费请求照常。0 表示只用免费请求。",
+        "en": "OpenAlex credits allowed per UTC day. When used up, paid requests pause until the next day; free requests continue. 0 means free requests only."
+      }
+    },
+    {
+      "key": "external.sampleSize",
+      "group": "external",
+      "type": "integer",
+      "min": 1,
+      "max": 50,
+      "default": 25,
+      "unit": "items",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "外部示例篇数",
+        "en": "External sample size"
+      },
+      "help": {
+        "zh": "标签页与主题页上列出的外部文献篇数（被引最多的若干篇，是示例，不代表全体）。",
+        "en": "How many external works are listed on tag and topic pages (the most cited ones: a sample, not the whole)."
+      }
+    },
+    {
+      "key": "external.maxReferenceDois",
+      "group": "external",
+      "type": "integer",
+      "min": 0,
+      "max": 1000,
+      "default": 200,
+      "unit": "items",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "引用证据最多查几篇",
+        "en": "Reference DOIs to check"
+      },
+      "help": {
+        "zh": "给编辑推荐绑定时，最多查多少篇参考文献的主题（每 50 篇 1 credit）。",
+        "en": "How many reference DOIs are looked up when suggesting bindings to editors (1 credit per 50)."
+      }
+    },
+    {
+      "key": "cache.resolveDays",
+      "group": "cache",
+      "type": "integer",
+      "min": 0,
+      "max": 365,
+      "default": 30,
+      "unit": "days",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "标签匹配结果缓存",
+        "en": "Tag match cache"
+      },
+      "help": {
+        "zh": "标签 → 主题的自动匹配结果保存几天。",
+        "en": "Days to keep automatic tag → topic matches."
+      }
+    },
+    {
+      "key": "cache.bundleDays",
+      "group": "cache",
+      "type": "integer",
+      "min": 0,
+      "max": 365,
+      "default": 30,
+      "unit": "days",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "主题树缓存",
+        "en": "Topic tree cache"
+      },
+      "help": {
+        "zh": "主题的上级与兄弟保存几天（兄弟没取全的不写缓存）。",
+        "en": "Days to keep a topic's ancestors and siblings (incomplete sibling lists are not cached)."
+      }
+    },
+    {
+      "key": "cache.sampleDays",
+      "group": "cache",
+      "type": "integer",
+      "min": 0,
+      "max": 365,
+      "default": 7,
+      "unit": "days",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "外部示例缓存",
+        "en": "External sample cache"
+      },
+      "help": {
+        "zh": "外部示例文献保存几天。",
+        "en": "Days to keep external sample works."
+      }
+    },
+    {
+      "key": "cache.countsDays",
+      "group": "cache",
+      "type": "integer",
+      "min": 0,
+      "max": 365,
+      "default": 7,
+      "unit": "days",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "全量计数缓存",
+        "en": "Full counts cache"
+      },
+      "help": {
+        "zh": "主题的全量格子保存几天（冷启动一次约 17 credit）。",
+        "en": "Days to keep a topic's full counts (about 17 credits per cold start)."
+      }
+    },
+    {
+      "key": "onsite.label",
+      "group": "onsite",
+      "type": "string",
+      "maxLength": 100,
+      "default": "On-site articles",
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "public",
+      "label": {
+        "zh": "站内来源名称",
+        "en": "On-site source name"
+      },
+      "help": {
+        "zh": "脚注里站内文章的来源名，比如站名或栏目名。",
+        "en": "Source name printed in footnotes for on-site articles, such as the site or section name."
+      }
+    },
+    {
+      "key": "onsite.license",
+      "group": "onsite",
+      "type": "string",
+      "maxLength": 100,
+      "default": "unspecified",
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "public",
+      "label": {
+        "zh": "站内文章许可",
+        "en": "On-site licence"
+      },
+      "help": {
+        "zh": "站内文章的许可（比如 CC BY 4.0），脚注逐条印出。",
+        "en": "Licence of on-site articles (for example CC BY 4.0), printed in footnotes."
+      }
+    },
+    {
+      "key": "graph.minSupport",
+      "group": "graph",
+      "type": "integer",
+      "min": 1,
+      "max": 50,
+      "default": 2,
+      "unit": "items",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "public",
+      "label": {
+        "zh": "共现图门槛",
+        "en": "Tag graph threshold"
+      },
+      "help": {
+        "zh": "标签与共现至少出现几次才画进共现图（读者请求没指定时的缺省值）。",
+        "en": "Minimum occurrences for a tag or co-occurrence to be drawn (default when a request does not say)."
+      }
+    },
+    {
+      "key": "graph.maxNodes",
+      "group": "graph",
+      "type": "integer",
+      "min": 1,
+      "max": 200,
+      "default": 60,
+      "unit": "items",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "public",
+      "label": {
+        "zh": "共现图最多标签数",
+        "en": "Tag graph size"
+      },
+      "help": {
+        "zh": "共现图最多画几个标签（读者请求没指定时的缺省值）。",
+        "en": "Maximum number of tags in the tag graph (default when a request does not say)."
+      }
+    },
+    {
+      "key": "http.cacheMaxAge",
+      "group": "http",
+      "type": "integer",
+      "min": 0,
+      "max": 86400,
+      "default": 300,
+      "unit": "seconds",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "读口缓存时长",
+        "en": "API cache lifetime"
+      },
+      "help": {
+        "zh": "公开读口成功响应的 Cache-Control max-age。",
+        "en": "Cache-Control max-age of successful public API responses."
+      }
+    },
+    {
+      "key": "http.route.map",
+      "group": "http",
+      "type": "boolean",
+      "default": true,
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "开放「研究图谱」读口",
+        "en": "Enable the evidence-map route"
+      },
+      "help": {
+        "zh": "GET /map：标签与主题的研究图谱。",
+        "en": "GET /map: evidence maps for tags and topics."
+      }
+    },
+    {
+      "key": "http.route.counts",
+      "group": "http",
+      "type": "boolean",
+      "default": true,
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "开放「全量计数」读口",
+        "en": "Enable the counts route"
+      },
+      "help": {
+        "zh": "GET /counts：最花外部额度的读口。",
+        "en": "GET /counts: the route that spends the most external credits."
+      }
+    },
+    {
+      "key": "http.route.tagCounts",
+      "group": "http",
+      "type": "boolean",
+      "default": true,
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "开放「标签站内层」读口",
+        "en": "Enable the tag-counts route"
+      },
+      "help": {
+        "zh": "GET /tags/counts：一个标签下站内文章的分布。",
+        "en": "GET /tags/counts: on-site distributions for a tag."
+      }
+    },
+    {
+      "key": "http.route.tagGraph",
+      "group": "http",
+      "type": "boolean",
+      "default": true,
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "开放「标签共现图」读口",
+        "en": "Enable the tag-graph route"
+      },
+      "help": {
+        "zh": "GET /tags/graph：站内标签的共现图。",
+        "en": "GET /tags/graph: co-occurrence graph of on-site tags."
+      }
+    },
+    {
+      "key": "ledger.modelMinConfidence",
+      "group": "ledger",
+      "type": "integer",
+      "min": 0,
+      "max": 100,
+      "default": 50,
+      "unit": "percent",
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "模型断言的置信门槛",
+        "en": "Model confidence threshold"
+      },
+      "help": {
+        "zh": "模型给论文打的标签，置信度低于这个百分比的不参与裁决（没给置信度的照算）。",
+        "en": "Model tag assertions below this confidence (in percent) are ignored when deciding; assertions without a confidence still count."
+      }
+    },
+    {
+      "key": "ledger.reviewTier",
+      "group": "ledger",
+      "type": "enum",
+      "options": [
+        "maintainer",
+        "editor",
+        "contributor"
+      ],
+      "default": "editor",
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "审核修改申请的最低层级",
+        "en": "Minimum reviewer tier"
+      },
+      "help": {
+        "zh": "谁可以批准或驳回「修改论文标签」的申请；还要不低于所涉标签现行结论的层级，且不能审自己的申请。",
+        "en": "Who can accept or reject requests to change a paper's tags. Reviewers must also be at least at the tier that decided the affected tags, and cannot review their own requests."
+      },
+      "option_labels": {
+        "zh": {
+          "maintainer": "维护者",
+          "editor": "编辑",
+          "contributor": "贡献者"
+        },
+        "en": {
+          "maintainer": "Maintainer",
+          "editor": "Editor",
+          "contributor": "Contributor"
+        }
+      }
+    },
+    {
+      "key": "ledger.apply",
+      "group": "ledger",
+      "type": "enum",
+      "options": [
+        "merge",
+        "ledger_only",
+        "off"
+      ],
+      "default": "merge",
+      "unit": null,
+      "since": "0.2.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "账本结论怎么用到统计上",
+        "en": "How ledger decisions reach the counts"
+      },
+      "help": {
+        "zh": "只有「有」计入统计；有争议的一律先不计入。服务接了账本才起作用。",
+        "en": "Only present tags are counted; disputed tags are always left out. Takes effect only when the service has a ledger."
+      },
+      "option_labels": {
+        "zh": {
+          "merge": "合并：作者的标签按账本增删",
+          "ledger_only": "只用账本的结论",
+          "off": "不用（只看作者的标签）"
+        },
+        "en": {
+          "merge": "Merge: add and remove author tags per the ledger",
+          "ledger_only": "Use ledger decisions only",
+          "off": "Off (author tags only)"
+        }
+      }
+    }
+  ],
+  "secrets": [
+    {
+      "key": "external.apiKey",
+      "env": "OPENALEX_API_KEY",
+      "required": false,
+      "entry": "scholar-meta/openalex",
+      "option": "apiKey",
+      "label": {
+        "zh": "OpenAlex API key",
+        "en": "OpenAlex API key"
+      },
+      "help": {
+        "zh": "可选。配了走你自己的额度，不配走公共额度。只放在服务器的环境变量里；引擎只把它放进请求头，永不进网址、日志与出处。",
+        "en": "Optional. With a key, requests use your own quota; without one, the shared quota. Keep it in a server environment variable only; the engine puts it in the request header and never in URLs, logs or provenance."
+      }
+    }
+  ]
+}

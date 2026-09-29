@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "esnext"],
+    "target": "ES2017",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": ["jest", "node"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

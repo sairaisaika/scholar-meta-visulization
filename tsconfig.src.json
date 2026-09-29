@@ -1,0 +1,24 @@
+{
+  // 只编 src/，用比本仓 tsconfig 更严的选项、不带 Node 与测试的类型：
+  // 有的接入方把 src/ 原样拷进自己的工程编译，这一步保证在较严的编译选项下也不红，
+  // 也保证 src/ 里没有 process、Buffer、node:* 这类只在 Node 里有的东西（浏览器 / React Native 也要能跑）。
+  "compilerOptions": {
+    "lib": ["dom", "es2022"],
+    "target": "ES2017",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}

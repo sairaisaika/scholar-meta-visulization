@@ -1,0 +1,9 @@
+node_modules
+.env*
+!.env.example
+coverage/
+dist/
+*.tsbuildinfo
+
+# 私有词表（每个宿主自己的，不进仓；见 scripts/check-private-terms.sh）
+.private-terms

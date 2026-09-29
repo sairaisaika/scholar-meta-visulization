@@ -1,0 +1,4 @@
+# 单包仓也要有这个文件：pnpm 会往上级目录找 workspace 文件，上级目录里要是恰好有别的仓留下的一份，
+# 没有本文件时 `pnpm check` 会报「packages field missing or empty」。
+packages:
+  - .
