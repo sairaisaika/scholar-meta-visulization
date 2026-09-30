@@ -70,8 +70,11 @@ Method and references: [docs/tags.md](docs/tags.md) (Chinese).
 ## Quick start
 
 ```bash
-pnpm add github:sairaisaika/scholar-meta-visulization   # not on npm yet; Next.js needs transpilePackages: ['scholar-meta']
+# Prebuilt package attached to every GitHub release (works the same with npm and yarn)
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.2.0/scholar-meta-0.2.0.tgz
 ```
+
+All versions are on [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases); changes are in the [CHANGELOG](CHANGELOG.md).
 
 ```ts
 // Server: one function wires the chain, plus a web-standard route

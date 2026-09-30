@@ -70,8 +70,11 @@ flowchart LR
 ## 快速开始
 
 ```bash
-pnpm add github:sairaisaika/scholar-meta-visulization   # 尚未发布到 npm；Next.js 需 transpilePackages: ['scholar-meta']
+# 编译好的安装包，挂在每个 GitHub release 上（npm、yarn 同样用这个链接）
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.2.0/scholar-meta-0.2.0.tgz
 ```
+
+各版本见 [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases)，改动见 [CHANGELOG](CHANGELOG.md)。
 
 ```ts
 // 服务端：一个函数装起整条链，再挂一个 Web 标准路由

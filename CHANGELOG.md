@@ -3,6 +3,15 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
+## 未发布
+
+### 发版与安装
+- `release` 工作流（`.github/workflows/release.yml`，逻辑在 `scripts/release.sh`）：`main` 上 CI 跑绿后，`package.json` 的版本还没有 tag
+  就在那个提交上打 tag、建 GitHub release（说明由 `scripts/release-notes.mjs` 从 CHANGELOG 取这一版的一节），附上编译好的安装包 `scholar-meta-x.y.z.tgz`；
+  已经发过的版本只补缺的 release 或安装包，重复运行无害。仓库设了 `NPM_TOKEN` 时同时发到 npm（带来源证明）。
+- 安装改为 `pnpm add <release 上的 .tgz 链接>`（npm、yarn 同样可用）：装的是编译好的产物，不再需要 `transpilePackages`。
+- `CONTRIBUTING.md` 加「发版」一节；测试核对 CHANGELOG 能取出当前版本的一节、README 的安装链接是当前版本。
+
 ## 0.2.0（2026-09-29）
 
 ### 破坏性（BREAKING）

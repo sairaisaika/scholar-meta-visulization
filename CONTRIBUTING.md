@@ -59,6 +59,13 @@ pnpm check        # tsc + 边界闸 + 私有词闸 + jest + 打包与产物闸�
 - 在本仓工作的会话只改本仓；接入方的仓由接入方的会话去改。跨仓的约定（接口怎么用、怎么同步、耦合到什么程度）写在接入方的仓里，本仓只提供通用接口、CHANGELOG 与这份规则。
 - 需要交给接入方的材料（迁移清单、接线草图、私有的检查结果），作为文件交给维护者，不提交到本仓。
 
+## 七、发版
+
+1. 改 `package.json` 的 `version`（契约改了的话 `EVIDENCE_CONTRACT_VERSION` 一起改），跑 `pnpm manifest` 重新生成插件清单（清单里带版本号），把 CHANGELOG 顶上「未发布」一节改名为 `## x.y.z（日期）`，README 两份里的安装链接换成新版本（测试会核对）；
+2. `pnpm check`，推到 `main`；
+3. CI 跑绿后，`release` 工作流在这个提交上打 tag `vx.y.z`、建 GitHub release（说明取 CHANGELOG 这一节），附上编译好的安装包 `scholar-meta-x.y.z.tgz`；
+   仓库设了 `NPM_TOKEN` 这个 secret 时同时发到 npm。已经发过的版本不会重发，只补缺的 release 或安装包（`scripts/release.sh`）。
+
 ---
 
 ## Contributing (English summary)
@@ -66,3 +73,4 @@ pnpm check        # tsc + 边界闸 + 私有词闸 + jest + 打包与产物闸�
 This repository is an open-source, **host-agnostic** engine. Never commit names, domains, internal paths, database schema names, internal document or decision identifiers, product plans, or personal data of any platform that integrates it — in code, docs, tests, commit messages, branch names or PR text. Host-specific sync and coupling rules, adapters, and product/project documents live in the host's own repository.
 The public interface is whatever the five entry points export (locked by `test/__snapshots__/api-surface.test.ts.snap`). The contract in `src/types.ts` is additive-only; breaking changes happen only with a minor version bump (0.x) and a CHANGELOG migration note, and `EVIDENCE_CONTRACT_VERSION` must be updated whenever the contract changes.
 Every feature needs a producer and a consumer registered in `src/features.ts`. Run `pnpm check` before committing, with a local, git-ignored `.private-terms` file listing your own platform's private terms.
+To release, bump `version` in `package.json`, run `pnpm manifest`, rename the CHANGELOG's unreleased section to that version, update the install link in both READMEs, and push to `main`: once CI is green, the `release` workflow tags the commit, creates the GitHub release with the prebuilt package attached, and publishes to npm when an `NPM_TOKEN` secret is set.
