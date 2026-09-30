@@ -136,7 +136,8 @@ const view = map ? presentEvidenceMap(map, { locale: 'zh' }) : null   // null �
 
 ```bash
 pnpm install
-pnpm check      # 类型 · 边界闸 · 私有词闸 · 测试 · 打包与产物闸
+pnpm check      # 类型 · 边界闸 · 私有词闸 · 测试 · 打包与产物闸 · 演示页
+pnpm demo       # 只构建演示页：demo/dist/index.html，浏览器直接打开
 ```
 
 ## 许可

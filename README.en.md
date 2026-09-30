@@ -136,7 +136,8 @@ const view = map ? presentEvidenceMap(map, { locale: 'en' }) : null   // null = 
 
 ```bash
 pnpm install
-pnpm check      # types · boundary gate · private-terms gate · tests · build and dist gate
+pnpm check      # types · boundary gate · private-terms gate · tests · build and dist gate · demo page
+pnpm demo       # build only the demo page: demo/dist/index.html, open it in a browser
 ```
 
 ## License

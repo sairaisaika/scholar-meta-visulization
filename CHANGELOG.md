@@ -12,6 +12,14 @@
 - 安装改为 `pnpm add <release 上的 .tgz 链接>`（npm、yarn 同样可用）：装的是编译好的产物，不再需要 `transpilePackages`。
 - `CONTRIBUTING.md` 加「发版」一节；测试核对 CHANGELOG 能取出当前版本的一节、README 的安装链接是当前版本。
 
+### 在线演示
+- `demo/`：演示页。六组虚构研究走一遍证据阶梯（森林图与汇总菱形、点估计、信天翁、效应方向、证据与缺口），
+  每一级写明满足条件的有几项、为什么不是更高一级；下半页的图种菜单可以拨格子的形状，看哪些图能画、画不了的差什么。
+  判据与文案全部来自引擎本身；页面不发任何网络请求（CSP 锁死）；中英两种语言、明暗两种配色、手机上按实际宽度排版。
+- `pnpm demo` 打成一个自带脚本与样式的 HTML（`demo/dist/index.html`），`pnpm check` 也构建它；
+  `test/demo.test.ts` 核对每个场景确实落在它声称的那一级（引擎判据一改，演示对不上就红）。
+- `.github/workflows/pages.yml`：`main` 上每次推送重新发布到 GitHub Pages；仓库还没打开 Pages 时只构建、不部署。
+
 ## 0.2.0（2026-09-29）
 
 ### 破坏性（BREAKING）

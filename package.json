@@ -110,9 +110,10 @@
     "build": "tsup && node scripts/check-dist.mjs && node scripts/manifest.mjs --check",
     "check:boundary": "bash scripts/check-boundary.sh",
     "check:private": "bash scripts/check-private-terms.sh",
-    "check": "pnpm typecheck && pnpm typecheck:src && pnpm check:boundary && pnpm check:private && pnpm test && pnpm build",
+    "check": "pnpm typecheck && pnpm typecheck:src && pnpm check:boundary && pnpm check:private && pnpm test && pnpm build && pnpm demo",
     "prepublishOnly": "pnpm check",
-    "manifest": "tsup && node scripts/manifest.mjs"
+    "manifest": "tsup && node scripts/manifest.mjs",
+    "demo": "node scripts/build-demo.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
