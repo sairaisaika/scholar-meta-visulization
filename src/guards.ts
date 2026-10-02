@@ -21,6 +21,7 @@ export function isEvidenceMapData(x: unknown): x is EvidenceMapData {
     && isObj(x.view) && (EVIDENCE_VIEW_LADDER as readonly unknown[]).includes(x.view.kind)
     && isObj(x.pooling) && typeof x.pooling.allowed === 'boolean'
     && typeof x.onsite_only === 'boolean'
+    && (x.certainty === undefined || x.certainty === null || isArr(x.certainty))
 }
 
 export function isEvidenceTagGraph(x: unknown): x is EvidenceTagGraph {

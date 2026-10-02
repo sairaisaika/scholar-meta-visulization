@@ -63,6 +63,7 @@ flowchart LR
 | 失败不等于没有研究 | 外部源失败回 `null`；「没问成」永不缓存 |
 | 站内与站外不上同一根轴 | 分层下发，各自声明分母与图注 |
 | 作者自报的数字先验形 | 写反的区间、不含点估计的区间、矛盾的方向都会被拦下并告诉作者 |
+| 偏倚风险与证据确定性不由引擎评 | 编辑或外部综述评好传进来，必须写明谁评的；图上逐项标出（没评过不当成低风险），汇总另给去掉高风险研究的敏感性分析 |
 | 标签由谁定有规则 | 模型可以换，输出一律验形；人压过模型，同级分歧标为「有争议」且不计入；推翻上一级要走修改申请，审核通过即生效 |
 
 方法与参考文献见 [docs/tags.md](docs/tags.md)。
@@ -71,7 +72,7 @@ flowchart LR
 
 ```bash
 # 编译好的安装包，挂在每个 GitHub release 上（npm、yarn 同样用这个链接）
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.2.1/scholar-meta-0.2.1.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.3.0/scholar-meta-0.3.0.tgz
 ```
 
 各版本见 [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases)，改动见 [CHANGELOG](CHANGELOG.md)。

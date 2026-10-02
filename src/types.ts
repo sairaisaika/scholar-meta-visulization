@@ -28,7 +28,7 @@
  * 契约版本：本文件最近一次变化随的那个包版本。接入方拷贝本文件时据此核对（CHANGELOG 里必须有这一版的一节，
  * 破坏性改动写在那一节的「破坏性」下）。改本文件时把它改成将要发布的版本号（见 CONTRIBUTING.md 第三节）。
  */
-export const EVIDENCE_CONTRACT_VERSION = '0.2.1'
+export const EVIDENCE_CONTRACT_VERSION = '0.3.0'
 
 /** 文献来源。站内文章与站外文献在本层**同形**——这正是「加一个源 = 加一行」的前提。`onsite` = 宿主自己的文章（任何站点）。 */
 export type EvidenceSourceId =
@@ -63,8 +63,13 @@ export const EVIDENCE_EFFECT_METRICS = [
 ] as const satisfies readonly EvidenceEffectMetric[]
 
 export interface EvidenceEffect {
+  /** 效应量度量。只有精确 p 与样本量时也要写：信天翁图的等效应线按它画 */
   metric: EvidenceEffectMetric
-  value: number
+  /**
+   * 点估计；`null` ⇒ 没有点估计（只申报了精确 p 与样本量：能进 albatross 级，进不了 estimates / forest 级）。
+   * 0.3.0 起可以是 `null`（此前这种情况只能写 `NaN`，而 `NaN` 经过 JSON 就成了 `null`，类型对不上）；引擎把 `NaN` 也当作没有。
+   */
+  value: number | null
   /** 95% CI 下界 / 上界；缺一即「有点估计无方差」，只能降到 estimates 级（Cochrane 12.2.1.1）。 */
   ci_low: number | null
   ci_high: number | null
@@ -98,6 +103,38 @@ export interface EvidenceProvenance {
   license: string
   /** ISO 时间串 */
   retrieved_at: string
+}
+
+// ── 偏倚风险（0.3.0 加法）────────────────────────────────────────────────────────────
+// 引擎**不评**偏倚风险：由接入方的编辑或外部系统综述评好传进来，引擎只核形状、如实转述（带上是谁评的），
+// 并只在两处按成文的规则用它：图上逐项标出；汇总时另给一个去掉高风险研究的敏感性分析（主分析不变）。
+
+/**
+ * 偏倚风险工具：`rob2` 随机试验（Sterne et al. 2019, *BMJ* 366:l4898, doi:10.1136/bmj.l4898）·
+ * `robins_i` 干预的非随机研究（Sterne et al. 2016, *BMJ* 355:i4919, doi:10.1136/bmj.i4919）·
+ * `other` 别的工具，总体判断折成 low / some_concerns / high / unclear 四档。
+ */
+export const EVIDENCE_ROB_TOOLS = ['rob2', 'robins_i', 'other'] as const
+export type EvidenceRobTool = (typeof EVIDENCE_ROB_TOOLS)[number]
+
+/** 总体判断的全部取值；每种工具只认自己那几档（`EVIDENCE_ROB_SCALES`）。 */
+export const EVIDENCE_ROB_JUDGEMENTS = ['low', 'some_concerns', 'high', 'moderate', 'serious', 'critical', 'no_information', 'unclear'] as const
+export type EvidenceRobJudgement = (typeof EVIDENCE_ROB_JUDGEMENTS)[number]
+
+/** 每种工具的总体判断档位，按风险从低到高；「信息不足」「不清楚」放最后。 */
+export const EVIDENCE_ROB_SCALES: { readonly [T in EvidenceRobTool]: readonly EvidenceRobJudgement[] } = {
+  rob2: ['low', 'some_concerns', 'high'],
+  robins_i: ['low', 'moderate', 'serious', 'critical', 'no_information'],
+  other: ['low', 'some_concerns', 'high', 'unclear'],
+}
+
+/** 一项研究的偏倚风险（工具的总体判断）。 */
+export interface EvidenceRiskOfBias {
+  tool: EvidenceRobTool
+  /** 必须是这种工具的档位之一 */
+  overall: EvidenceRobJudgement
+  /** 谁评的（「本站编辑」「某篇系统综述」……）。必填：读者有权知道这个判断从哪来 */
+  source: string
 }
 
 /** 归一化的一条「证据」。站内文章与站外文献都落这个形状。 */
@@ -136,6 +173,11 @@ export interface EvidenceRecord {
    * 站内记录身上的标签（**原文**，未归一；0.2.0 加法）。标签层（`src/tags.ts`）据此算别名组与共现图；外部记录不带。
    */
   tags?: string[]
+  /**
+   * 偏倚风险（0.3.0 加法）：编辑或外部综述评好的总体判断，引擎不评。外部源恒不带。
+   * 缺省 / null ＝ 没评过：图上标「未评估」，**不当成低风险**。
+   */
+  risk_of_bias?: EvidenceRiskOfBias | null
 }
 
 /**
@@ -246,6 +288,25 @@ export interface EvidencePooling {
    * 旧服务端不下发时 UI 不画菱形。
    */
   estimate?: EvidencePooledEstimate | null
+  /**
+   * 敏感性分析（0.3.0 加法）：去掉偏倚风险高的研究后重新判、重新算（见 `EvidencePoolingSensitivity`）。
+   * 只在主分析能汇总、且参与汇总的研究里至少有一项高风险时下发；其他情况不下发或为 null。
+   */
+  sensitivity?: EvidencePoolingSensitivity | null
+}
+
+/**
+ * 去掉偏倚风险高的研究（RoB 2「high」、ROBINS-I「serious」「critical」、其他工具「high」）之后的汇总判定与估计。
+ * 主分析不变：这是 Cochrane Handbook v6.5 §10.14（敏感性分析）举的做法——看结论靠不靠得住高风险研究。
+ * 剩下的研究同样要过汇总的全部门槛（同一度量、同一方向、同类设计、至少 5 项），过不了就只给理由、不给数。
+ */
+export interface EvidencePoolingSensitivity {
+  /** 去掉了几项 */
+  excluded: number
+  allowed: boolean
+  reason: EvidencePoolingReason
+  studies: number
+  estimate: EvidencePooledEstimate | null
 }
 
 /**
@@ -311,6 +372,42 @@ export interface EvidenceMapData {
    * 筛掉记录时边随之剪掉（`applyEvidenceFilters`）。缺省 = 消费方还没接边，UI 只画点不画线。
    */
   edges?: EvidenceEdge[]
+  /**
+   * 证据确定性评级（0.3.0 加法）：接入方的编辑或外部综述按结局评好的 GRADE 等级，引擎不评。
+   * 不下发 ＝ 没接评级；`[]` ＝ 这个范围没有评级；`null` ＝ 这次没取到（**不是**「没有评级」）。
+   */
+  certainty?: EvidenceCertainty[] | null
+}
+
+// ── 证据确定性（0.3.0 加法）──────────────────────────────────────────────────────────
+// GRADE（Guyatt et al. 2011, *J Clin Epidemiol* 64(4):383–394, doi:10.1016/j.jclinepi.2010.04.026）：
+// 对**一个结局**的一组证据评四档；随机试验起点高、观察性研究起点低，按五个方面降级、三个理由升级。引擎不评，只转述。
+
+/** 四档（各档的含义见 Balshem et al. 2011, *J Clin Epidemiol* 64(4):401–406, doi:10.1016/j.jclinepi.2010.07.015）。 */
+export const EVIDENCE_CERTAINTY_LEVELS = ['high', 'moderate', 'low', 'very_low'] as const
+export type EvidenceCertaintyLevel = (typeof EVIDENCE_CERTAINTY_LEVELS)[number]
+
+/** 降级的五个方面：偏倚风险、不一致、间接、不精确、发表偏倚。 */
+export const EVIDENCE_CERTAINTY_DOWNGRADES = ['risk_of_bias', 'inconsistency', 'indirectness', 'imprecision', 'publication_bias'] as const
+export type EvidenceCertaintyDowngrade = (typeof EVIDENCE_CERTAINTY_DOWNGRADES)[number]
+
+/** 升级的三个理由（Guyatt et al. 2011, *J Clin Epidemiol* 64(12):1311–1316, doi:10.1016/j.jclinepi.2011.06.004）：效应大、剂量反应、可能的混杂只会削弱所见效应。 */
+export const EVIDENCE_CERTAINTY_UPGRADES = ['large_effect', 'dose_response', 'plausible_confounding'] as const
+export type EvidenceCertaintyUpgrade = (typeof EVIDENCE_CERTAINTY_UPGRADES)[number]
+
+/** 一条证据确定性评级。 */
+export interface EvidenceCertainty {
+  level: EvidenceCertaintyLevel
+  /** 评的是哪个结局（GRADE 按结局评，不按整个话题）。必填 */
+  outcome: string
+  /** 谁评的（「本站编辑」「某篇系统综述的结果汇总表」……）。必填 */
+  source: string
+  /** 评级出处的链接（只收 http / https） */
+  url?: string | null
+  /** 因为哪些方面降了级 */
+  rated_down_for?: EvidenceCertaintyDowngrade[]
+  /** 因为哪些理由升了级 */
+  rated_up_for?: EvidenceCertaintyUpgrade[]
 }
 
 export type EvidenceExternalMatch = 'matched' | 'no_match' | 'unavailable' | 'not_queried' | 'needs_review'
@@ -830,8 +927,11 @@ export const EVIDENCE_INTAKE_ISSUES = [
   'invalid_year', 'invalid_url', 'invalid_doi',               // 清空字段
   'tag_invalid', 'too_many_tags',                             // 丢掉个别标签
   'unknown_study_design', 'unknown_claim', 'unknown_direction',
-  'unknown_metric', 'effect_not_finite', 'ratio_not_positive', 'value_out_of_range', // 效应量整个清空
+  'unknown_metric',                                           // 效应量整个清空
+  'effect_not_finite', 'ratio_not_positive', 'value_out_of_range', // 清空点估计（精确 p、样本量照收；什么都没留下才整个清空）；区间越界时只清区间
   'ci_incomplete', 'ci_inverted', 'ci_excludes_estimate',     // 只清空置信区间
+  'ci_without_estimate',                                      // 只清空置信区间（0.3.0 加法：没有点估计的区间核不了）
+  'unknown_rob_tool', 'rob_judgement_invalid', 'rob_source_missing', // 偏倚风险整个清空（0.3.0 加法）
   'n_invalid', 'p_invalid',
   'direction_conflicts_effect',                               // 方向改为 unclear、orientation 清空
   'claim_conflicts_ci', 'p_conflicts_ci',                     // 只做标记

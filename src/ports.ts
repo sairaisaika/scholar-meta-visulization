@@ -6,12 +6,13 @@
  *   · `TagBindingStore`      编辑确认过的「标签 → 主题」绑定存在哪（一张小表就够）；
  *   · `EvidenceCache`        外部源的结果缓存在哪（KV / Redis / 数据库表；值都是可 JSON 序列化的对象）；
  *   · `ExternalEvidenceSource` 外部文献源（OpenAlex 适配器实现了它；加一个源 = 实现这个接口）；
- *   · `WorkTagSource`        可选：标签账本的生效结论（`createTagLedger(...)` 本身就是一个）。
+ *   · `WorkTagSource`        可选：标签账本的生效结论（`createTagLedger(...)` 本身就是一个）；
+ *   · `CertaintySource`      可选：编辑或外部综述评好的证据确定性（GRADE）存在哪（引擎不评级）。
  * 这就是「加一个源 = 加一个适配器、宿主换存储 = 换一个端口实现」的全部接缝。
  */
 import type {
-  EvidenceCountScope, EvidenceCountsData, EvidenceRecord, EvidenceScaleLevel, EvidenceSourceId, EvidenceTagBinding, EvidenceTopic,
-  EvidenceWorkTag,
+  EvidenceCertainty, EvidenceCountScope, EvidenceCountsData, EvidenceRecord, EvidenceScaleLevel, EvidenceSourceId, EvidenceTagBinding,
+  EvidenceTopic, EvidenceWorkTag,
 } from './types'
 import { normalizeTag } from './tags'
 
@@ -80,6 +81,15 @@ export interface TagBindingStore {
   getMany?(tagKeys: readonly string[]): Promise<Map<string, EvidenceTagBinding>>
 }
 
+/**
+ * 证据确定性评级（0.3.0）：编辑或外部综述按结局评好的 GRADE 等级。引擎不评，只按范围取来、验形、转述。
+ * 范围：标签级 `{ level: 'tag', id: 标签键 }`；外部节点 `{ level: 'topic' | …, id: '<source>:<external_id>' }`。
+ * 约定同外部源：`[]` ＝ 这个范围没有评级；`null`（或抛错）＝ 这次没取到——UI 不许说成「没有评级」。
+ */
+export interface CertaintySource {
+  forScope(scope: { level: EvidenceScaleLevel; id: string }): Promise<readonly unknown[] | null>
+}
+
 /** 缓存。值都是可 JSON 序列化的对象；`get` 未命中回 undefined。实现可以抛错——服务层会吞掉并照常取数。 */
 export interface EvidenceCache {
   get(key: string): Promise<unknown | undefined>
@@ -134,6 +144,17 @@ export function createMemoryBindingStore(initial: readonly EvidenceTagBinding[] 
  * 内存文章源：给一个数组（或每次现取的函数），按归一后的标签键过滤。小站点可以直接用它包一层自己的查询结果。
  * 只返回 `is_public !== false` 的行（intake 还会再防一道）。
  */
+/** 内存里的评级表（测试 / 演示 / 小站点）：`{ level, id }` → 评级列表。 */
+export function createMemoryCertaintySource(
+  entries: ReadonlyArray<{ scope: { level: EvidenceScaleLevel; id: string }; certainty: EvidenceCertainty }>,
+): CertaintySource {
+  return {
+    async forScope(scope) {
+      return entries.filter((e) => e.scope.level === scope.level && e.scope.id === scope.id).map((e) => e.certainty)
+    },
+  }
+}
+
 export function createMemoryOnsiteSource(articles: readonly unknown[] | (() => Promise<readonly unknown[]> | readonly unknown[])): OnsiteArticleSource {
   return {
     async listArticles({ tagKeys }) {

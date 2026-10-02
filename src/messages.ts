@@ -13,9 +13,10 @@ import type {
   EvidenceScaleLevel, EvidenceSelfReportedClaim, EvidenceSettingDef, EvidenceSettingGroup, EvidenceSettingIssueCode, EvidenceSettingKey,
   EvidenceStudyDesign, EvidenceViewKind, OnsiteDimensionId,
   EvidenceChangeRequestStatus, EvidenceContributionIssueCode, EvidenceLedgerRefusal, EvidencePluginSecretKey, EvidenceTrustTier,
-  EvidenceWorkTagState,
+  EvidenceWorkTagState, EvidenceRobTool, EvidenceRobJudgement, EvidenceCertaintyLevel, EvidenceCertaintyDowngrade, EvidenceCertaintyUpgrade,
 } from './types'
 import type { ShareReliability } from './stats'
+import type { EvidenceRobBand } from './appraisal'
 
 /** 绑定徽章：人绑的 / 机器按同名绑的 / 机器第一条候选 / 编辑否决 / 没有绑定。 */
 export type BindingBadge = 'curated' | 'machine_exact' | 'machine_first_hit' | 'rejected' | 'none'
@@ -50,6 +51,21 @@ export interface EvidenceMessageTemplates {
   work_tag_decided: string
   work_tag_reviewed: string
   request_changes: string
+  /** 偏倚风险与证据确定性（0.3.0） */
+  rob_record: string
+  rob_not_assessed: string
+  rob_source: string
+  rob_summary: string
+  rob_missing: string
+  sensitivity: string
+  pooled_short: string
+  certainty: string
+  certainty_down: string
+  certainty_up: string
+  certainty_unavailable: string
+  list_sep: string
+  parts_sep: string
+  clause_sep: string
 }
 
 export interface EvidenceMessageCatalog {
@@ -87,6 +103,15 @@ export interface EvidenceMessageCatalog {
   contributionIssue: Record<EvidenceContributionIssueCode, string>
   /** 插件密钥（后台只显示配没配） */
   pluginSecret: Record<EvidencePluginSecretKey, { label: string; help: string }>
+  /** 偏倚风险：工具名、各工具的判断、跨工具的风险档（0.3.0） */
+  rob: { tool: Record<EvidenceRobTool, string>; judgement: Record<EvidenceRobJudgement, string>; band: Record<EvidenceRobBand, string> }
+  /** 证据确定性（GRADE）：四档名称、四档的标准含义、降级的五个方面、升级的三个理由（0.3.0） */
+  certainty: {
+    level: Record<EvidenceCertaintyLevel, string>
+    meaning: Record<EvidenceCertaintyLevel, string>
+    down: Record<EvidenceCertaintyDowngrade, string>
+    up: Record<EvidenceCertaintyUpgrade, string>
+  }
   text: EvidenceMessageTemplates
 }
 
@@ -210,10 +235,11 @@ const zh: EvidenceMessageCatalog = {
     unknown_claim: '结果类型不在可选范围内，已忽略。',
     unknown_direction: '效应方向不在可选范围内，已忽略。',
     unknown_metric: '效应量的度量类型无法识别，效应量已忽略。',
-    effect_not_finite: '效应量不是有效数字，已忽略。',
+    effect_not_finite: '点估计不是有效数字，已忽略（p 值与样本量照常保留）。',
     ratio_not_positive: '比值类效应量（OR / RR / HR）及其区间必须大于 0，已忽略。',
     value_out_of_range: '效应量超出这种度量的合法范围（相关系数在 −1 到 1，患病率在 0 到 1），已忽略。',
     ci_incomplete: '置信区间只填了一端，区间已忽略。',
+    ci_without_estimate: '只有置信区间、没有点估计，区间已忽略（核对不了点估计是否落在区间内）。',
     ci_inverted: '置信区间下限必须小于上限，区间已忽略。',
     ci_excludes_estimate: '点估计不在置信区间内，区间已忽略。',
     n_invalid: '样本量必须是正整数，已忽略。',
@@ -221,6 +247,9 @@ const zh: EvidenceMessageCatalog = {
     direction_conflicts_effect: '申报的效应方向与点估计相反：方向改为「不明确」，请重新确认「数值大是好还是坏」。',
     claim_conflicts_ci: '自报的显著性与 95% 置信区间不一致，请核对。',
     p_conflicts_ci: 'p 值与 95% 置信区间不一致，请核对。',
+    unknown_rob_tool: '偏倚风险的工具认不出（只收 RoB 2、ROBINS-I 或 other），偏倚风险已忽略。',
+    rob_judgement_invalid: '偏倚风险的总体判断不是这种工具的档位，已忽略。',
+    rob_source_missing: '偏倚风险没写是谁评的，已忽略（读者要能看到这个判断从哪来）。',
   },
   studyDesign: {
     rct: '随机对照试验', non_randomised_controlled: '非随机对照研究', cohort: '队列研究', case_control: '病例对照研究',
@@ -319,6 +348,26 @@ const zh: EvidenceMessageCatalog = {
       help: '可选。配了走你自己的额度，不配走公共额度。只放在服务器的环境变量里；引擎只把它放进请求头，永不进网址、日志与出处。',
     },
   },
+  rob: {
+    tool: { rob2: 'RoB 2', robins_i: 'ROBINS-I', other: '其他工具' },
+    judgement: {
+      low: '低风险', some_concerns: '有一些担忧', high: '高风险', moderate: '中等风险', serious: '严重风险', critical: '极严重风险',
+      no_information: '信息不足', unclear: '不清楚',
+    },
+    band: { low: '低风险', concerns: '有担忧', high: '高风险', critical: '极严重', unknown: '信息不足' },
+  },
+  certainty: {
+    level: { high: '高', moderate: '中', low: '低', very_low: '极低' },
+    // 各档含义按 Balshem et al. 2011（J Clin Epidemiol 64(4):401–406）表 2 意译
+    meaning: {
+      high: '我们非常有把握：真实效应接近估计值。',
+      moderate: '我们对效应估计有中等把握：真实效应很可能接近估计值，但也可能有实质差别。',
+      low: '我们对效应估计的把握有限：真实效应可能与估计值有实质差别。',
+      very_low: '我们对效应估计几乎没有把握：真实效应很可能与估计值有实质差别。',
+    },
+    down: { risk_of_bias: '偏倚风险', inconsistency: '结果不一致', indirectness: '间接性', imprecision: '不精确', publication_bias: '发表偏倚' },
+    up: { large_effect: '效应很大', dose_response: '有剂量反应关系', plausible_confounding: '可能的混杂只会削弱所见效应' },
+  },
   text: {
     footnote: '来源：{source}（{license}），取数于 {date}',
     query: '查询：{query}',
@@ -347,6 +396,20 @@ const zh: EvidenceMessageCatalog = {
     work_tag_decided: '{state}（由{tier}决定）',
     work_tag_reviewed: '{state}（经{tier}审核）',
     request_changes: '加：{add}；去：{remove}',
+    rob_record: '{tool}：{judgement}',
+    rob_not_assessed: '未评估偏倚风险',
+    rob_source: '评定：{source}',
+    rob_summary: '偏倚风险（{tools}）：{parts}',
+    rob_missing: '{n} 项没有评估',
+    sensitivity: '去掉 {excluded} 项偏倚风险高的研究后（剩 {k} 项）：{result}',
+    pooled_short: '{estimate}，95% 置信区间 {ci_low} 至 {ci_high}',
+    certainty: '证据确定性（GRADE）：{level}——结局「{outcome}」；评定：{source}',
+    certainty_down: '因{list}降级',
+    certainty_up: '因{list}升级',
+    certainty_unavailable: '这次没取到证据确定性评级，稍后再试。',
+    list_sep: '、',
+    parts_sep: ' · ',
+    clause_sep: '；',
   },
 }
 
@@ -455,10 +518,11 @@ const en: EvidenceMessageCatalog = {
     unknown_claim: 'The result type is not one of the allowed values and was ignored.',
     unknown_direction: 'The effect direction is not one of the allowed values and was ignored.',
     unknown_metric: 'The effect measure is not recognised; the effect size was ignored.',
-    effect_not_finite: 'The effect size is not a valid number and was ignored.',
+    effect_not_finite: 'The point estimate is not a valid number and was ignored (the p-value and sample size were kept).',
     ratio_not_positive: 'Ratio measures (OR / RR / HR) and their intervals must be greater than 0; the value was ignored.',
     value_out_of_range: 'The effect size is outside the valid range for its measure (r within −1 to 1, prevalence within 0 to 1) and was ignored.',
     ci_incomplete: 'Only one end of the confidence interval was given; the interval was ignored.',
+    ci_without_estimate: 'A confidence interval was given without a point estimate; the interval was ignored (it cannot be checked against the estimate).',
     ci_inverted: 'The lower confidence limit must be below the upper one; the interval was ignored.',
     ci_excludes_estimate: 'The point estimate lies outside its confidence interval; the interval was ignored.',
     n_invalid: 'The sample size must be a positive whole number and was ignored.',
@@ -466,6 +530,9 @@ const en: EvidenceMessageCatalog = {
     direction_conflicts_effect: 'The declared direction contradicts the point estimate. The direction was set to "unclear"; please re-check whether higher values are better.',
     claim_conflicts_ci: 'The self-reported significance disagrees with the 95% confidence interval; please check.',
     p_conflicts_ci: 'The p-value disagrees with the 95% confidence interval; please check.',
+    unknown_rob_tool: 'The risk-of-bias tool was not recognised (RoB 2, ROBINS-I or other); the risk-of-bias judgement was ignored.',
+    rob_judgement_invalid: 'The overall risk-of-bias judgement is not one of this tool’s levels; it was ignored.',
+    rob_source_missing: 'The risk-of-bias judgement does not say who made it, so it was ignored (readers need to see where it comes from).',
   },
   studyDesign: {
     rct: 'Randomised controlled trial', non_randomised_controlled: 'Non-randomised controlled study', cohort: 'Cohort study',
@@ -565,6 +632,26 @@ const en: EvidenceMessageCatalog = {
       help: 'Optional. With a key, requests use your own quota; without one, the shared quota. Keep it in a server environment variable only; the engine puts it in the request header and never in URLs, logs or provenance.',
     },
   },
+  rob: {
+    tool: { rob2: 'RoB 2', robins_i: 'ROBINS-I', other: 'Other tool' },
+    judgement: {
+      low: 'Low risk', some_concerns: 'Some concerns', high: 'High risk', moderate: 'Moderate risk', serious: 'Serious risk',
+      critical: 'Critical risk', no_information: 'No information', unclear: 'Unclear',
+    },
+    band: { low: 'Low', concerns: 'Some concerns', high: 'High', critical: 'Critical', unknown: 'No information' },
+  },
+  certainty: {
+    level: { high: 'High', moderate: 'Moderate', low: 'Low', very_low: 'Very low' },
+    // Balshem et al. 2011 (J Clin Epidemiol 64(4):401–406), table 2
+    meaning: {
+      high: 'We are very confident that the true effect lies close to that of the estimate of the effect.',
+      moderate: 'We are moderately confident in the effect estimate: the true effect is likely to be close to the estimate of the effect, but there is a possibility that it is substantially different.',
+      low: 'Our confidence in the effect estimate is limited: the true effect may be substantially different from the estimate of the effect.',
+      very_low: 'We have very little confidence in the effect estimate: the true effect is likely to be substantially different from the estimate of effect.',
+    },
+    down: { risk_of_bias: 'risk of bias', inconsistency: 'inconsistency', indirectness: 'indirectness', imprecision: 'imprecision', publication_bias: 'publication bias' },
+    up: { large_effect: 'a large effect', dose_response: 'a dose–response gradient', plausible_confounding: 'plausible confounding that would reduce the effect' },
+  },
   text: {
     footnote: 'Source: {source} ({license}), retrieved {date}',
     query: 'Query: {query}',
@@ -593,6 +680,20 @@ const en: EvidenceMessageCatalog = {
     work_tag_decided: '{state} (decided by {tier})',
     work_tag_reviewed: '{state} (reviewed by {tier})',
     request_changes: 'Add: {add}; remove: {remove}',
+    rob_record: '{tool}: {judgement}',
+    rob_not_assessed: 'Risk of bias not assessed',
+    rob_source: 'Assessed by {source}',
+    rob_summary: 'Risk of bias ({tools}): {parts}',
+    rob_missing: '{n} not assessed',
+    sensitivity: 'Excluding studies at high risk of bias ({excluded} removed, {k} left): {result}',
+    pooled_short: '{estimate}, 95% CI {ci_low} to {ci_high}',
+    certainty: 'Certainty of evidence (GRADE): {level} for “{outcome}”; assessed by {source}',
+    certainty_down: 'rated down for {list}',
+    certainty_up: 'rated up for {list}',
+    certainty_unavailable: 'The certainty-of-evidence ratings could not be loaded this time; please try again later.',
+    list_sep: ', ',
+    parts_sep: ' · ',
+    clause_sep: '; ',
   },
 }
 

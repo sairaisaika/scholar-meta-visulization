@@ -1,0 +1,1661 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`行为回归快照 入库验形：一批脏数据（问题清单与入库后的关键字段） 1`] = `
+[
+  {
+    "issues": [],
+    "record": {
+      "claim": null,
+      "direction": "favours",
+      "doi": null,
+      "effect": {
+        "ci_high": 0.5,
+        "ci_low": 0.1,
+        "higher_is_better": true,
+        "metric": "smd",
+        "n": 120,
+        "p_value": null,
+        "value": 0.3,
+      },
+      "id": "onsite:1",
+      "risk_of_bias": null,
+      "study_type": "rct",
+      "tags": [],
+      "url": null,
+      "year": 2023,
+    },
+  },
+  {
+    "issues": [],
+    "record": {
+      "claim": null,
+      "direction": "against",
+      "doi": null,
+      "effect": {
+        "ci_high": null,
+        "ci_low": null,
+        "higher_is_better": null,
+        "metric": "smd",
+        "n": 60,
+        "p_value": 0.2,
+        "value": null,
+      },
+      "id": "onsite:2",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "ci_inverted@effect.ci:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": {
+        "ci_high": null,
+        "ci_low": null,
+        "higher_is_better": null,
+        "metric": "or",
+        "n": null,
+        "p_value": null,
+        "value": 1.4,
+      },
+      "id": "onsite:3",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "ratio_not_positive@effect.value:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": {
+        "ci_high": null,
+        "ci_low": null,
+        "higher_is_better": null,
+        "metric": "rr",
+        "n": 30,
+        "p_value": 0.04,
+        "value": null,
+      },
+      "id": "onsite:4",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "ci_without_estimate@effect.ci:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": {
+        "ci_high": null,
+        "ci_low": null,
+        "higher_is_better": null,
+        "metric": "md",
+        "n": 40,
+        "p_value": null,
+        "value": null,
+      },
+      "id": "onsite:5",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "direction_conflicts_effect@direction:value_adjusted",
+    ],
+    "record": {
+      "claim": null,
+      "direction": "unclear",
+      "doi": null,
+      "effect": {
+        "ci_high": 0.8,
+        "ci_low": 0.2,
+        "higher_is_better": null,
+        "metric": "smd",
+        "n": null,
+        "p_value": null,
+        "value": 0.5,
+      },
+      "id": "onsite:6",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "claim_conflicts_ci@claim:flagged",
+      "p_conflicts_ci@effect.p_value:flagged",
+    ],
+    "record": {
+      "claim": "significant",
+      "direction": null,
+      "doi": null,
+      "effect": {
+        "ci_high": 0.5,
+        "ci_low": -0.1,
+        "higher_is_better": null,
+        "metric": "smd",
+        "n": null,
+        "p_value": 0.01,
+        "value": 0.2,
+      },
+      "id": "onsite:7",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "n_invalid@effect.n:field_cleared",
+      "p_invalid@effect.p_value:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": {
+        "ci_high": null,
+        "ci_low": null,
+        "higher_is_better": null,
+        "metric": "smd",
+        "n": null,
+        "p_value": null,
+        "value": 0.1,
+      },
+      "id": "onsite:8",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "unknown_metric@effect.metric:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": null,
+      "id": "onsite:9",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": null,
+      "id": "onsite:10",
+      "risk_of_bias": {
+        "overall": "serious",
+        "source": "Editor",
+        "tool": "robins_i",
+      },
+      "study_type": "cohort",
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "rob_judgement_invalid@risk_of_bias.overall:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": null,
+      "id": "onsite:11",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "rob_source_missing@risk_of_bias.source:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": null,
+      "id": "onsite:12",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "tag_invalid@tags:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": null,
+      "id": "onsite:13",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [
+        "#ADHD",
+        "Self-Esteem",
+      ],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "invalid_url@url:field_cleared",
+      "invalid_doi@doi:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": null,
+      "id": "onsite:14",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+  {
+    "issues": [
+      "not_public@is_public:record_dropped",
+    ],
+    "record": null,
+  },
+  {
+    "issues": [
+      "retracted@is_retracted:record_dropped",
+    ],
+    "record": null,
+  },
+  {
+    "issues": [
+      "missing_id@id:record_dropped",
+    ],
+    "record": null,
+  },
+  {
+    "issues": [
+      "invalid_year@year:field_cleared",
+    ],
+    "record": {
+      "claim": null,
+      "direction": null,
+      "doi": null,
+      "effect": null,
+      "id": "onsite:18",
+      "risk_of_bias": null,
+      "study_type": null,
+      "tags": [],
+      "url": null,
+      "year": null,
+    },
+  },
+]
+`;
+
+exports[`行为回归快照 图种菜单：格子形状的网格（每行：形状 → 能画的图；画不了的写原因） 1`] = `
+"P b0 - - - → ✓ nodes,list ✗ bar:too_few_buckets,timeseries:needs_year,waffle:too_few_buckets,treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b0 - - O → ✓ nodes,list,upset ✗ bar:too_few_buckets,timeseries:needs_year,waffle:too_few_buckets,treemap:too_few_buckets,lorenz:too_few_buckets,egm:needs_cross,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b0 - X - → ✓ nodes,list,egm ✗ bar:too_few_buckets,timeseries:needs_year,waffle:too_few_buckets,treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b0 - X O → ✓ nodes,list,upset,egm ✗ bar:too_few_buckets,timeseries:needs_year,waffle:too_few_buckets,treemap:too_few_buckets,lorenz:too_few_buckets,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b0 Y - - → ✓ nodes,list,timeseries ✗ bar:too_few_buckets,waffle:too_few_buckets,treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b0 Y - O → ✓ nodes,list,timeseries,upset ✗ bar:too_few_buckets,waffle:too_few_buckets,treemap:too_few_buckets,lorenz:too_few_buckets,egm:needs_cross,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b0 Y X - → ✓ nodes,list,timeseries,egm ✗ bar:too_few_buckets,waffle:too_few_buckets,treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b0 Y X O → ✓ nodes,list,timeseries,upset,egm ✗ bar:too_few_buckets,waffle:too_few_buckets,treemap:too_few_buckets,lorenz:too_few_buckets,pie:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 - - - → ✓ nodes,list,bar,waffle,pie ✗ timeseries:needs_year,treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 - - O → ✓ nodes,list,bar,waffle,upset,pie ✗ timeseries:needs_year,treemap:too_few_buckets,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 - X - → ✓ nodes,list,bar,waffle,egm,pie ✗ timeseries:needs_year,treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 - X O → ✓ nodes,list,bar,waffle,upset,egm,pie ✗ timeseries:needs_year,treemap:too_few_buckets,lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 Y - - → ✓ nodes,list,bar,timeseries,waffle,pie ✗ treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 Y - O → ✓ nodes,list,bar,timeseries,waffle,upset,pie ✗ treemap:too_few_buckets,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 Y X - → ✓ nodes,list,bar,timeseries,waffle,egm,pie ✗ treemap:too_few_buckets,upset:needs_overlap,lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b1 Y X O → ✓ nodes,list,bar,timeseries,waffle,upset,egm,pie ✗ treemap:too_few_buckets,lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 - - - → ✓ nodes,list,bar,waffle,treemap,pie ✗ timeseries:needs_year,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 - - O → ✓ nodes,list,bar,waffle,treemap,upset,pie ✗ timeseries:needs_year,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 - X - → ✓ nodes,list,bar,waffle,treemap,egm,pie ✗ timeseries:needs_year,upset:needs_overlap,lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 - X O → ✓ nodes,list,bar,waffle,treemap,upset,egm,pie ✗ timeseries:needs_year,lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 Y - - → ✓ nodes,list,bar,timeseries,waffle,treemap,pie ✗ upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 Y - O → ✓ nodes,list,bar,timeseries,waffle,treemap,upset,pie ✗ lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 Y X - → ✓ nodes,list,bar,timeseries,waffle,treemap,egm,pie ✗ upset:needs_overlap,lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b3 Y X O → ✓ nodes,list,bar,timeseries,waffle,treemap,upset,egm,pie ✗ lorenz:too_few_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 - - - → ✓ nodes,list,bar,waffle,treemap,lorenz,pie ✗ timeseries:needs_year,upset:needs_overlap,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 - - O → ✓ nodes,list,bar,waffle,treemap,upset,lorenz,pie ✗ timeseries:needs_year,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 - X - → ✓ nodes,list,bar,waffle,treemap,lorenz,egm,pie ✗ timeseries:needs_year,upset:needs_overlap,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 - X O → ✓ nodes,list,bar,waffle,treemap,upset,lorenz,egm,pie ✗ timeseries:needs_year,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 Y - - → ✓ nodes,list,bar,timeseries,waffle,treemap,lorenz,pie ✗ upset:needs_overlap,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 Y - O → ✓ nodes,list,bar,timeseries,waffle,treemap,upset,lorenz,pie ✗ egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 Y X - → ✓ nodes,list,bar,timeseries,waffle,treemap,lorenz,egm,pie ✗ upset:needs_overlap,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b7 Y X O → ✓ nodes,list,bar,timeseries,waffle,treemap,upset,lorenz,egm,pie ✗ positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 - - - → ✓ nodes,list,bar,waffle,treemap,lorenz ✗ timeseries:needs_year,upset:needs_overlap,egm:needs_cross,pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 - - O → ✓ nodes,list,bar,waffle,treemap,upset,lorenz ✗ timeseries:needs_year,egm:needs_cross,pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 - X - → ✓ nodes,list,bar,waffle,treemap,lorenz,egm ✗ timeseries:needs_year,upset:needs_overlap,pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 - X O → ✓ nodes,list,bar,waffle,treemap,upset,lorenz,egm ✗ timeseries:needs_year,pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 Y - - → ✓ nodes,list,bar,timeseries,waffle,treemap,lorenz ✗ upset:needs_overlap,egm:needs_cross,pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 Y - O → ✓ nodes,list,bar,timeseries,waffle,treemap,upset,lorenz ✗ egm:needs_cross,pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 Y X - → ✓ nodes,list,bar,timeseries,waffle,treemap,lorenz,egm ✗ upset:needs_overlap,pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b13 Y X O → ✓ nodes,list,bar,timeseries,waffle,treemap,upset,lorenz,egm ✗ pie:too_many_buckets,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 - - - → ✓ nodes,list ✗ bar:too_few_buckets,timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 - - O → ✓ nodes,list,upset ✗ bar:too_few_buckets,timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 - X - → ✓ nodes,list,egm ✗ bar:too_few_buckets,timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 - X O → ✓ nodes,list,upset,egm ✗ bar:too_few_buckets,timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 Y - - → ✓ nodes,list,timeseries ✗ bar:too_few_buckets,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 Y - O → ✓ nodes,list,timeseries,upset ✗ bar:too_few_buckets,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 Y X - → ✓ nodes,list,timeseries,egm ✗ bar:too_few_buckets,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b0 Y X O → ✓ nodes,list,timeseries,upset,egm ✗ bar:too_few_buckets,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 - - - → ✓ nodes,list,bar ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 - - O → ✓ nodes,list,bar,upset ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 - X - → ✓ nodes,list,bar,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 - X O → ✓ nodes,list,bar,upset,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 Y - - → ✓ nodes,list,bar,timeseries ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 Y - O → ✓ nodes,list,bar,timeseries,upset ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 Y X - → ✓ nodes,list,bar,timeseries,egm ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b1 Y X O → ✓ nodes,list,bar,timeseries,upset,egm ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 - - - → ✓ nodes,list,bar ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 - - O → ✓ nodes,list,bar,upset ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 - X - → ✓ nodes,list,bar,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 - X O → ✓ nodes,list,bar,upset,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 Y - - → ✓ nodes,list,bar,timeseries ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 Y - O → ✓ nodes,list,bar,timeseries,upset ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 Y X - → ✓ nodes,list,bar,timeseries,egm ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b3 Y X O → ✓ nodes,list,bar,timeseries,upset,egm ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 - - - → ✓ nodes,list,bar ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 - - O → ✓ nodes,list,bar,upset ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 - X - → ✓ nodes,list,bar,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 - X O → ✓ nodes,list,bar,upset,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 Y - - → ✓ nodes,list,bar,timeseries ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 Y - O → ✓ nodes,list,bar,timeseries,upset ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 Y X - → ✓ nodes,list,bar,timeseries,egm ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b7 Y X O → ✓ nodes,list,bar,timeseries,upset,egm ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 - - - → ✓ nodes,list,bar ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 - - O → ✓ nodes,list,bar,upset ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 - X - → ✓ nodes,list,bar,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 - X O → ✓ nodes,list,bar,upset,egm ✗ timeseries:needs_year,waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 Y - - → ✓ nodes,list,bar,timeseries ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 Y - O → ✓ nodes,list,bar,timeseries,upset ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,egm:needs_cross,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 Y X - → ✓ nodes,list,bar,timeseries,egm ✗ waffle:needs_partition,treemap:needs_partition,upset:needs_overlap,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+m b13 Y X O → ✓ nodes,list,bar,timeseries,upset,egm ✗ waffle:needs_partition,treemap:needs_partition,lorenz:needs_partition,pie:needs_partition,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b4 - - - n12 → ✓ nodes,list,bar ✗ timeseries:needs_year,waffle:needs_more_onsite,treemap:needs_more_onsite,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,pie:needs_more_onsite,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b4 - - - n40 → ✓ nodes,list,bar,waffle,treemap,pie ✗ timeseries:needs_year,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b4 - - - gate:false → ✓ nodes,list ✗ bar:needs_more_onsite,timeseries:needs_year,waffle:needs_more_onsite,treemap:needs_more_onsite,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,pie:needs_more_onsite,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b4 - - - n40 gate:true → ✓ nodes,list,bar,waffle,treemap,pie ✗ timeseries:needs_year,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size
+P b4 - - - n40 gate:false → ✓ nodes,list ✗ bar:needs_more_onsite,timeseries:needs_year,waffle:needs_more_onsite,treemap:needs_more_onsite,upset:needs_overlap,lorenz:too_few_buckets,egm:needs_cross,pie:needs_more_onsite,positive_rate:needs_onsite_significance,harvest:needs_direction,albatross:needs_exact_p,forest:needs_effect_size"
+`;
+
+exports[`行为回归快照 服务端到端：标签研究图谱（站内 + 外部示例 + 绑定 + 评级），及其中文视图模型 1`] = `
+{
+  "data": {
+    "binding": {
+      "bound_at": "2026-10-01T00:00:00.000Z",
+      "bound_by": null,
+      "confidence": "exact",
+      "kind": "machine",
+      "note": null,
+      "tag_key": "sleep",
+      "topic_id": "openalex:T8",
+      "topic_name": "Sleep",
+    },
+    "certainty": [
+      {
+        "level": "low",
+        "outcome": "Sleep quality",
+        "rated_down_for": [
+          "imprecision",
+        ],
+        "source": "Review X",
+        "url": null,
+      },
+    ],
+    "edges": [],
+    "external_match": "matched",
+    "focus": {
+      "description": null,
+      "display_name": "Sleep",
+      "external_id": "sleep",
+      "id": "onsite:sleep",
+      "level": "tag",
+      "parent_id": "openalex:T8",
+      "source": "onsite",
+      "works_count": 2,
+    },
+    "level": "tag",
+    "onsite_only": false,
+    "parent": {
+      "description": null,
+      "display_name": "Sleep",
+      "external_id": "T8",
+      "id": "openalex:T8",
+      "level": "topic",
+      "parent_id": "openalex:2802",
+      "source": "openalex",
+      "works_count": 100,
+    },
+    "pooling": {
+      "allowed": false,
+      "estimate": null,
+      "reason": "too_few_studies",
+      "studies": 1,
+    },
+    "records": [
+      {
+        "authors": [],
+        "cited_by_count": null,
+        "direction": "favours",
+        "doi": null,
+        "effect": {
+          "ci_high": 0.7,
+          "ci_low": 0.1,
+          "higher_is_better": true,
+          "metric": "smd",
+          "n": 90,
+          "p_value": null,
+          "value": 0.4,
+        },
+        "external_id": "1",
+        "id": "onsite:1",
+        "is_open_access": null,
+        "is_retracted": false,
+        "provenance": {
+          "license": "CC BY 4.0",
+          "retrieved_at": "2026-10-01T00:00:00.000Z",
+          "source_label": "Site",
+        },
+        "publication_type": null,
+        "risk_of_bias": {
+          "overall": "some_concerns",
+          "source": "Editor",
+          "tool": "rob2",
+        },
+        "self_reported_claim": null,
+        "source": "onsite",
+        "study_type": "rct",
+        "tags": [
+          "Sleep",
+        ],
+        "title": "A",
+        "topic_ids": [],
+        "url": null,
+        "year": 2024,
+      },
+      {
+        "authors": [],
+        "cited_by_count": null,
+        "direction": null,
+        "doi": null,
+        "effect": null,
+        "external_id": "2",
+        "id": "onsite:2",
+        "is_open_access": null,
+        "is_retracted": false,
+        "provenance": {
+          "license": "CC BY 4.0",
+          "retrieved_at": "2026-10-01T00:00:00.000Z",
+          "source_label": "Site",
+        },
+        "publication_type": null,
+        "self_reported_claim": "significant",
+        "source": "onsite",
+        "study_type": "cohort",
+        "tags": [
+          "sleep",
+          "stress",
+        ],
+        "title": "B",
+        "topic_ids": [],
+        "url": null,
+        "year": 2023,
+      },
+      {
+        "authors": [],
+        "cited_by_count": 50,
+        "direction": null,
+        "doi": null,
+        "effect": null,
+        "external_id": "W1",
+        "id": "openalex:W1",
+        "is_open_access": true,
+        "is_retracted": false,
+        "provenance": {
+          "license": "CC0 1.0",
+          "retrieved_at": "2026-10-01T00:00:00Z",
+          "source_label": "OpenAlex",
+        },
+        "publication_type": "article",
+        "self_reported_claim": null,
+        "source": "openalex",
+        "study_type": null,
+        "title": "External",
+        "topic_ids": [
+          "openalex:T8",
+        ],
+        "url": null,
+        "year": 2021,
+      },
+    ],
+    "siblings": [],
+    "sources": [
+      {
+        "license": "CC BY 4.0",
+        "retrieved_at": "2026-10-01T00:00:00.000Z",
+        "source_label": "Site",
+      },
+      {
+        "license": "CC0 1.0",
+        "retrieved_at": "2026-10-01T00:00:00Z",
+        "source_label": "OpenAlex",
+      },
+    ],
+    "view": {
+      "downgrade_reason": null,
+      "kind": "forest",
+      "total": 3,
+      "usable": 1,
+    },
+  },
+  "view": {
+    "binding": {
+      "badge": "machine_exact",
+      "caveat": {
+        "key": "machine_binding",
+        "text": "这个标签对应的主题是按名字自动匹配的，还没有经过人工确认，可能配错。",
+      },
+      "status_text": "已对应到外部文献库的主题。",
+      "text": "自动匹配（名称相同）：「Sleep」",
+    },
+    "caveats": [
+      {
+        "key": "machine_binding",
+        "text": "这个标签对应的主题是按名字自动匹配的，还没有经过人工确认，可能配错。",
+      },
+      {
+        "key": "sample_not_population",
+        "text": "列表只是示例（被引最多的几篇），不代表全体；被引多说明受关注，不说明结论可靠。",
+      },
+      {
+        "key": "onsite_self_selected",
+        "text": "站内文章是作者自己选题写的，不是按检索式系统收集的样本，不代表这个领域的文献全貌。",
+      },
+      {
+        "key": "self_reported",
+        "text": "研究设计、结果类型、效应量都是作者自报的，没有经过独立核验。",
+      },
+      {
+        "key": "small_corpus",
+        "text": "记录不到 30 条：比例和关联强度都很不稳定，只宜当线索。",
+      },
+    ],
+    "certainty": [
+      {
+        "label": "低",
+        "level": "low",
+        "meaning": "我们对效应估计的把握有限：真实效应可能与估计值有实质差别。",
+        "reasons_text": "因不精确降级",
+        "symbol": "⊕⊕◯◯",
+        "text": "证据确定性（GRADE）：低——结局「Sleep quality」；评定：Review X",
+        "url": null,
+      },
+    ],
+    "counts_text": [
+      "站内文章 2 篇",
+      "外部文献只列了被引最多的 1 篇：示例，不代表全体",
+    ],
+    "edges": {
+      "cites": 0,
+      "shares_tag": 0,
+    },
+    "external_count": 1,
+    "footnotes": [
+      "来源：Site（CC BY 4.0），取数于 2026-10-01",
+      "来源：OpenAlex（CC0 1.0），取数于 2026-10-01",
+    ],
+    "level_text": "标签",
+    "notices": [],
+    "onsite_count": 2,
+    "risk_of_bias": {
+      "assessed": 1,
+      "by_band": {
+        "concerns": 1,
+        "critical": 0,
+        "high": 0,
+        "low": 0,
+        "unknown": 0,
+      },
+      "missing_text": "2 项没有评估",
+      "text": "偏倚风险（RoB 2）：有担忧 1",
+      "total": 3,
+    },
+    "title": "Sleep",
+    "view": {
+      "estimate_text": null,
+      "kind": "forest",
+      "pooling_allowed": false,
+      "pooling_text": "满足条件的研究不到 5 项，不画汇总菱形。",
+      "sensitivity_text": null,
+      "title": "森林图：逐项效应与置信区间",
+      "usable_text": "1 / 3 条记录满足这一级的要求",
+      "why_not_higher": null,
+    },
+  },
+}
+`;
+
+exports[`行为回归快照 标签：归一、挑机器候选、绑定结论 1`] = `
+{
+  "bindings": [
+    {
+      "binding": {
+        "bound_at": "2026-10-01T00:00:00Z",
+        "bound_by": null,
+        "confidence": "first_hit",
+        "kind": "machine",
+        "note": null,
+        "tag_key": "adhd",
+        "topic_id": "openalex:T1",
+        "topic_name": "Attention Deficit Hyperactivity Disorder",
+      },
+      "external_match": "matched",
+    },
+    {
+      "binding": {
+        "bound_at": "2026-10-01T00:00:00Z",
+        "bound_by": null,
+        "confidence": "exact",
+        "kind": "machine",
+        "note": null,
+        "tag_key": "sleep",
+        "topic_id": "openalex:T2",
+        "topic_name": "Sleep",
+      },
+      "external_match": "matched",
+    },
+    {
+      "binding": null,
+      "external_match": "unavailable",
+    },
+    {
+      "binding": null,
+      "external_match": "needs_review",
+    },
+    {
+      "binding": {
+        "bound_at": "2026-10-01T00:00:00Z",
+        "bound_by": null,
+        "confidence": "exact",
+        "kind": "machine",
+        "note": null,
+        "tag_key": "sleep",
+        "topic_id": "openalex:T2",
+        "topic_name": "Sleep",
+      },
+      "external_match": "matched",
+    },
+    {
+      "binding": null,
+      "external_match": "unavailable",
+    },
+    {
+      "binding": null,
+      "external_match": "not_queried",
+    },
+    {
+      "binding": null,
+      "external_match": "not_queried",
+    },
+    {
+      "binding": null,
+      "external_match": "not_queried",
+    },
+  ],
+  "normalized": [
+    [
+      "ADHD",
+      "adhd",
+    ],
+    [
+      "#adhd",
+      "adhd",
+    ],
+    [
+      "ＡＤＨＤ",
+      "adhd",
+    ],
+    [
+      "Self_Esteem",
+      "self esteem",
+    ],
+    [
+      "self — esteem",
+      "self esteem",
+    ],
+    [
+      "COVID-19",
+      "covid 19",
+    ],
+    [
+      "焦虑",
+      "焦虑",
+    ],
+    [
+      "焦慮",
+      "焦慮",
+    ],
+    [
+      "焦虑　症",
+      "焦虑 症",
+    ],
+    [
+      "  ",
+      null,
+    ],
+    [
+      "a​dhd",
+      "adhd",
+    ],
+  ],
+  "picks": [
+    {
+      "candidate": {
+        "display_name": "ADHD",
+        "topic_id": "openalex:4",
+      },
+      "confidence": "exact",
+    },
+    {
+      "candidate": {
+        "display_name": "Plasma Diagnostics and Applications",
+        "topic_id": "openalex:35",
+      },
+      "confidence": "first_hit",
+    },
+    null,
+  ],
+}
+`;
+
+exports[`行为回归快照 站内层与共现图：固定的一组站内记录 1`] = `
+{
+  "graph": {
+    "caveats": [
+      "onsite_self_selected",
+      "cooccurrence_not_citation",
+    ],
+    "collapsed": {
+      "edges": 0,
+      "tags": 0,
+    },
+    "edges": [
+      {
+        "a": "adhd",
+        "b": "sleep",
+        "count": 18,
+        "jaccard": 0.6,
+        "lift": 1.125,
+      },
+      {
+        "a": "adhd",
+        "b": "anxiety",
+        "count": 12,
+        "jaccard": 0.4,
+        "lift": 1,
+      },
+      {
+        "a": "anxiety",
+        "b": "stress",
+        "count": 6,
+        "jaccard": 0.25,
+        "lift": 1,
+      },
+      {
+        "a": "adhd",
+        "b": "stress",
+        "count": 6,
+        "jaccard": 0.2,
+        "lift": 0.75,
+      },
+      {
+        "a": "sleep",
+        "b": "stress",
+        "count": 6,
+        "jaccard": 0.2,
+        "lift": 0.75,
+      },
+      {
+        "a": "anxiety",
+        "b": "sleep",
+        "count": 6,
+        "jaccard": 0.1666666667,
+        "lift": 0.5,
+      },
+    ],
+    "focus": null,
+    "min_support": 2,
+    "nodes": [
+      {
+        "count": 24,
+        "key": "adhd",
+        "label": "ADHD",
+        "topic_id": null,
+      },
+      {
+        "count": 24,
+        "key": "sleep",
+        "label": "sleep",
+        "topic_id": null,
+      },
+      {
+        "count": 18,
+        "key": "anxiety",
+        "label": "anxiety",
+        "topic_id": null,
+      },
+      {
+        "count": 12,
+        "key": "stress",
+        "label": "stress",
+        "topic_id": null,
+      },
+    ],
+    "provenance": {
+      "credits": 0,
+      "license": "unspecified",
+      "query": "onsite:tag_cooccurrence?min_support=2",
+      "retrieved_at": "2026-10-01T00:00:00Z",
+      "source_label": "On-site articles",
+    },
+    "records": 36,
+  },
+  "layer": {
+    "availability": {
+      "publication_type": [
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "nodes",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "list",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "bar",
+        },
+        {
+          "available": false,
+          "blocker": "needs_year",
+          "kind": "timeseries",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "waffle",
+        },
+        {
+          "available": false,
+          "blocker": "too_few_buckets",
+          "kind": "treemap",
+        },
+        {
+          "available": false,
+          "blocker": "needs_overlap",
+          "kind": "upset",
+        },
+        {
+          "available": false,
+          "blocker": "too_few_buckets",
+          "kind": "lorenz",
+        },
+        {
+          "available": false,
+          "blocker": "needs_cross",
+          "kind": "egm",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "pie",
+        },
+        {
+          "available": false,
+          "blocker": "needs_onsite_significance",
+          "kind": "positive_rate",
+        },
+        {
+          "available": false,
+          "blocker": "needs_direction",
+          "kind": "harvest",
+        },
+        {
+          "available": false,
+          "blocker": "needs_exact_p",
+          "kind": "albatross",
+        },
+        {
+          "available": false,
+          "blocker": "needs_effect_size",
+          "kind": "forest",
+        },
+      ],
+      "publication_year": [
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "nodes",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "list",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "bar",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "timeseries",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "waffle",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "treemap",
+        },
+        {
+          "available": false,
+          "blocker": "needs_overlap",
+          "kind": "upset",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "lorenz",
+        },
+        {
+          "available": false,
+          "blocker": "needs_cross",
+          "kind": "egm",
+        },
+        {
+          "available": false,
+          "blocker": "too_many_buckets",
+          "kind": "pie",
+        },
+        {
+          "available": false,
+          "blocker": "needs_onsite_significance",
+          "kind": "positive_rate",
+        },
+        {
+          "available": false,
+          "blocker": "needs_direction",
+          "kind": "harvest",
+        },
+        {
+          "available": false,
+          "blocker": "needs_exact_p",
+          "kind": "albatross",
+        },
+        {
+          "available": false,
+          "blocker": "needs_effect_size",
+          "kind": "forest",
+        },
+      ],
+      "self_reported_claim": [
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "nodes",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "list",
+        },
+        {
+          "available": false,
+          "blocker": "needs_more_onsite",
+          "kind": "bar",
+        },
+        {
+          "available": false,
+          "blocker": "needs_year",
+          "kind": "timeseries",
+        },
+        {
+          "available": false,
+          "blocker": "needs_more_onsite",
+          "kind": "waffle",
+        },
+        {
+          "available": false,
+          "blocker": "too_few_buckets",
+          "kind": "treemap",
+        },
+        {
+          "available": false,
+          "blocker": "needs_overlap",
+          "kind": "upset",
+        },
+        {
+          "available": false,
+          "blocker": "too_few_buckets",
+          "kind": "lorenz",
+        },
+        {
+          "available": false,
+          "blocker": "needs_cross",
+          "kind": "egm",
+        },
+        {
+          "available": false,
+          "blocker": "needs_more_onsite",
+          "kind": "pie",
+        },
+        {
+          "available": false,
+          "blocker": "needs_onsite_significance",
+          "kind": "positive_rate",
+        },
+        {
+          "available": false,
+          "blocker": "needs_direction",
+          "kind": "harvest",
+        },
+        {
+          "available": false,
+          "blocker": "needs_exact_p",
+          "kind": "albatross",
+        },
+        {
+          "available": false,
+          "blocker": "needs_effect_size",
+          "kind": "forest",
+        },
+      ],
+      "study_type": [
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "nodes",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "list",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "bar",
+        },
+        {
+          "available": false,
+          "blocker": "needs_year",
+          "kind": "timeseries",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "waffle",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "treemap",
+        },
+        {
+          "available": false,
+          "blocker": "needs_overlap",
+          "kind": "upset",
+        },
+        {
+          "available": false,
+          "blocker": "too_few_buckets",
+          "kind": "lorenz",
+        },
+        {
+          "available": false,
+          "blocker": "needs_cross",
+          "kind": "egm",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "pie",
+        },
+        {
+          "available": false,
+          "blocker": "needs_onsite_significance",
+          "kind": "positive_rate",
+        },
+        {
+          "available": false,
+          "blocker": "needs_direction",
+          "kind": "harvest",
+        },
+        {
+          "available": false,
+          "blocker": "needs_exact_p",
+          "kind": "albatross",
+        },
+        {
+          "available": false,
+          "blocker": "needs_effect_size",
+          "kind": "forest",
+        },
+      ],
+      "tag": [
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "nodes",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "list",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "bar",
+        },
+        {
+          "available": false,
+          "blocker": "needs_year",
+          "kind": "timeseries",
+        },
+        {
+          "available": false,
+          "blocker": "needs_partition",
+          "kind": "waffle",
+        },
+        {
+          "available": false,
+          "blocker": "needs_partition",
+          "kind": "treemap",
+        },
+        {
+          "available": false,
+          "blocker": "needs_overlap",
+          "kind": "upset",
+        },
+        {
+          "available": false,
+          "blocker": "needs_partition",
+          "kind": "lorenz",
+        },
+        {
+          "available": true,
+          "blocker": null,
+          "kind": "egm",
+        },
+        {
+          "available": false,
+          "blocker": "needs_partition",
+          "kind": "pie",
+        },
+        {
+          "available": false,
+          "blocker": "needs_onsite_significance",
+          "kind": "positive_rate",
+        },
+        {
+          "available": false,
+          "blocker": "needs_direction",
+          "kind": "harvest",
+        },
+        {
+          "available": false,
+          "blocker": "needs_exact_p",
+          "kind": "albatross",
+        },
+        {
+          "available": false,
+          "blocker": "needs_effect_size",
+          "kind": "forest",
+        },
+      ],
+    },
+    "scope": {
+      "display_name": "ADHD",
+      "id": "onsite:adhd",
+      "level": "tag",
+      "tag_keys": [
+        "adhd",
+      ],
+    },
+    "series": [
+      {
+        "caveats": [
+          "onsite_self_selected",
+        ],
+        "cells": [
+          {
+            "count": 3,
+            "key": "2015",
+            "label": "2015",
+          },
+          {
+            "count": 3,
+            "key": "2016",
+            "label": "2016",
+          },
+          {
+            "count": 3,
+            "key": "2017",
+            "label": "2017",
+          },
+          {
+            "count": 3,
+            "key": "2018",
+            "label": "2018",
+          },
+          {
+            "count": 4,
+            "key": "2019",
+            "label": "2019",
+          },
+          {
+            "count": 3,
+            "key": "2020",
+            "label": "2020",
+          },
+          {
+            "count": 3,
+            "key": "2021",
+            "label": "2021",
+          },
+          {
+            "count": 3,
+            "key": "2022",
+            "label": "2022",
+          },
+          {
+            "count": 3,
+            "key": "2023",
+            "label": "2023",
+          },
+        ],
+        "denominator": {
+          "kind": "works_with_value",
+          "value": 28,
+        },
+        "dimension": "publication_year",
+        "partition": true,
+        "provenance": {
+          "credits": 0,
+          "license": "unspecified",
+          "query": "onsite:group_by=publication_year",
+          "retrieved_at": "2026-10-01T00:00:00Z",
+          "source_label": "On-site articles",
+        },
+        "unknown": 8,
+      },
+      {
+        "caveats": [
+          "onsite_self_selected",
+          "self_reported",
+        ],
+        "cells": [
+          {
+            "count": 9,
+            "key": "cohort",
+            "label": "cohort",
+          },
+          {
+            "count": 9,
+            "key": "cross_sectional",
+            "label": "cross_sectional",
+          },
+          {
+            "count": 9,
+            "key": "rct",
+            "label": "rct",
+          },
+        ],
+        "denominator": {
+          "kind": "works_with_value",
+          "value": 27,
+        },
+        "dimension": "study_type",
+        "partition": true,
+        "provenance": {
+          "credits": 0,
+          "license": "unspecified",
+          "query": "onsite:group_by=study_type",
+          "retrieved_at": "2026-10-01T00:00:00Z",
+          "source_label": "On-site articles",
+        },
+        "sample_gate": {
+          "min": 1,
+          "n": 27,
+          "ok": true,
+        },
+        "unknown": 9,
+      },
+      {
+        "caveats": [
+          "onsite_self_selected",
+          "self_reported",
+          "positive_rate_not_efficacy",
+        ],
+        "cells": [
+          {
+            "count": 12,
+            "key": "non_significant",
+            "label": "non_significant",
+          },
+          {
+            "count": 12,
+            "key": "significant",
+            "label": "significant",
+          },
+        ],
+        "denominator": {
+          "kind": "works_with_value",
+          "value": 24,
+        },
+        "dimension": "self_reported_claim",
+        "partition": true,
+        "provenance": {
+          "credits": 0,
+          "license": "unspecified",
+          "query": "onsite:group_by=self_reported_claim",
+          "retrieved_at": "2026-10-01T00:00:00Z",
+          "source_label": "On-site articles",
+        },
+        "sample_gate": {
+          "min": 25,
+          "n": 24,
+          "ok": false,
+        },
+        "unknown": 12,
+      },
+    ],
+    "tag_graph": null,
+    "total": 36,
+  },
+}
+`;
+
+exports[`行为回归快照 统计：Wilson 区间与随机效应汇总（REML + HKSJ），固定输入 1`] = `
+{
+  "pooled": {
+    "ci_high": 0.5530743735,
+    "ci_low": 0.08527793753,
+    "df": 5,
+    "i2": 0.4503717633,
+    "k": 6,
+    "mu": 0.3191761555,
+    "pi_high": 0.7896708126,
+    "pi_low": -0.1513185016,
+    "q": 9.097058094,
+    "se": 0.08875211634,
+    "se_hksj": 0.09099037998,
+    "tau2": 0.02083954221,
+  },
+  "refusals": [
+    {
+      "allowed": false,
+      "reason": "not_applicable",
+      "studies": 0,
+    },
+    {
+      "allowed": false,
+      "reason": "mixed_designs",
+      "studies": 6,
+    },
+  ],
+  "wilson": [
+    [
+      0,
+      10,
+      {
+        "high": 0.2775327999,
+        "low": 0,
+      },
+    ],
+    [
+      3,
+      10,
+      {
+        "high": 0.6032218525,
+        "low": 0.1077912674,
+      },
+    ],
+    [
+      10,
+      10,
+      {
+        "high": 1,
+        "low": 0.7224672001,
+      },
+    ],
+    [
+      17,
+      40,
+      {
+        "high": 0.5780493146,
+        "low": 0.2850939256,
+      },
+    ],
+    [
+      250,
+      1000,
+      {
+        "high": 0.2777602803,
+        "low": 0.224153099,
+      },
+    ],
+  ],
+}
+`;
+
+exports[`行为回归快照 证据阶梯与汇总：演示的六个场景（判定、估计、敏感性分析、中英文案） 1`] = `
+[
+  {
+    "decision": {
+      "downgrade_reason": null,
+      "kind": "forest",
+      "total": 6,
+      "usable": 6,
+    },
+    "en": "Forest plot: study-level effects with confidence intervals | 6 of 6 records meet this level's requirements | Pooling is allowed. | Random-effects summary (Standardised mean difference (SMD), 6 studies): 0.32, 95% CI 0.09 to 0.55; 95% prediction interval −0.15 to 0.79; I² = 45% | Excluding studies at high risk of bias (1 removed, 5 left): 0.28, 95% CI 0.01 to 0.55",
+    "id": "pooled",
+    "pooling": {
+      "allowed": true,
+      "estimate": {
+        "ci_high": 0.5529457732,
+        "ci_low": 0.08521639117,
+        "df": 5,
+        "estimate": 0.3190810822,
+        "i2": 0.4498987508,
+        "k": 6,
+        "method": "reml_hksj",
+        "metric": "smd",
+        "pi_high": 0.7892272968,
+        "pi_low": -0.1510651324,
+        "q": 9.089235858,
+        "tau2": 0.02080153666,
+      },
+      "reason": "ok",
+      "sensitivity": {
+        "allowed": true,
+        "estimate": {
+          "ci_high": 0.5523451331,
+          "ci_low": 0.0110591452,
+          "df": 4,
+          "estimate": 0.2817021392,
+          "i2": 0.4547209505,
+          "k": 5,
+          "method": "reml_hksj",
+          "metric": "smd",
+          "pi_high": 0.8247845983,
+          "pi_low": -0.26138032,
+          "q": 7.335693538,
+          "tau2": 0.02011247938,
+        },
+        "excluded": 1,
+        "reason": "ok",
+        "studies": 5,
+      },
+      "studies": 6,
+    },
+    "rob": "偏倚风险（RoB 2）：低风险 3 · 有担忧 2 · 高风险 1",
+    "zh": "森林图：逐项效应与置信区间 | 6 / 6 条记录满足这一级的要求 | 可以汇总。 | 随机效应汇总（标准化均数差（SMD），6 项研究）：0.32，95% 置信区间 0.09 至 0.55；95% 预测区间 −0.15 至 0.79；I² = 45% | 去掉 1 项偏倚风险高的研究后（剩 5 项）：0.28，95% 置信区间 0.01 至 0.55",
+  },
+  {
+    "decision": {
+      "downgrade_reason": null,
+      "kind": "forest",
+      "total": 6,
+      "usable": 6,
+    },
+    "en": "Forest plot: study-level effects with confidence intervals | 6 of 6 records meet this level's requirements | Study designs differ (for example randomised and non-randomised), so the studies cannot be pooled.",
+    "id": "mixed",
+    "pooling": {
+      "allowed": false,
+      "estimate": null,
+      "reason": "mixed_designs",
+      "studies": 6,
+    },
+    "rob": "偏倚风险（RoB 2、ROBINS-I）：低风险 3 · 有担忧 2 · 高风险 1",
+    "zh": "森林图：逐项效应与置信区间 | 6 / 6 条记录满足这一级的要求 | 研究设计不一致（例如随机与非随机混在一起），不能汇总。",
+  },
+  {
+    "decision": {
+      "downgrade_reason": "no_variance",
+      "kind": "estimates",
+      "total": 6,
+      "usable": 6,
+    },
+    "en": "Point-estimate plot: no confidence intervals, so no summary diamond | 6 of 6 records meet this level's requirements | Point estimates exist, but confidence intervals or variances are missing. | Some studies lack confidence intervals, so they cannot be pooled.",
+    "id": "estimates",
+    "pooling": {
+      "allowed": false,
+      "estimate": null,
+      "reason": "no_variance",
+      "studies": 0,
+    },
+    "rob": null,
+    "zh": "点估计图：只有点估计，没有置信区间，不画汇总 | 6 / 6 条记录满足这一级的要求 | 有点估计，但缺置信区间或方差。 | 有研究缺置信区间，不能汇总。",
+  },
+  {
+    "decision": {
+      "downgrade_reason": "no_effect_sizes",
+      "kind": "albatross",
+      "total": 7,
+      "usable": 7,
+    },
+    "en": "Albatross plot: effect magnitude from p-values and sample sizes | 7 of 7 records meet this level's requirements | No record carries an effect size. | No effect sizes, so pooling does not apply.",
+    "id": "albatross",
+    "pooling": {
+      "allowed": false,
+      "estimate": null,
+      "reason": "not_applicable",
+      "studies": 0,
+    },
+    "rob": null,
+    "zh": "信天翁图：由 p 值与样本量看效应量级 | 7 / 7 条记录满足这一级的要求 | 没有一条记录带效应量。 | 没有效应量，不涉及汇总。",
+  },
+  {
+    "decision": {
+      "downgrade_reason": "no_p_or_n",
+      "kind": "direction",
+      "total": 8,
+      "usable": 8,
+    },
+    "en": "Effect-direction plot: which way each study points | 8 of 8 records meet this level's requirements | Effect directions exist, but exact p-values or sample sizes are missing. | No effect sizes, so pooling does not apply.",
+    "id": "direction",
+    "pooling": {
+      "allowed": false,
+      "estimate": null,
+      "reason": "not_applicable",
+      "studies": 0,
+    },
+    "rob": null,
+    "zh": "效应方向图：各项研究偏向哪一边 | 8 / 8 条记录满足这一级的要求 | 有效应方向，但缺精确 p 值或样本量。 | 没有效应量，不涉及汇总。",
+  },
+  {
+    "decision": {
+      "downgrade_reason": "no_direction",
+      "kind": "gap_map",
+      "total": 6,
+      "usable": 6,
+    },
+    "en": "Evidence and gap map: whether there is research, how much, and which designs | 6 of 6 records meet this level's requirements | No effect directions: only self-reported "significant / not significant", and vote counting by significance is not a synthesis. | No effect sizes, so pooling does not apply.",
+    "id": "claims",
+    "pooling": {
+      "allowed": false,
+      "estimate": null,
+      "reason": "not_applicable",
+      "studies": 0,
+    },
+    "rob": null,
+    "zh": "证据与缺口图：有没有研究、多少、什么设计 | 6 / 6 条记录满足这一级的要求 | 没有效应方向：只有作者自报的「显著 / 不显著」，而按显著性计票不构成证据合成。 | 没有效应量，不涉及汇总。",
+  },
+]
+`;

@@ -13,7 +13,7 @@ import {
 import type { EvidenceMessageCatalog } from '../src/messages'
 import {
   presentSeries, presentChartMenu, presentView, presentBinding, presentEvidenceMap, presentTagGraph, presentIntakeIssues,
-  presentBindingSuggestions, presentCounts, formatProvenance,
+  presentBindingSuggestions, presentCounts, formatProvenance, effectDecimals,
 } from '../src/present'
 import {
   EVIDENCE_CAVEATS, EVIDENCE_CHART_BLOCKERS, EVIDENCE_CHART_KINDS, EVIDENCE_DOWNGRADE_REASONS, EVIDENCE_EXTERNAL_MATCHES,
@@ -139,7 +139,22 @@ describe('图种菜单与阶梯摘要', () => {
       allowed: true, reason: 'ok', studies: 5,
       estimate: { method: 'reml_hksj', metric: 'or', k: 5, estimate: 1.40586, ci_low: 0.94929, ci_high: 2.08203, pi_low: 0.58803, pi_high: 3.36113, tau2: 0.0568, i2: 0.6163, q: 10.42, df: 4 },
     }, { locale: 'en' })
-    expect(pooled.estimate_text).toBe('Random-effects summary (Odds ratio (OR), 5 studies): 1.41, 95% CI 0.949 to 2.08; 95% prediction interval 0.588 to 3.36; I² = 61.6%')
+    // 同一句话里点估计与区间同一个小数位（比值至少 2 位）
+    expect(pooled.estimate_text).toBe('Random-effects summary (Odds ratio (OR), 5 studies): 1.41, 95% CI 0.95 to 2.08; 95% prediction interval 0.59 to 3.36; I² = 61.6%')
+  })
+  it('汇总那句话：区间碰到负数用真正的减号（U+2212），近零的下限不多出位数', () => {
+    const smd = presentView({ kind: 'forest', usable: 5, total: 5, downgrade_reason: null }, {
+      allowed: true, reason: 'ok', studies: 5,
+      estimate: { method: 'reml_hksj', metric: 'smd', k: 5, estimate: 0.3165, ci_low: -0.0032577, ci_high: 0.6363, pi_low: -0.2851, pi_high: 0.9181, tau2: 0.03, i2: 0.56, q: 9.1, df: 4 },
+    }, { locale: 'zh' })
+    expect(smd.estimate_text).toContain('0.32，95% 置信区间 −0.00 至 0.64；95% 预测区间 −0.29 至 0.92')
+    expect(smd.estimate_text).not.toMatch(/-/)
+  })
+  it.each([
+    ['or', 0.949, 2.08, 2], ['smd', -0.0033, 0.64, 2], ['smd', 0.30, 0.34, 3], ['r', 0.401, 0.4032, 4],
+    ['md', 80.2, 160.8, 0], ['md', 1.2, 4.8, 1], ['md', 0.12, 0.18, 3], ['smd', 0.5, 0.5, 2], ['md', Number.NaN, 1, 2],
+  ] as const)('小数位：%s 区间 %p 至 %p ⇒ %p 位', (metric, lo, hi, d) => {
+    expect(effectDecimals(metric, lo, hi)).toBe(d)
   })
 })
 

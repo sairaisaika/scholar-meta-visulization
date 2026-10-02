@@ -121,6 +121,23 @@ export function machineConfidence(tagKey: string, topicDisplayName: string): Evi
   return tagNameMatch(tagKey, topicDisplayName) === 'exact' ? 'exact' : 'first_hit'
 }
 
+/** 机器绑定一次看几条自动补全候选（OpenAlex 自动补全一次最多回 10 条，0 credit）。 */
+export const MACHINE_CANDIDATE_LIMIT = 10
+
+/**
+ * 从自动补全候选里挑机器绑定的那一条：候选里有**同名**的（归一后相同）就挑它（`exact`），没有才退回第一条（`first_hit`）。
+ * 自动补全按它自己的相关度排，同名主题不一定排第一；只看第一条会把「其实有同名主题」的标签也绑成 `first_hit`，
+ * 而短词、缩写的第一条常常只是字面上沾边（`app` → 「Plasma Diagnostics and Applications」）——`first_hit` 必须如实标出来。
+ * 没有候选 ⇒ null。
+ */
+export function pickMachineCandidate<C extends { display_name: string }>(
+  tagKey: string | null, candidates: readonly C[],
+): { candidate: C; confidence: EvidenceTagBindingConfidence } | null {
+  if (candidates.length === 0) return null
+  const exact = tagKey === null ? undefined : candidates.find((c) => tagNameMatch(tagKey, c.display_name) === 'exact')
+  return exact ? { candidate: exact, confidence: 'exact' } : { candidate: candidates[0], confidence: 'first_hit' }
+}
+
 // ── 主题 id ───────────────────────────────────────────────────────────────────
 
 const TOPIC_ID = /^([a-z][a-z_]{0,31}):([A-Za-z0-9._-]{1,64})$/

@@ -10,6 +10,7 @@ import { intakeArticle, intakeArticles, countOnsite, crossOnsite, buildTagGraph,
 import type { EvidenceIntakeIssue, EvidenceRecord } from '../src/types'
 import { ONSITE_DIMENSION_IDS } from '../src/types'
 import { presentOnsiteCounts } from '../src/present'
+import { pickEvidenceView } from '../src/ladder'
 import { isEvidenceOnsiteCounts } from '../src/guards'
 
 const at = '2026-09-29T00:00:00.000Z'
@@ -83,10 +84,35 @@ describe('入库验形', () => {
       [{ metric: 'or', value: 0 }, 'ratio_not_positive'],
       [{ metric: 'r', value: 1.2 }, 'value_out_of_range'],
       [{ metric: 'prevalence', value: 12 }, 'value_out_of_range'],
-    ])('%j ⇒ 整个效应量清空（%s）', (e, code) => {
+    ])('%j ⇒ 没有别的可留，整个效应量清空（%s）', (e, code) => {
       const r = eff(e)
       expect(r.record!.effect).toBeNull()
       expect(codes(r.issues)).toEqual([code])
+    })
+    it('只有精确 p 与样本量、没有点估计 ⇒ 照收（value 为 null），两篇就能画到信天翁那一级', () => {
+      const r = eff({ metric: 'smd', p_value: 0.03, n: 120 }, { direction: 'favours' })
+      expect(r.issues).toEqual([])
+      expect(r.record!.effect).toEqual({ metric: 'smd', value: null, ci_low: null, ci_high: null, n: 120, p_value: 0.03, higher_is_better: null })
+      expect(r.record!.direction).toBe('favours')
+      const two = intakeArticles([
+        { id: 1, title: 'A', direction: 'favours', effect: { metric: 'smd', p_value: '0.004', n: 240 } },
+        { id: 2, title: 'B', direction: 'against', effect: { metric: 'smd', value: '', p_value: 0.45, n: '60' } },
+      ], { retrieved_at: at })
+      expect(two.issues).toEqual([])
+      expect(pickEvidenceView(two.records)).toEqual({ kind: 'albatross', usable: 2, total: 2, downgrade_reason: 'no_effect_sizes' })
+    })
+    it('点估计不合法但 p 与样本量合法 ⇒ 只清点估计，效应量保留', () => {
+      const r = eff({ metric: 'or', value: -2, p_value: 0.2, n: 80 })
+      expect(r.record!.effect).toMatchObject({ value: null, n: 80, p_value: 0.2 })
+      expect(r.issues).toEqual([{ code: 'ratio_not_positive', field: 'effect.value', action: 'field_cleared' }])
+    })
+    it('没有点估计的区间核不了 ⇒ 只清区间（ci_without_estimate）；只填了度量 ⇒ 没有效应量、也不报错', () => {
+      const r = eff({ metric: 'smd', ci_low: 0.1, ci_high: 0.5, n: 50 })
+      expect(r.record!.effect).toMatchObject({ value: null, ci_low: null, ci_high: null, n: 50 })
+      expect(r.issues).toEqual([{ code: 'ci_without_estimate', field: 'effect.ci', action: 'field_cleared' }])
+      const bare = eff({ metric: 'smd' })
+      expect(bare.record!.effect).toBeNull()
+      expect(bare.issues).toEqual([])
     })
     it.each([
       [{ ci_low: 0.1 }, 'ci_incomplete'],

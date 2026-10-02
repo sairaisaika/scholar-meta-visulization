@@ -5,6 +5,9 @@
 import type { EvidenceDirection, EvidencePooling, EvidenceRecord } from '../../src/types'
 import type { EvidenceMessageCatalog } from '../../src/messages'
 import { studentTCdf, Z_95 } from '../../src/stats'
+import { pointEstimate } from '../../src/effects'
+import { robBand, type EvidenceRobBand } from '../../src/appraisal'
+import { presentRiskOfBias } from '../../src/present'
 import type { DemoText } from './i18n'
 import { h, niceTicks, s, scale, withTip } from './dom'
 
@@ -17,13 +20,17 @@ export interface ChartCtx {
   width: number
 }
 
-/** 排版参数：宽屏留一栏写研究名与设计，窄屏只写研究名 */
-const layout = (ctx: ChartCtx) => {
+/** 排版参数：宽屏留一栏写研究名与设计，窄屏只写研究名；`right` 是右侧另留的栏宽（森林图的偏倚风险一栏） */
+const layout = (ctx: ChartCtx, right = 0) => {
   const W = Math.round(Math.max(320, Math.min(760, ctx.width)))
   const wide = W >= 560
   const labelW = wide ? 200 : 88
-  return { W, wide, labelW, plotL: labelW + (wide ? 14 : 8), plotR: W - 16 }
+  return { W, wide, labelW, plotL: labelW + (wide ? 14 : 8), plotR: W - 16 - right }
 }
+
+/** 偏倚风险的符号（与 robvis 的交通灯图同一套：颜色之外再用形状区分，色觉不同的读者也分得清） */
+export const ROB_GLYPH: Record<EvidenceRobBand, string> = { low: '+', concerns: '−', high: '×', critical: '!', unknown: '?' }
+const ROB_COL = 30
 const design = (ctx: ChartCtx, r: EvidenceRecord) =>
   r.study_type ? (ctx.m.studyDesign as Record<string, string>)[r.study_type] ?? r.study_type : ''
 
@@ -51,8 +58,8 @@ function rowLabel(svg: SVGSVGElement, ctx: ChartCtx, r: EvidenceRecord, y: numbe
   if (wide) svg.append(s('text', { x: 0, y: y + 13, class: 'row-sub' }, [design(ctx, r)]))
 }
 
-function domainFor(ctx: ChartCtx, values: number[]) {
-  const { plotL, plotR, wide } = layout(ctx)
+function domainFor(ctx: ChartCtx, values: number[], right = 0) {
+  const { plotL, plotR, wide } = layout(ctx, right)
   const lo = Math.min(0, ...values)
   const hi = Math.max(0, ...values)
   const pad = (hi - lo) * 0.08
@@ -62,12 +69,14 @@ function domainFor(ctx: ChartCtx, values: number[]) {
 
 /** 森林图：逐项效应与 95% 置信区间；允许汇总时画菱形与预测区间（方块面积按随机效应权重）。 */
 export function forestChart(records: readonly EvidenceRecord[], pooling: EvidencePooling, ctx: ChartCtx): SVGSVGElement {
-  const rows = records.filter((r) => r.effect && Number.isFinite(r.effect.value) && r.effect.ci_low != null && r.effect.ci_high != null)
+  const rows = records.filter((r) => pointEstimate(r.effect) !== null && r.effect!.ci_low != null && r.effect!.ci_high != null)
   const est = pooling.allowed ? pooling.estimate ?? null : null
   const values = rows.flatMap((r) => [r.effect!.ci_low!, r.effect!.ci_high!])
   if (est) values.push(est.pi_low, est.pi_high)
-  const { W, plotL, plotR } = layout(ctx)
-  const { ticks, x } = domainFor(ctx, values)
+  // 有任何一项评过偏倚风险，就在右边留一栏，每行一个符号（没评过的画空心圈，不当成低风险）
+  const robCol = rows.some((r) => r.risk_of_bias) ? ROB_COL : 0
+  const { W, plotL, plotR } = layout(ctx, robCol)
+  const { ticks, x } = domainFor(ctx, values, robCol)
   const top = 22
   const pooledY = top + rows.length * ROW_H + 14
   const axisY = (est ? pooledY + ROW_H / 2 : top + rows.length * ROW_H) + 4
@@ -78,18 +87,26 @@ export function forestChart(records: readonly EvidenceRecord[], pooling: Evidenc
   const weights = rows.map((r) => (est ? 1 / (se(r) ** 2 + est.tau2) : 1))
   const wMax = Math.max(...weights)
 
+  if (robCol) svg.append(s('text', { x: W - 16 - robCol / 2, y: top - 8, 'text-anchor': 'middle', class: 'note' }, [ctx.t.robHeader]))
   rows.forEach((r, i) => {
     const y = top + i * ROW_H + ROW_H / 2
     const e = r.effect!
+    const v = pointEstimate(e)!
     const side = est ? 7 + 9 * Math.sqrt(weights[i] / wMax) : 11
+    const rob = robCol ? presentRiskOfBias(r.risk_of_bias, { messages: ctx.m }) : null
+    const band = robBand(r.risk_of_bias)
     const g = s('g', { class: 'hit' }, [
       s('rect', { x: 0, y: y - ROW_H / 2, width: layout(ctx).W, height: ROW_H, class: 'hit-area' }),
       s('line', { x1: x(e.ci_low!), x2: x(e.ci_high!), y1: y, y2: y, class: 'ci' }),
-      s('rect', { x: x(e.value) - side / 2, y: y - side / 2, width: side, height: side, class: 'mark ring' }),
+      s('rect', { x: x(v) - side / 2, y: y - side / 2, width: side, height: side, class: 'mark ring' }),
+      ...(robCol ? [
+        s('circle', { cx: W - 16 - robCol / 2, cy: y, r: 8, class: `rob rob-${band ?? 'none'}` }),
+        band ? s('text', { x: W - 16 - robCol / 2, y: y + 4, 'text-anchor': 'middle', class: `rob-glyph on-${band}` }, [ROB_GLYPH[band]]) : null,
+      ] : []),
     ])
     withTip(g, () => ({
-      value: ctx.t.interval(ctx.num(e.value), ctx.num(e.ci_low!), ctx.num(e.ci_high!)),
-      label: `${ctx.t.study(r.title)} · ${design(ctx, r)} · N = ${e.n ?? '—'}`,
+      value: ctx.t.interval(ctx.num(v), ctx.num(e.ci_low!), ctx.num(e.ci_high!)),
+      label: `${ctx.t.study(r.title)} · ${design(ctx, r)} · N = ${e.n ?? '—'}${rob ? ` · ${rob.label}` : ''}`,
     }))
     svg.append(g)
     rowLabel(svg, ctx, r, y)
@@ -126,8 +143,8 @@ const quantile = (sorted: number[], q: number) => {
 
 /** 点估计图：只有点，没有区间与菱形；标出中位数与四分位距（Cochrane 12.2.1.1）。 */
 export function estimatesChart(records: readonly EvidenceRecord[], ctx: ChartCtx): { svg: SVGSVGElement; note: string } {
-  const rows = records.filter((r) => r.effect && Number.isFinite(r.effect.value))
-  const vals = rows.map((r) => r.effect!.value).sort((a, b) => a - b)
+  const rows = records.filter((r) => pointEstimate(r.effect) !== null)
+  const vals = rows.map((r) => pointEstimate(r.effect)!).sort((a, b) => a - b)
   const med = quantile(vals, 0.5)
   const q1 = quantile(vals, 0.25)
   const q3 = quantile(vals, 0.75)
@@ -142,11 +159,12 @@ export function estimatesChart(records: readonly EvidenceRecord[], ctx: ChartCtx
   rows.forEach((r, i) => {
     const y = top + i * ROW_H + ROW_H / 2
     const e = r.effect!
+    const v = pointEstimate(e)!
     const g = s('g', { class: 'hit' }, [
       s('rect', { x: 0, y: y - ROW_H / 2, width: layout(ctx).W, height: ROW_H, class: 'hit-area' }),
-      s('circle', { cx: x(e.value), cy: y, r: 5, class: 'mark ring' }),
+      s('circle', { cx: x(v), cy: y, r: 5, class: 'mark ring' }),
     ])
-    withTip(g, () => ({ value: ctx.num(e.value), label: `${ctx.t.study(r.title)} · ${design(ctx, r)} · N = ${e.n ?? '—'}` }))
+    withTip(g, () => ({ value: ctx.num(v), label: `${ctx.t.study(r.title)} · ${design(ctx, r)} · N = ${e.n ?? '—'}` }))
     svg.append(g)
     rowLabel(svg, ctx, r, y)
   })
@@ -308,10 +326,13 @@ export function gapChart(records: readonly EvidenceRecord[], ctx: ChartCtx): SVG
 export function recordsTable(records: readonly EvidenceRecord[], ctx: ChartCtx): HTMLTableElement {
   const c = ctx.t.columns
   const dash = '—'
-  const head = h('tr', {}, [c.study, c.design, c.direction, c.effect, c.ci, c.p, c.n, c.claim].map((x) => h('th', { scope: 'col' }, [x])))
+  const withRob = records.some((r) => r.risk_of_bias)
+  const head = h('tr', {}, [c.study, c.design, c.direction, c.effect, c.ci, c.p, c.n, c.claim, ...(withRob ? [c.rob] : [])]
+    .map((x) => h('th', { scope: 'col' }, [x])))
   const body = records.map((r) => {
     const e = r.effect
-    const v = e && Number.isFinite(e.value) ? ctx.num(e.value) : dash
+    const pe = pointEstimate(e)
+    const v = pe !== null ? ctx.num(pe) : dash
     const ci = e && e.ci_low != null && e.ci_high != null ? `${ctx.num(e.ci_low)} – ${ctx.num(e.ci_high)}` : dash
     return h('tr', {}, [
       h('th', { scope: 'row' }, [ctx.t.study(r.title)]),
@@ -322,6 +343,7 @@ export function recordsTable(records: readonly EvidenceRecord[], ctx: ChartCtx):
       h('td', { class: 'num' }, [e?.p_value != null ? String(e.p_value) : dash]),
       h('td', { class: 'num' }, [e?.n != null ? String(e.n) : dash]),
       h('td', {}, [r.self_reported_claim ? ctx.m.claim[r.self_reported_claim] : dash]),
+      withRob ? h('td', {}, [presentRiskOfBias(r.risk_of_bias, { messages: ctx.m }).label]) : null,
     ])
   })
   return h('table', {}, [h('thead', {}, [head]), h('tbody', {}, body)])

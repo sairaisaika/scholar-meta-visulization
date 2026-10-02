@@ -3,8 +3,8 @@
  * 每个场景写明引擎应当给出的结论（`expect`），test/demo.test.ts 逐条核对：引擎的判据一改，演示对不上就红。
  */
 import type {
-  EvidenceDirection, EvidenceDowngradeReason, EvidencePoolingReason, EvidenceRecord, EvidenceSelfReportedClaim, EvidenceStudyDesign,
-  EvidenceViewKind,
+  EvidenceCertainty, EvidenceDirection, EvidenceDowngradeReason, EvidencePoolingReason, EvidenceRecord, EvidenceRobJudgement, EvidenceRobTool,
+  EvidenceSelfReportedClaim, EvidenceStudyDesign, EvidenceViewKind,
 } from '../../src/types'
 
 export const SCENARIO_IDS = ['pooled', 'mixed', 'estimates', 'albatross', 'direction', 'claims'] as const
@@ -14,6 +14,8 @@ export interface Scenario {
   id: ScenarioId
   records: EvidenceRecord[]
   expect: { kind: EvidenceViewKind; downgrade: EvidenceDowngradeReason | null; pooling: EvidencePoolingReason }
+  /** 虚构的证据确定性评级（结局与评级人的文字随界面语言，见 i18n） */
+  certainty?: Pick<EvidenceCertainty, 'level' | 'rated_down_for'>
 }
 
 interface Row {
@@ -27,6 +29,8 @@ interface Row {
   hi?: number
   n?: number
   p?: number
+  /** 虚构的偏倚风险评定：[工具, 总体判断] */
+  rob?: [EvidenceRobTool, EvidenceRobJudgement]
 }
 
 const record = (scenario: ScenarioId, r: Row): EvidenceRecord => {
@@ -35,27 +39,31 @@ const record = (scenario: ScenarioId, r: Row): EvidenceRecord => {
     id: `onsite:demo-${scenario}-${r.key}`, source: 'onsite', external_id: `demo-${scenario}-${r.key}`,
     title: r.key, year: null, authors: [], doi: null, url: null, topic_ids: [],
     study_type: r.design, publication_type: null, self_reported_claim: r.claim ?? null, direction: r.direction ?? null,
-    // 只有 p 与样本量、没有点估计：value 记 NaN（与引擎自己的测试同一个写法）
+    // 只有 p 与样本量、没有点估计：value 记 null（契约 0.3.0 起允许）
     effect: hasEffect
-      ? { metric: 'smd', value: r.value ?? NaN, ci_low: r.lo ?? null, ci_high: r.hi ?? null, n: r.n ?? null, higher_is_better: true, p_value: r.p ?? null }
+      ? { metric: 'smd', value: r.value ?? null, ci_low: r.lo ?? null, ci_high: r.hi ?? null, n: r.n ?? null, higher_is_better: true, p_value: r.p ?? null }
       : null,
     cited_by_count: null, is_retracted: false, is_open_access: null,
     provenance: { source_label: 'demo', license: 'CC0', retrieved_at: '2026-01-01T00:00:00Z' },
+    ...(r.rob ? { risk_of_bias: { tool: r.rob[0], overall: r.rob[1], source: 'demo' } } : {}),
   }
 }
 
+// 偏倚风险是虚构的评定：C 是唯一一项高风险的，敏感性分析去掉它之后还剩 5 项，仍可汇总
 const trials: Row[] = [
-  { key: 'A', design: 'rct', direction: 'favours', value: 0.62, lo: 0.30, hi: 0.94, n: 160 },
-  { key: 'B', design: 'rct', direction: 'favours', value: 0.10, lo: -0.19, hi: 0.39, n: 180 },
-  { key: 'C', design: 'rct', direction: 'favours', value: 0.55, lo: 0.18, hi: 0.92, n: 120 },
-  { key: 'D', design: 'rct', direction: 'favours', value: 0.28, lo: 0.00, hi: 0.56, n: 190 },
-  { key: 'E', design: 'rct', direction: 'favours', value: 0.05, lo: -0.33, hi: 0.43, n: 110 },
+  { key: 'A', design: 'rct', direction: 'favours', value: 0.62, lo: 0.30, hi: 0.94, n: 160, rob: ['rob2', 'low'] },
+  { key: 'B', design: 'rct', direction: 'favours', value: 0.10, lo: -0.19, hi: 0.39, n: 180, rob: ['rob2', 'some_concerns'] },
+  { key: 'C', design: 'rct', direction: 'favours', value: 0.55, lo: 0.18, hi: 0.92, n: 120, rob: ['rob2', 'high'] },
+  { key: 'D', design: 'rct', direction: 'favours', value: 0.28, lo: 0.00, hi: 0.56, n: 190, rob: ['rob2', 'low'] },
+  { key: 'E', design: 'rct', direction: 'favours', value: 0.05, lo: -0.33, hi: 0.43, n: 110, rob: ['rob2', 'some_concerns'] },
+  { key: 'F', design: 'rct', direction: 'favours', value: 0.33, lo: 0.04, hi: 0.62, n: 170, rob: ['rob2', 'low'] },
 ]
 
 const rows: Record<ScenarioId, Row[]> = {
   pooled: trials,
-  // 同样的数，但 C、E 是队列研究：随机与非随机不合并，不画菱形
-  mixed: trials.map((t) => (t.key === 'C' || t.key === 'E' ? { ...t, design: 'cohort' } : t)),
+  // 同样的数，但 C、E 是队列研究（偏倚风险改用 ROBINS-I）：随机与非随机不合并，不画菱形
+  mixed: trials.map((t) => (t.key === 'C' ? { ...t, design: 'cohort', rob: ['robins_i', 'serious'] }
+    : t.key === 'E' ? { ...t, design: 'cohort', rob: ['robins_i', 'moderate'] } : t)),
   estimates: [
     { key: 'A', design: 'rct', direction: 'favours', value: 0.35, n: 140 },
     { key: 'B', design: 'rct', direction: 'favours', value: 0.12, n: 200 },
@@ -102,6 +110,12 @@ const expectations: Record<ScenarioId, Scenario['expect']> = {
   claims: { kind: 'gap_map', downgrade: 'no_direction', pooling: 'not_applicable' },
 }
 
+/** 虚构的证据确定性：6 项随机试验，一项偏倚风险高、结果不太一致 ⇒ 从「高」降两级到「低」 */
+const certainty: Partial<Record<ScenarioId, Scenario['certainty']>> = {
+  pooled: { level: 'low', rated_down_for: ['risk_of_bias', 'inconsistency'] },
+}
+
 export const SCENARIOS: readonly Scenario[] = SCENARIO_IDS.map((id) => ({
   id, records: rows[id].map((r) => record(id, r)), expect: expectations[id],
+  ...(certainty[id] ? { certainty: certainty[id] } : {}),
 }))

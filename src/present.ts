@@ -16,9 +16,11 @@ import type {
   EvidenceContributionIssue, EvidenceTagChangeRequest, EvidenceWorkTag, EvidenceWorkTagState,
   EvidenceBindingQueueItem, EvidenceBindingSuggestion, EvidenceCaveat, EvidenceChartAvailability, EvidenceChartBlocker, EvidenceChartKind,
   EvidenceCountSeries, EvidenceCountsData, EvidenceDimensionId, EvidenceExternalMatch, EvidenceIntakeIssue, EvidenceMapData,
-  EvidenceOnsiteCounts, EvidencePooling, EvidenceProvenance, EvidenceTagBinding, EvidenceTagGraph, EvidenceViewDecision,
-  EvidenceViewKind, OnsiteDimensionId,
+  EvidenceEffectMetric, EvidenceOnsiteCounts, EvidencePooling, EvidenceProvenance, EvidenceTagBinding, EvidenceTagGraph, EvidenceViewDecision,
+  EvidenceViewKind, OnsiteDimensionId, EvidenceCertainty, EvidenceCertaintyLevel, EvidenceRecord, EvidenceRiskOfBias,
 } from './types'
+import { robBand, summarizeRiskOfBias } from './appraisal'
+import type { EvidenceRobBand } from './appraisal'
 import { EVIDENCE_DIMENSIONS } from './dimensions'
 import { ONSITE_DIMENSIONS, SMALL_CORPUS } from './onsite'
 import { shareReliability, wilsonInterval } from './stats'
@@ -41,15 +43,18 @@ interface Ctx {
   int: (n: number) => string
   pct: (x: number) => string
   num: (x: number) => string
+  /** 固定小数位（一句话里的几个数位数一致） */
+  fixed: (x: number, decimals: number) => string
 }
 
 // Intl 对象构造很贵：按语言与选项缓存（语言来自宿主代码，个数有限；超过上限整个清掉，防止被塞爆）
 const INTL_CACHE_MAX = 64
 const numberFormats = new Map<string, Intl.NumberFormat>()
-/** 没有 Intl 的运行环境（关掉 Intl 的 Hermes 等）用的最小格式化：整数、一位小数的百分比、三位有效数字。 */
+/** 没有 Intl 的运行环境（关掉 Intl 的 Hermes 等）用的最小格式化：整数、一位小数的百分比、三位有效数字、固定小数位。 */
 const plainFormat = (o: Intl.NumberFormatOptions) => ({
   format: (n: number) => (o.style === 'percent' ? `${(n * 100).toFixed(1).replace(/\.0$/, '')}%`
-    : o.maximumSignificantDigits ? String(Number(n.toPrecision(o.maximumSignificantDigits))) : String(Math.round(n))),
+    : o.maximumSignificantDigits ? String(Number(n.toPrecision(o.maximumSignificantDigits)))
+      : o.minimumFractionDigits !== undefined ? n.toFixed(o.minimumFractionDigits) : String(Math.round(n))),
 }) as Intl.NumberFormat
 const numberFormat = (locale: string, o: Intl.NumberFormatOptions): Intl.NumberFormat => {
   const k = `${locale}|${JSON.stringify(o)}`
@@ -63,12 +68,32 @@ const numberFormat = (locale: string, o: Intl.NumberFormatOptions): Intl.NumberF
   return f
 }
 
+/** 负号用真正的减号（U+2212），不用连字符：连字符在区间「a 至 -b」里容易读成破折号，屏幕阅读器也不读成「负」。 */
+const minus = (s: string) => s.replace(/-/g, '\u2212')
+
 function context(o: PresentOptions = {}): Ctx {
   const locale = o.locale ?? 'en'
   const int = numberFormat(locale, { maximumFractionDigits: 0 })
   const pct = numberFormat(locale, { style: 'percent', maximumFractionDigits: 1 })
   const num = numberFormat(locale, { maximumSignificantDigits: 3 })
-  return { locale, m: o.messages ?? getMessages(locale), int: (n) => int.format(n), pct: (x) => pct.format(x), num: (x) => num.format(x) }
+  return {
+    locale, m: o.messages ?? getMessages(locale), int: (n) => int.format(n), pct: (x) => minus(pct.format(x)), num: (x) => minus(num.format(x)),
+    fixed: (x, d) => minus(numberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(x)),
+  }
+}
+
+/** 这几种量的常规写法至少两位小数（比值、标准化效应量、相关系数、患病率）；原单位的均数差与 other 按区间宽度定，可以少到 0 位。 */
+const AT_LEAST_TWO_DECIMALS: ReadonlySet<EvidenceEffectMetric> = new Set(['smd', 'hedges_g', 'cohens_d', 'or', 'rr', 'hr', 'r', 'prevalence'])
+
+/**
+ * 一句汇总里点估计与各区间用的小数位：同一句话里位数不齐，读者会把位数差当成精度差（「0.949 至 2.08」）。
+ * 按 95% 置信区间的宽度取，让宽度至少显出两位有效数字；比值等量至少 2 位（见上）；最多 4 位。区间不是有限正宽度 ⇒ 2 位。
+ */
+export function effectDecimals(metric: EvidenceEffectMetric, ciLow: number, ciHigh: number): number {
+  const width = ciHigh - ciLow
+  const floor = AT_LEAST_TWO_DECIMALS.has(metric) ? 2 : 0
+  if (!Number.isFinite(width) || width <= 0) return Math.max(2, floor)
+  return Math.min(4, Math.max(floor, 1 - Math.floor(Math.log10(width))))
 }
 
 const isoDate = (s: string) => (/^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : s)
@@ -237,6 +262,30 @@ export interface ViewSummary {
   pooling_text: string | null
   /** 汇总估计的一句话（有汇总时） */
   estimate_text: string | null
+  /** 去掉偏倚风险高的研究之后的那一句（敏感性分析；主分析能汇总、且有高风险研究时才有） */
+  sensitivity_text: string | null
+}
+
+function pooledText(c: Ctx, e: NonNullable<EvidencePooling['estimate']>): string {
+  const d = effectDecimals(e.metric, e.ci_low, e.ci_high)
+  const f = (x: number) => c.fixed(x, d)
+  return formatMessage(c.m.text.pooled, {
+    metric: c.m.metric[e.metric], k: c.int(e.k), estimate: f(e.estimate), ci_low: f(e.ci_low), ci_high: f(e.ci_high),
+    pi_low: f(e.pi_low), pi_high: f(e.pi_high), i2: c.pct(e.i2),
+  })
+}
+
+/** 敏感性分析那一句：去掉了几项、剩几项、结果（能汇总给数，与主分析同一个小数位；不能汇总给理由）。 */
+function sensitivityText(c: Ctx, pooling: EvidencePooling): string | null {
+  const s = pooling.allowed ? pooling.sensitivity ?? null : null
+  if (!s || s.excluded <= 0) return null
+  const main = pooling.estimate ?? null
+  let result = c.m.pooling[s.reason]
+  if (s.allowed && s.estimate) {
+    const d = main ? effectDecimals(main.metric, main.ci_low, main.ci_high) : effectDecimals(s.estimate.metric, s.estimate.ci_low, s.estimate.ci_high)
+    result = formatMessage(c.m.text.pooled_short, { estimate: c.fixed(s.estimate.estimate, d), ci_low: c.fixed(s.estimate.ci_low, d), ci_high: c.fixed(s.estimate.ci_high, d) })
+  }
+  return formatMessage(c.m.text.sensitivity, { excluded: c.int(s.excluded), k: c.int(Math.max(0, pooling.studies - s.excluded)), result })
 }
 
 export function presentView(decision: EvidenceViewDecision, pooling?: EvidencePooling | null, opts: PresentOptions = {}): ViewSummary {
@@ -249,12 +298,93 @@ export function presentView(decision: EvidenceViewDecision, pooling?: EvidencePo
     why_not_higher: decision.downgrade_reason ? c.m.downgrade[decision.downgrade_reason] : null,
     pooling_allowed: !!pooling?.allowed,
     pooling_text: pooling ? c.m.pooling[pooling.reason] : null,
-    estimate_text: e
-      ? formatMessage(c.m.text.pooled, {
-        metric: c.m.metric[e.metric], k: e.k, estimate: c.num(e.estimate), ci_low: c.num(e.ci_low), ci_high: c.num(e.ci_high),
-        pi_low: c.num(e.pi_low), pi_high: c.num(e.pi_high), i2: c.pct(e.i2),
-      })
+    estimate_text: e ? pooledText(c, e) : null,
+    sensitivity_text: pooling ? sensitivityText(c, pooling) : null,
+  }
+}
+
+// ── 偏倚风险与证据确定性（0.3.0）────────────────────────────────────────────────
+
+export interface RiskOfBiasView {
+  assessed: boolean
+  /** 跨工具对齐的风险档（取颜色用）；没评过为 null */
+  band: EvidenceRobBand | null
+  /** 「RoB 2：有一些担忧」；没评过是「未评估偏倚风险」 */
+  label: string
+  /** 「评定：本站编辑」；没评过为 null */
+  source_text: string | null
+}
+
+/** 一项研究的偏倚风险：图上那一格（颜色按 band，文字永远是工具自己的判断）。没评过不等于低风险。 */
+export function presentRiskOfBias(rob: EvidenceRiskOfBias | null | undefined, opts: PresentOptions = {}): RiskOfBiasView {
+  const c = context(opts)
+  const band = robBand(rob)
+  if (!rob || !band) return { assessed: false, band: null, label: c.m.text.rob_not_assessed, source_text: null }
+  return {
+    assessed: true, band,
+    label: formatMessage(c.m.text.rob_record, { tool: c.m.rob.tool[rob.tool], judgement: c.m.rob.judgement[rob.overall] }),
+    source_text: formatMessage(c.m.text.rob_source, { source: rob.source }),
+  }
+}
+
+export interface RiskOfBiasSummaryView {
+  total: number
+  assessed: number
+  by_band: Record<EvidenceRobBand, number>
+  /** 「偏倚风险（RoB 2）：低风险 3 · 有担忧 1 · 高风险 1」；一项都没评过为 null */
+  text: string | null
+  /** 「2 项没有评估」；全评过（或一项都没有）为 null */
+  missing_text: string | null
+}
+
+export function presentRiskOfBiasSummary(records: readonly EvidenceRecord[], opts: PresentOptions = {}): RiskOfBiasSummaryView {
+  const c = context(opts)
+  const s = summarizeRiskOfBias(records)
+  const parts = (Object.keys(s.by_band) as EvidenceRobBand[]).filter((b) => s.by_band[b] > 0).map((b) => `${c.m.rob.band[b]} ${c.int(s.by_band[b])}`)
+  const missing = s.total - s.assessed
+  return {
+    total: s.total, assessed: s.assessed, by_band: s.by_band,
+    text: s.assessed > 0
+      ? formatMessage(c.m.text.rob_summary, { tools: s.tools.map((t) => c.m.rob.tool[t]).join(c.m.text.list_sep), parts: parts.join(c.m.text.parts_sep) })
       : null,
+    missing_text: s.assessed > 0 && missing > 0 ? formatMessage(c.m.text.rob_missing, { n: c.int(missing) }) : null,
+  }
+}
+
+/** GRADE 的符号写法：实心圈的个数就是等级。 */
+const CERTAINTY_SYMBOL: Record<EvidenceCertaintyLevel, string> = { high: '⊕⊕⊕⊕', moderate: '⊕⊕⊕◯', low: '⊕⊕◯◯', very_low: '⊕◯◯◯' }
+
+export interface CertaintyView {
+  level: EvidenceCertaintyLevel
+  /** 「低」 */
+  label: string
+  /** 「⊕⊕◯◯」 */
+  symbol: string
+  /** 「证据确定性（GRADE）：低——结局「焦虑症状」；评定：某篇系统综述」 */
+  text: string
+  /** 这一档的标准含义（Balshem 2011） */
+  meaning: string
+  /** 「因偏倚风险、不精确降级」；没写理由为 null */
+  reasons_text: string | null
+  url: string | null
+}
+
+/** 一条证据确定性评级：等级、结局、谁评的、为什么——引擎只转述，一个字也不替人评。 */
+export function presentCertainty(cert: EvidenceCertainty, opts: PresentOptions = {}): CertaintyView {
+  const c = context(opts)
+  const list = (xs: readonly string[]) => xs.join(c.m.text.list_sep)
+  const reasons = [
+    cert.rated_down_for?.length ? formatMessage(c.m.text.certainty_down, { list: list(cert.rated_down_for.map((d) => c.m.certainty.down[d])) }) : null,
+    cert.rated_up_for?.length ? formatMessage(c.m.text.certainty_up, { list: list(cert.rated_up_for.map((u) => c.m.certainty.up[u])) }) : null,
+  ].filter((x): x is string => x !== null)
+  return {
+    level: cert.level,
+    label: c.m.certainty.level[cert.level],
+    symbol: CERTAINTY_SYMBOL[cert.level],
+    text: formatMessage(c.m.text.certainty, { level: c.m.certainty.level[cert.level], outcome: cert.outcome, source: cert.source }),
+    meaning: c.m.certainty.meaning[cert.level],
+    reasons_text: reasons.length > 0 ? reasons.join(c.m.text.clause_sep) : null,
+    url: cert.url ?? null,
   }
 }
 
@@ -353,6 +483,10 @@ export interface EvidenceMapView {
   /** 记录之间的边各几条（没接边时为 null：UI 只画点不画线） */
   edges: { cites: number; shares_tag: number } | null
   view: ViewSummary
+  /** 这批记录的偏倚风险概况（0.3.0） */
+  risk_of_bias: RiskOfBiasSummaryView
+  /** 证据确定性评级（0.3.0；没接或没有为空数组，没取到时 notices 里有一句） */
+  certainty: CertaintyView[]
   caveats: CaveatView[]
   footnotes: string[]
 }
@@ -365,6 +499,7 @@ export function presentEvidenceMap(map: EvidenceMapData, opts: PresentOptions = 
   const notices: string[] = []
   if (map.external_match && map.external_match !== 'matched') notices.push(c.m.external[map.external_match])
   if (map.onsite_only) notices.push(c.m.text.onsite_only)
+  if (map.certainty === null) notices.push(c.m.text.certainty_unavailable)
   const keys: EvidenceCaveat[] = []
   if (binding?.caveat) keys.push('machine_binding')
   if (external > 0) keys.push('sample_not_population')
@@ -386,6 +521,8 @@ export function presentEvidenceMap(map: EvidenceMapData, opts: PresentOptions = 
     counts_text,
     edges,
     view: presentView(map.view, map.pooling, opts),
+    risk_of_bias: presentRiskOfBiasSummary(map.records, opts),
+    certainty: (map.certainty ?? []).map((x) => presentCertainty(x, opts)),
     caveats: caveatViews(keys, c),
     footnotes: map.sources.map((p) => formatProvenance(p, opts)),
   }

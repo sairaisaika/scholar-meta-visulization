@@ -187,14 +187,15 @@ describe('⑤ 清单', () => {
   it('两份清单的差别', () => {
     const a = buildPluginManifest({ version: '0.2.0' })
     const b = JSON.parse(JSON.stringify(a))
-    b.version = '0.3.0'
-    b.contract_version = '0.3.0'
+    // 「将来的版本」用一个永远到不了的号，免得哪天真发到这个版本时测试自己撞上
+    b.version = '99.0.0'
+    b.contract_version = '99.0.0'
     b.settings.push({ ...b.settings[0], key: 'tagger.model' })
     b.settings = b.settings.filter((s: { key: string }) => s.key !== 'http.route.counts')
     b.settings.find((s: { key: string }) => s.key === 'external.sampleSize').default = 30
     b.features.push({ id: 'future_feature', audience: 'editor', route: null })
     expect(diffPluginManifests(a, b)).toEqual({
-      from: '0.2.0', to: '0.3.0', contract_changed: true,
+      from: '0.2.0', to: '99.0.0', contract_changed: true,
       settings_added: ['tagger.model'], settings_removed: ['http.route.counts'],
       settings_changed: [{ key: 'external.sampleSize', fields: ['default'] }],
       features_added: ['future_feature'], features_removed: [],

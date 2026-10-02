@@ -1,8 +1,8 @@
 {
   "manifest_version": 1,
   "id": "scholar-meta",
-  "version": "0.2.1",
-  "contract_version": "0.2.1",
+  "version": "0.3.0",
+  "contract_version": "0.3.0",
   "repository": "https://github.com/sairaisaika/scholar-meta-visulization",
   "changelog": "CHANGELOG.md",
   "entries": [
@@ -36,6 +36,21 @@
     },
     {
       "id": "pooling",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "pooling_sensitivity",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "risk_of_bias",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "certainty",
       "audience": "reader",
       "route": "map"
     },

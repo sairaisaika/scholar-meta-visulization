@@ -63,6 +63,7 @@ Vote counting by significance is never a level; citation counts never go on an e
 | A failure is not "no research" | external failures return `null`; failures are never cached |
 | On-site and external data never share an axis | separate layers, each with its own denominator and caveats |
 | Author-declared numbers are validated first | inverted or inconsistent intervals and contradicting directions are caught and reported |
+| The engine never rates risk of bias or certainty itself | editors or external reviews pass judgements in, always saying who assessed them; each study is marked on the chart (not assessed is never treated as low risk), and pooling adds a sensitivity analysis without high-risk studies |
 | Who decides a tag follows rules | tagging models are pluggable and their output is validated; people outrank models; disagreement within the deciding tier is marked disputed and left out of counts; overturning a higher tier needs a change request, which takes effect once accepted |
 
 Method and references: [docs/tags.md](docs/tags.md) (Chinese).
@@ -71,7 +72,7 @@ Method and references: [docs/tags.md](docs/tags.md) (Chinese).
 
 ```bash
 # Prebuilt package attached to every GitHub release (works the same with npm and yarn)
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.2.1/scholar-meta-0.2.1.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.3.0/scholar-meta-0.3.0.tgz
 ```
 
 All versions are on [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases); changes are in the [CHANGELOG](CHANGELOG.md).

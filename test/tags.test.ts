@@ -3,10 +3,12 @@
  *   ① 正字法归一只做可解释的事：NFKC / 大小写 / 分隔符 / `#` / 不可见字符；不翻译、不做繁简、不合并同义词；
  *   ② 别名组：显示名取最常见的原文写法，计数按记录去重；
  *   ③ 绑定优先级：编辑绑定（含否决）> 机器命中 > 没问；`error` 是 unavailable 不是 no_match；
- *      `exact_only` 策略下非同名的机器命中进 needs_review；`off` 不做机器绑定。
+ *      `exact_only` 策略下非同名的机器命中进 needs_review；`off` 不做机器绑定；
+ *      机器候选有同名的取同名的（不论名次），没有才取第一条（`first_hit`）。
  */
 import {
   normalizeTag, groupTags, recordTagKeys, tagNameMatch, machineConfidence, resolveTagBinding, createCuratedBinding, splitTopicId,
+  pickMachineCandidate, MACHINE_CANDIDATE_LIMIT,
 } from '../src/tags'
 
 describe('normalizeTag', () => {
@@ -55,6 +57,16 @@ describe('名字匹配与主题 id', () => {
     expect(tagNameMatch('anxiety', 'Anxiety and Stress Disorders')).toBe('contains')
     expect(tagNameMatch('adhd', 'Attention Deficit Hyperactivity Disorder')).toBe('none')
     expect(machineConfidence('adhd', 'Attention Deficit Hyperactivity Disorder')).toBe('first_hit')
+  })
+  it('挑机器候选：有同名的取同名的（不论名次），没有才取第一条；没有候选 ⇒ null', () => {
+    const c = (name: string) => ({ display_name: name })
+    const long = c('Attention Deficit Hyperactivity Disorder')
+    expect(pickMachineCandidate('adhd', [long, c('ADHD')])).toEqual({ candidate: c('ADHD'), confidence: 'exact' })
+    expect(pickMachineCandidate('adhd', [long])).toEqual({ candidate: long, confidence: 'first_hit' })
+    expect(pickMachineCandidate('app', [c('Plasma Diagnostics and Applications')])?.confidence).toBe('first_hit')
+    expect(pickMachineCandidate(null, [c('ADHD')])).toEqual({ candidate: c('ADHD'), confidence: 'first_hit' })
+    expect(pickMachineCandidate('adhd', [])).toBeNull()
+    expect(MACHINE_CANDIDATE_LIMIT).toBe(10)
   })
   it('主题 id 验形：形状不对不拼进查询', () => {
     expect(splitTopicId('openalex:T10537')).toEqual({ source: 'openalex', external_id: 'T10537' })

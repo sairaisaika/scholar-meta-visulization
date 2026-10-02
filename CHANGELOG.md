@@ -3,6 +3,53 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
+## 0.3.0（2026-10-02）
+
+**破坏性一处**：`EvidenceEffect.value` 可以是 `null`（见下，迁移只需改读它的地方）。其余是加法与修正。升级步骤见接入指南第 8 节。
+
+### 破坏性（BREAKING）
+- `EvidenceEffect.value` 由 `number` 改为 `number | null`：`null` ＝ 没有点估计（只申报了精确 p 与样本量——这样的研究能进信天翁那一级）。
+  此前这种情况只能写 `NaN`，而 `NaN` 经过 JSON 就成了 `null`，类型对不上。
+  **迁移**：读 `effect.value` 的地方改用 `pointEstimate(effect)`（有限的数才返回，否则 `null`）；TypeScript 会把要改的地方都标出来。引擎仍把 `NaN` 当作「没有」。
+
+### 新增（契约，加法）
+- 偏倚风险：`EvidenceRecord.risk_of_bias?`（`EvidenceRiskOfBias { tool, overall, source }`）；`EVIDENCE_ROB_TOOLS`（`rob2` / `robins_i` / `other`）、`EVIDENCE_ROB_JUDGEMENTS`、`EVIDENCE_ROB_SCALES`（每种工具认哪几档）。
+- 敏感性分析：`EvidencePooling.sensitivity?`（`EvidencePoolingSensitivity`）。
+- 证据确定性（GRADE）：`EvidenceMapData.certainty?`（`EvidenceCertainty { level, outcome, source, url?, rated_down_for?, rated_up_for? }`）；`EVIDENCE_CERTAINTY_LEVELS` / `EVIDENCE_CERTAINTY_DOWNGRADES` / `EVIDENCE_CERTAINTY_UPGRADES`。
+- 入库问题：`ci_without_estimate`、`unknown_rob_tool`、`rob_judgement_invalid`、`rob_source_missing`。
+- `EVIDENCE_CONTRACT_VERSION = '0.3.0'`。
+
+### 新增（代码）
+- `appraisal.ts`：`checkRiskOfBias` / `isValidRiskOfBias` / `robBand` / `isHighRiskOfBias` / `summarizeRiskOfBias`，`checkCertainty` / `checkCertainties`，`EVIDENCE_ROB_BANDS`、`APPRAISAL_TEXT_MAX`。
+  引擎**不评**偏倚风险与证据确定性：只验形、如实转述（必须写明是谁评的），并只按成文的规则用。
+- `poolEvidence`：参与汇总的研究里有偏倚风险高的（RoB 2「高」、ROBINS-I「严重」「极严重」、其他工具「高」）⇒ 另给去掉它们之后的判定与估计（Cochrane Handbook v6.5 §10.14）；主分析不变；没评过的不去掉。
+- `intakeArticle` 收 `risk_of_bias`（写法宽松：`RoB 2`、`Some concerns`……；工具认不出、档位对不上、没写谁评的都整条不收并报问题）。
+- 服务：可选端口 `CertaintySource`（内存实现 `createMemoryCertaintySource`）：标签级与节点级图谱带上这个范围的评级，逐条验形；取不到 ⇒ `certainty: null`；不接 ⇒ 不下发。
+- 展示：`presentRiskOfBias`、`presentRiskOfBiasSummary`、`presentCertainty`（GRADE 符号 ⊕⊕◯◯ 与各档标准含义，Balshem et al. 2011）；`presentView` 多一句 `sensitivity_text`；
+  `presentEvidenceMap` 多 `risk_of_bias`、`certainty`，没取到评级时 `notices` 里说一句。
+- `pointEstimate(effect)`、`effectDecimals(metric, ciLow, ciHigh)`、`pickMachineCandidate`、`MACHINE_CANDIDATE_LIMIT`。
+- 词典：`rob`、`certainty` 两节与相关模板（中英）。
+
+### 修正（行为变化）
+- **只有精确 p 与样本量的站内文章不再被入库丢掉**：点估计可以不填；填了但不合法只清点估计，p 与样本量照收；没有点估计的区间清掉（`ci_without_estimate`）。站内数据从此能到信天翁那一级。
+- **标签配主题带上把握**：`resolveTopicForTag` 一次看最多 10 条候选（自动补全 0 credit），候选里有同名主题就取同名的（以前只取第一条），配上时带 `confidence: 'exact' | 'first_hit'`——
+  短词、缩写的第一条常常只是字面上沾边，`first_hit` 必须如实标出来。服务层的机器绑定用同一个挑法；它的缓存键换了，升级后第一次请求会重新问一次。
+- **汇总那句话的数字**：点估计与各区间同一个小数位（按 95% 置信区间的宽度定；比值、标准化效应量、相关系数、患病率至少 2 位；最多 4 位），负号用 U+2212（`−`）。
+
+### 闸与测试
+- 行为回归快照 `test/regression.test.ts`：阶梯与汇总、图种菜单的形状网格、入库验形、标签归一与绑定、站内层、共现图、统计、服务端到端；快照变了要在 CHANGELOG 写明行为变了什么。
+- 安装包闸 `pnpm check:package`（并入 `pnpm check`）：按发版的方式打出 `.tgz`，在空目录里装上，CommonJS / ESM 各加载一遍五个入口，
+  TypeScript 用 bundler 与 node16 两种解析编译接入方代码（连同包里的 `.d.ts`），再走一遍客户端 → 读口 → 服务。
+- `test/appraisal.test.ts`；演示数据的效应量（含只有 p 与样本量的）与偏倚风险都过入库验形、入库前后同判。
+
+### 文档
+- 接入指南：加「偏倚风险与证据确定性」一节、「升级：从 0.2 到 0.3」；README 的诚实规则加一行；`docs/tags.md` 写明机器候选的挑法。
+- 贡献规则：行为快照与安装包闸；提交信息与 PR 文字里不写会话链接。
+
+### 演示
+- 汇总场景改为 6 项随机试验，每项带虚构的偏倚风险评定：森林图右侧多一栏（颜色之外还有符号，没评过画空心圈）、敏感性分析、偏倚风险概况、一条虚构的证据确定性评级；
+  设计混杂的场景里，队列研究的偏倚风险改用 ROBINS-I。
+
 ## 0.2.1（2026-10-02）
 
 只做加法：接入方照常同步即可（契约多一个可选字段，见下）。

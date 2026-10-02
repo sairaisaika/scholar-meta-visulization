@@ -20,7 +20,7 @@
 
 | 入口 | 模块 | 在哪跑 | 会不会出网 |
 |---|---|---|---|
-| `scholar-meta` | types · ladder · charts · dimensions · effects · stats · tags · onsite · filters · tagging · ledger · settings · manifest · messages · present · guards · features | 任何地方 | 不会 |
+| `scholar-meta` | types · ladder · charts · dimensions · effects · appraisal · stats · tags · onsite · filters · tagging · ledger · settings · manifest · messages · present · guards · features | 任何地方 | 不会 |
 | `scholar-meta/client` | client（+ guards） | 浏览器 | 只打宿主自己的读口 |
 | `scholar-meta/service` | service · ports | 服务端 | 通过外部源端口 |
 | `scholar-meta/http` | http | 服务端 | 不直接出网 |
@@ -38,6 +38,9 @@
 | `node_map` | 读者 | `EvidenceMapData` | `service.getNodeMap` | `presentEvidenceMap` | `GET /map?level=&id=` |
 | `evidence_view` | 读者 | `EvidenceViewDecision` | `pickEvidenceView` | `presentView` | 随 `/map` |
 | `pooling` | 读者 | `EvidencePooling` | `poolEvidence` | `presentView` | 随 `/map` |
+| `pooling_sensitivity` | 读者 | `EvidencePoolingSensitivity` | `poolEvidence` | `presentView` | 随 `/map` |
+| `risk_of_bias` | 读者 | `EvidenceRiskOfBias` | `checkRiskOfBias`（入库时由 `intakeArticle` 调） | `presentRiskOfBias` | 随 `/map`（在记录上） |
+| `certainty` | 读者 | `EvidenceCertainty` | `checkCertainty`（服务层经 `CertaintySource` 取来后调） | `presentCertainty` | 随 `/map` |
 | `tag_binding` | 读者 | `EvidenceTagBinding` | `resolveTagBinding` | `presentBinding` | 随 `/map` |
 | `record_edges` | 读者 | `EvidenceEdge` | `buildRecordEdges` | `presentEvidenceMap` | 随 `/map` |
 | `external_counts` | 读者 | `EvidenceCountsData` | `fetchEvidenceCounts` | `presentCounts` | `GET /counts` |

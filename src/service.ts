@@ -23,12 +23,12 @@
 import type {
   EvidenceCaveat, EvidenceSettings,
   EvidenceBindingQueueItem, EvidenceBindingSuggestion, EvidenceCountScope, EvidenceCountsData, EvidenceMapData, EvidenceOnsiteCounts, EvidenceProvenance,
-  EvidenceRecord, EvidenceTagBinding, EvidenceTagGraph, EvidenceTopic, EvidenceWorkTag,
+  EvidenceRecord, EvidenceTagBinding, EvidenceTagGraph, EvidenceTopic, EvidenceWorkTag, EvidenceCertainty, EvidenceScaleLevel,
 } from './types'
 import { EVIDENCE_COUNT_SCOPES } from './types'
 import { pickEvidenceView, poolEvidence } from './ladder'
 import {
-  createCuratedBinding, groupTags, normalizeTag, recordTagKeys, resolveTagBinding, splitTopicId, tagNameMatch,
+  createCuratedBinding, groupTags, MACHINE_CANDIDATE_LIMIT, normalizeTag, pickMachineCandidate, recordTagKeys, resolveTagBinding, splitTopicId, tagNameMatch,
 } from './tags'
 import type { MachineBindingPolicy, MachineResolution } from './tags'
 import { buildRecordEdges, buildTagGraph, countOnsiteLayer, intakeArticle, intakeArticles, ONSITE_DEFAULT_LABEL, ONSITE_DEFAULT_LICENSE } from './onsite'
@@ -40,8 +40,9 @@ import { defaultSettings, isLiveSettings, settingsReader } from './settings'
 import { applyWorkTags } from './ledger'
 import type { SettingsInput, ValidatedSettings } from './settings'
 import type {
-  EvidenceCache, ExternalEvidenceSource, ExternalLevel, ExternalNodeBundle, OnsiteArticleSource, TagBindingStore, WorkTagSource,
+  CertaintySource, EvidenceCache, ExternalEvidenceSource, ExternalLevel, ExternalNodeBundle, OnsiteArticleSource, TagBindingStore, WorkTagSource,
 } from './ports'
+import { checkCertainty } from './appraisal'
 
 export * from './ports'
 
@@ -77,6 +78,11 @@ export interface EvidenceServiceOptions {
    * 图注标出「有模型决定的标签」「有争议的没计入」。账本取不到 ⇒ 这次回 unavailable，不拿没裁决过的标签凑数。
    */
   workTags?: WorkTagSource | null
+  /**
+   * 可选：证据确定性评级（0.3.0）。给了 ⇒ 标签级与节点级的研究图谱带上这个范围的评级（逐条验形，不合格的丢掉并记日志）；
+   * 取不到 ⇒ `certainty: null`（UI 说「这次没取到」）。不给 ⇒ 不下发这个字段。
+   */
+  certainty?: CertaintySource | null
   cache?: EvidenceCache | null
   /** 站内文章在脚注里的来源名（宿主的站名 / 栏目名） */
   onsiteLabel?: string
@@ -296,12 +302,31 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
     cached<EvidenceRecord[]>(ck('sample', source.id, level, id, c.sampleSize), c.ttl.sample, () => source.sampleWorks(level, id, c.sampleSize))
 
   async function machineResolve(c: Cfg, source: ExternalEvidenceSource, key: string, label: string): Promise<MachineResolution> {
-    const r = await cached<MachineResolution>(ck('resolve', source.id, key), c.ttl.resolve, async () => {
-      const cands = await source.suggestTopics(label, 1)
+    // 缓存键带挑法的版本：0.3.0 起从最多 10 条候选里优先挑同名的，旧键下存的是「只看第一条」的结果
+    const r = await cached<MachineResolution>(ck('resolve2', source.id, key), c.ttl.resolve, async () => {
+      const cands = await source.suggestTopics(label, MACHINE_CANDIDATE_LIMIT)
       if (cands === null) return null
-      return cands.length > 0 ? { kind: 'matched', topic_id: cands[0].topic_id, display_name: cands[0].display_name } : { kind: 'no_match' }
+      const pick = pickMachineCandidate(key, cands)
+      return pick ? { kind: 'matched', topic_id: pick.candidate.topic_id, display_name: pick.candidate.display_name } : { kind: 'no_match' }
     }, (v) => v.kind !== 'error')
     return r ?? { kind: 'error' }
+  }
+
+  /**
+   * 一个范围的证据确定性评级：没接端口 ⇒ undefined（不下发）；取不到 / 抛错 ⇒ null（UI 说「这次没取到」）；
+   * 逐条验形，不合格的丢掉并记日志（只记条数，不记内容）。
+   */
+  async function certaintyFor(source: CertaintySource | null | undefined, scope: { level: EvidenceScaleLevel; id: string }): Promise<EvidenceCertainty[] | null | undefined> {
+    if (!source) return undefined
+    let raw: readonly unknown[] | null
+    try { raw = await source.forScope(scope) } catch (e) {
+      log('[evidence.service] certainty source failed', { error: e instanceof Error ? e.message : String(e) })
+      return null
+    }
+    if (!Array.isArray(raw)) return null
+    const ok = raw.map(checkCertainty).filter((x): x is EvidenceCertainty => x !== null)
+    if (ok.length < raw.length) log('[evidence.service] certainty entries dropped', { dropped: raw.length - ok.length })
+    return ok
   }
 
   const tagNode = (key: string, label: string, parentId: string | null, count: number | null): EvidenceTopic => ({
@@ -347,6 +372,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         siblings = (await curatedKeysForTopic(binding.topic_id)).filter((k) => k !== key).map((k) => tagNode(k, k, binding!.topic_id, null))
       }
       const records = [...onsite, ...external]
+      const certainty = await certaintyFor(opts.certainty, { level: 'tag', id: key })
       return ok<EvidenceMapData>({
         level: 'tag',
         focus: tagNode(key, label, binding?.topic_id ?? null, onsite.length),
@@ -360,6 +386,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         external_match,
         binding,
         edges: buildRecordEdges(records, references, { focusKeys: [key] }),
+        ...(certainty !== undefined ? { certainty } : {}),
       })
     }),
 
@@ -379,6 +406,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         if (keys.length > 0) ({ records: onsite, references } = await onsiteRecords(c, keys))
       }
       const records = [...onsite, ...(s ?? [])]
+      const certainty = await certaintyFor(opts.certainty, { level, id: topicId })
       return ok<EvidenceMapData>({
         level,
         focus: b.node,
@@ -392,6 +420,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         external_match: s ? 'matched' : 'unavailable',
         binding: null,
         edges: buildRecordEdges(records, references, { focusKeys: keys }),
+        ...(certainty !== undefined ? { certainty } : {}),
       })
     }),
 

@@ -60,6 +60,21 @@ export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
     producer: main('ladder', 'poolEvidence'), consumer: main('present', 'presentView'),
   },
   {
+    id: 'pooling_sensitivity', audience: 'reader', route: 'map', payload: 'EvidencePoolingSensitivity',
+    answers: '去掉偏倚风险高的研究之后，汇总的结论还站不站得住（主分析不变）',
+    producer: main('ladder', 'poolEvidence'), consumer: main('present', 'presentView'),
+  },
+  {
+    id: 'risk_of_bias', audience: 'reader', route: 'map', payload: 'EvidenceRiskOfBias',
+    answers: '每项研究的偏倚风险是谁评的、评成什么（引擎不评，只验形与转述；没评过不当成低风险）',
+    producer: main('appraisal', 'checkRiskOfBias'), consumer: main('present', 'presentRiskOfBias'),
+  },
+  {
+    id: 'certainty', audience: 'reader', route: 'map', payload: 'EvidenceCertainty',
+    answers: '编辑或外部综述对某个结局的证据确定性（GRADE）评成哪一档、为什么升降级',
+    producer: main('appraisal', 'checkCertainty'), consumer: main('present', 'presentCertainty'),
+  },
+  {
     id: 'tag_binding', audience: 'reader', route: 'map', payload: 'EvidenceTagBinding',
     answers: '这个标签对应外部哪个主题，是编辑确认的还是机器按名字猜的',
     producer: main('tags', 'resolveTagBinding'), consumer: main('present', 'presentBinding'),

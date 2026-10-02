@@ -55,14 +55,18 @@ flowchart LR
 |---|---|---|---|
 | `curated` | 编辑确认 | 最高 | 「编辑确认：对应主题 X」 |
 | `rejected` | 编辑确认「没有对应主题」 | 最高（否决机器命中，之后不再去问） | 「这个标签没有对应的外部主题」 |
-| `machine` · `exact` | 外部源自动补全，主题名归一后与标签键相同 | 次之 | 「自动匹配（名称相同）」+ `machine_binding` 图注 |
-| `machine` · `first_hit` | 外部源自动补全的第一条 | 次之 | 「自动匹配（未经人工确认）」+ `machine_binding` 图注 |
+| `machine` · `exact` | 外部源自动补全的候选里有一条，主题名归一后与标签键相同（不论排第几） | 次之 | 「自动匹配（名称相同）」+ `machine_binding` 图注 |
+| `machine` · `first_hit` | 候选里没有同名的，取自动补全的第一条 | 次之 | 「自动匹配（未经人工确认）」+ `machine_binding` 图注 |
 
-自动补全是实体链接里的**候选生成**，不是**消歧**（Shen, Wang & Han 2015）：`adhd` 的第一条候选恰好对，别的标签未必。所以机器绑定永远带图注，并且有三档策略（`machineBinding`）：
+自动补全是实体链接里的**候选生成**，不是**消歧**（Shen, Wang & Han 2015）：`adhd` 的第一条候选恰好对，别的标签未必——
+短词、缩写的第一条常常只是字面上沾边（`app` 的第一条是「Plasma Diagnostics and Applications」）。所以：
 
-- `first_hit`（缺省）：第一条就绑，图注写明未经确认；
-- `exact_only`：只有同名才自动绑，其余进 `needs_review`，**不显示外部文献**，等编辑；
-- `off`：只认编辑绑定。
+- 一次看最多 10 条候选（`MACHINE_CANDIDATE_LIMIT`，自动补全 0 credit），**有同名的取同名的**，没有才取第一条（`pickMachineCandidate`；服务层与 `resolveTopicForTag` 同一个挑法）；
+- `resolveTopicForTag` 配上时带 `confidence`（`exact` / `first_hit`）——不用服务层、直接调适配器的接入方也拿得到「有没有把握」；
+- 机器绑定永远带图注，并且有三档策略（`machineBinding`）：
+  - `first_hit`（缺省）：没有同名的也绑第一条，图注写明未经确认；
+  - `exact_only`：只有同名才自动绑，其余进 `needs_review`，**不显示外部文献**，等编辑；
+  - `off`：只认编辑绑定。
 
 同义与跨语言（`焦虑` ↔ `anxiety`）的正确做法：编辑把两个标签**各自**绑到同一个主题。这是可追溯（谁、什么时候、为什么）、可撤销的，读者看到的是「编辑确认」。
 

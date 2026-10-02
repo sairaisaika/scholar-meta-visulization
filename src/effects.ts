@@ -47,14 +47,24 @@ export function isEffectMetric(x: unknown): x is EvidenceEffectMetric {
 }
 
 /**
+ * 点估计：有限的数才算；`null`（只有精确 p 与样本量）、旧写法的 `NaN`、效应量本身缺 ⇒ null。
+ * 读 `effect.value` 的地方都过这一道——契约里 `value` 0.3.0 起可以是 `null`。
+ */
+export function pointEstimate(e: Pick<EvidenceEffect, 'value'> | null | undefined): number | null {
+  const v = e?.value
+  return typeof v === 'number' && Number.isFinite(v) ? v : null
+}
+
+/**
  * 从点估计推方向（Cochrane 12.2.2.1：按**点估计的方向**计数，不看显著性）。
  * 需要度量有「无效应值」且申报了数值大＝好还是坏；否则 null（推不出来，不是 unclear）。点估计正好等于无效应值 ⇒ unclear。
  */
 export function directionFromEffect(e: Pick<EvidenceEffect, 'metric' | 'value' | 'higher_is_better'>): Exclude<EvidenceDirection, 'not_applicable'> | null {
   const nv = EFFECT_METRICS[e.metric]?.nullValue ?? null
-  if (nv === null || e.higher_is_better == null || !Number.isFinite(e.value)) return null
-  if (e.value === nv) return 'unclear'
-  return (e.value > nv) === e.higher_is_better ? 'favours' : 'against'
+  const v = pointEstimate(e)
+  if (nv === null || e.higher_is_better == null || v === null) return null
+  if (v === nv) return 'unclear'
+  return (v > nv) === e.higher_is_better ? 'favours' : 'against'
 }
 
 /** 95% 区间是否把「无效应」排除在外。没有区间或度量没有无效应值 ⇒ null。 */

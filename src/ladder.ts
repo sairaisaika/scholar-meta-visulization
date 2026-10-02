@@ -28,12 +28,14 @@ import type {
   EvidenceDowngradeReason,
   EvidencePooledEstimate,
   EvidencePooling,
+  EvidencePoolingSensitivity,
   EvidenceRecord,
   EvidenceViewDecision,
   EvidenceViewKind,
 } from './types'
 import { EVIDENCE_VIEW_LADDER } from './types'
-import { EFFECT_METRICS } from './effects'
+import { EFFECT_METRICS, pointEstimate } from './effects'
+import { isHighRiskOfBias } from './appraisal'
 import { poolRandomEffects, Z_95 } from './stats'
 
 /** 一级视图的声明：它要求每条记录具备什么、至少要几条才画。 */
@@ -47,7 +49,7 @@ export interface EvidenceViewSpec {
   downgradeReason: EvidenceDowngradeReason
 }
 
-const hasEffect = (r: EvidenceRecord): boolean => !!r.effect && Number.isFinite(r.effect.value)
+const hasEffect = (r: EvidenceRecord): boolean => pointEstimate(r.effect) !== null
 const hasVariance = (r: EvidenceRecord): boolean =>
   hasEffect(r) && r.effect!.ci_low != null && r.effect!.ci_high != null &&
   Number.isFinite(r.effect!.ci_low) && Number.isFinite(r.effect!.ci_high)
@@ -129,6 +131,21 @@ export function assessPooling(records: readonly EvidenceRecord[]): EvidencePooli
  * 任何一步数不合法（比如患病率区间碰到 0 或 1、r 的区间碰到 ±1）⇒ `estimate: null`，判定照旧——不硬算。
  */
 export function poolEvidence(records: readonly EvidenceRecord[]): EvidencePooling {
+  const primary = poolCore(records)
+  if (!primary.allowed) return primary
+  // 敏感性分析（Cochrane Handbook v6.5 §10.14）：参与汇总的研究里有偏倚风险高的 ⇒ 去掉它们再判、再算一遍；主分析不变。
+  // 没评过的不算高风险（不去掉）——「没评过」不是证据，也不是反证。
+  const high = records.filter((r) => hasVariance(r) && isHighRiskOfBias(r.risk_of_bias))
+  if (high.length === 0) return primary
+  const rest = poolCore(records.filter((r) => !high.includes(r)))
+  const sensitivity: EvidencePoolingSensitivity = {
+    excluded: high.length, allowed: rest.allowed, reason: rest.reason, studies: rest.studies, estimate: rest.estimate ?? null,
+  }
+  return { ...primary, sensitivity }
+}
+
+/** 汇总判定 + 能汇总时的估计（不含敏感性分析）。 */
+function poolCore(records: readonly EvidenceRecord[]): EvidencePooling {
   const decision = assessPooling(records)
   if (!decision.allowed) return { ...decision, estimate: null }
   const used = records.filter(hasVariance)
@@ -139,7 +156,7 @@ export function poolEvidence(records: readonly EvidenceRecord[]): EvidencePoolin
   const studies = used.map((r) => {
     const e = r.effect!
     const se = (g(e.ci_high!) - g(e.ci_low!)) / (2 * Z_95)
-    return { y: g(e.value), v: se * se }
+    return { y: g(pointEstimate(e)!), v: se * se } // hasVariance 已保证点估计有限
   })
   const res = poolRandomEffects(studies)
   if (!res) return { ...decision, estimate: null }

@@ -23,10 +23,15 @@ import { EFFECT_METRICS, directionFromEffect, intervalExcludesNull, isEffectMetr
 import { groupTags, normalizeTag, recordTagKeys, TAG_MAX_LENGTH } from './tags'
 import { chartAvailabilityFor, chartShapeOf, type ChartShape } from './charts'
 import { normalizeDoi } from './doi'
+import { safeHttpUrl } from './url'
+import { checkRiskOfBias } from './appraisal'
 
 // ── 输入形状 ─────────────────────────────────────────────────────────────────
 
-/** 作者申报的效应量（数字可以是字符串：很多数据库驱动把 numeric 列读成字符串）。 */
+/**
+ * 作者申报的效应量（数字可以是字符串：很多数据库驱动把 numeric 列读成字符串）。
+ * `value` 可以不填：只有精确 p 与样本量（加上文章的 `direction`）也收，能画到信天翁图那一级；`metric` 照样要写。
+ */
 export interface OnsiteArticleEffect {
   metric?: unknown
   value?: unknown
@@ -65,6 +70,11 @@ export interface OnsiteArticle {
   effect?: OnsiteArticleEffect | null
   /** 参考文献（DOI 字符串或 `{ doi }`）；用来按引用关系给标签推荐主题（见 service 的 suggestBindings） */
   references?: ReadonlyArray<string | { doi?: string | null }> | null
+  /**
+   * 偏倚风险（0.3.0）：`{ tool: 'rob2' | 'robins_i' | 'other', overall, source }`，由编辑或外部综述评，**不由作者自评**；
+   * `source` 写清楚是谁评的（必填）。见 appraisal.ts。
+   */
+  risk_of_bias?: { tool?: unknown; overall?: unknown; source?: unknown } | null
   is_public?: boolean | null
   is_retracted?: boolean | null
 }
@@ -108,19 +118,7 @@ const present = (x: unknown) => x !== undefined && x !== null && !(typeof x === 
 
 export { normalizeDoi } from './doi'
 
-// http(s)://主机[:端口][路径 / 查询 / 片段]；主机里不许有 `@`（`https://真站@钓鱼站` 这种）与空白、控制字符
-const HTTP_URL = /^https?:\/\/[^\s/?#@:\\]+(?::\d{1,5})?(?:[/?#][^\s]*)?$/i
-const CONTROL = /[\u0000-\u001f\u007f]/
-
-/**
- * 只接受 http / https 的绝对地址（`javascript:`、`data:` 这类会被当成链接渲染的一律拒绝）。
- * 用正则而不是 `new URL`：React Native 的 URL 实现不全，移动端也要能跑。
- */
-export function safeHttpUrl(raw: unknown): string | null {
-  if (typeof raw !== 'string' || raw.length > 2048) return null
-  const s = raw.trim()
-  return HTTP_URL.test(s) && !CONTROL.test(s) ? s : null
-}
+export { safeHttpUrl } from './url'
 
 const inVocab = <T extends string>(vocab: readonly T[], x: unknown): T | null => {
   if (typeof x !== 'string') return null
@@ -136,10 +134,15 @@ function intakeEffect(raw: unknown, issues: EvidenceIntakeIssue[]): EvidenceEffe
   const e = raw as OnsiteArticleEffect
   if (!isEffectMetric(e.metric)) { issues.push({ code: 'unknown_metric', field: 'effect.metric', action: 'field_cleared' }); return null }
   const spec = EFFECT_METRICS[e.metric]
-  const value = toNumber(e.value)
-  if (value === null) { issues.push({ code: 'effect_not_finite', field: 'effect.value', action: 'field_cleared' }); return null }
   const outOfDomain = spec.nullValue === 1 ? 'ratio_not_positive' as const : 'value_out_of_range' as const
-  if (!spec.inDomain(value)) { issues.push({ code: outOfDomain, field: 'effect.value', action: 'field_cleared' }); return null }
+  // 点估计：没填 ⇒ null（只有精确 p 与样本量也收）；填了但不合法 ⇒ 只清点估计，p 与样本量照收
+  let value: number | null = null
+  if (present(e.value)) {
+    const v = toNumber(e.value)
+    if (v === null) issues.push({ code: 'effect_not_finite', field: 'effect.value', action: 'field_cleared' })
+    else if (!spec.inDomain(v)) issues.push({ code: outOfDomain, field: 'effect.value', action: 'field_cleared' })
+    else value = v
+  }
 
   let ci_low: number | null = null
   let ci_high: number | null = null
@@ -148,7 +151,9 @@ function intakeEffect(raw: unknown, issues: EvidenceIntakeIssue[]): EvidenceEffe
   if (hasLo || hasHi) {
     const lo = toNumber(e.ci_low)
     const hi = toNumber(e.ci_high)
-    if (lo === null || hi === null) issues.push({ code: 'ci_incomplete', field: 'effect.ci', action: 'field_cleared' })
+    // 区间要跟着点估计走：没有点估计，区间核不了（点估计在不在区间里），也画不了森林图的那一行
+    if (value === null) issues.push({ code: 'ci_without_estimate', field: 'effect.ci', action: 'field_cleared' })
+    else if (lo === null || hi === null) issues.push({ code: 'ci_incomplete', field: 'effect.ci', action: 'field_cleared' })
     else if (!spec.inDomain(lo) || !spec.inDomain(hi)) issues.push({ code: outOfDomain, field: 'effect.ci', action: 'field_cleared' })
     else if (lo >= hi) issues.push({ code: 'ci_inverted', field: 'effect.ci', action: 'field_cleared' })
     else if (value < lo || value > hi) issues.push({ code: 'ci_excludes_estimate', field: 'effect.ci', action: 'field_cleared' })
@@ -168,6 +173,8 @@ function intakeEffect(raw: unknown, issues: EvidenceIntakeIssue[]): EvidenceEffe
     else issues.push({ code: 'p_invalid', field: 'effect.p_value', action: 'field_cleared' })
   }
   const higher_is_better = typeof e.higher_is_better === 'boolean' ? e.higher_is_better : null
+  // 点估计、样本量、精确 p 一样都没留下 ⇒ 这条效应量没有可用的内容
+  if (value === null && n === null && p_value === null) return null
   return { metric: e.metric, value, ci_low, ci_high, n, higher_is_better, p_value }
 }
 
@@ -279,6 +286,9 @@ export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}):
     }
   }
 
+  const rob = checkRiskOfBias(a.risk_of_bias)
+  if (rob.issue) issues.push(rob.issue)
+
   const references: string[] = []
   const refSeen = new Set<string>()
   for (const ref of Array.isArray(a.references) ? a.references : []) {
@@ -311,6 +321,7 @@ export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}):
       retrieved_at: opts.retrieved_at ?? new Date().toISOString(),
     },
     tags,
+    ...(rob.value ? { risk_of_bias: rob.value } : {}),
   }
   return { record, issues, references }
 }

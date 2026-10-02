@@ -23,7 +23,8 @@ const work = (id: string): EvidenceRecord => ({
   is_retracted: false, is_open_access: true, provenance: { source_label: 'OpenAlex', license: 'CC0 1.0', retrieved_at: '2026-09-20T00:00:00Z' },
 })
 
-function fakeExternal(over: Partial<ExternalEvidenceSource> = {}) {
+/** `exactAdhd: false` ⇒ 「adhd」的候选里没有同名主题（只有第一条的长名字），用来测 first_hit / needs_review 这条路 */
+function fakeExternal(over: Partial<ExternalEvidenceSource> = {}, opts: { exactAdhd?: boolean } = {}) {
   const calls: string[] = []
   const src: ExternalEvidenceSource = {
     id: 'openalex',
@@ -31,7 +32,7 @@ function fakeExternal(over: Partial<ExternalEvidenceSource> = {}) {
       calls.push(`suggest:${tag}:${limit}`)
       if (tag.toLowerCase() === 'adhd') return [
         { topic_id: 'openalex:T10537', display_name: 'Attention Deficit Hyperactivity Disorder', works_count: 110442 },
-        { topic_id: 'openalex:T999', display_name: 'ADHD', works_count: 10 },
+        ...(opts.exactAdhd === false ? [] : [{ topic_id: 'openalex:T999', display_name: 'ADHD', works_count: 10 }]),
       ].slice(0, limit)
       if (tag === 'Sleep') return [{ topic_id: 'openalex:T200', display_name: 'Sleep', works_count: 500 }]
       return []
@@ -66,8 +67,8 @@ const articles = [
   { id: 4, title: 'Hidden', tags: ['ADHD'], is_public: false },
 ]
 
-const make = (over: Parameters<typeof createEvidenceService>[0] extends infer O ? Partial<O> : never = {}) => {
-  const ext = fakeExternal()
+const make = (over: Parameters<typeof createEvidenceService>[0] extends infer O ? Partial<O> : never = {}, fake: { exactAdhd?: boolean } = {}) => {
+  const ext = fakeExternal({}, fake)
   const bindings = createMemoryBindingStore()
   const cache = createMemoryCache()
   const log = jest.fn()
@@ -80,7 +81,7 @@ const make = (over: Parameters<typeof createEvidenceService>[0] extends infer O 
 
 describe('标签级研究图谱', () => {
   it('机器命中（first_hit）：站内 + 外部示例，绑定带出处，公开文章以外的不进', async () => {
-    const { service, ext } = make()
+    const { service, ext } = make({}, { exactAdhd: false })
     const r = await service.getTagMap('ＡＤＨＤ')
     if (!r.ok) throw new Error(r.error)
     const m = r.data
@@ -94,7 +95,19 @@ describe('标签级研究图谱', () => {
     expect(m.view.kind).toBe('gap_map')
     expect(m.sources.map((s) => s.source_label)).toEqual(['Site', 'OpenAlex'])
     // 标签原样去问：发的是最常见的原文写法 'ADHD'，不是归一后的键
-    expect(ext.calls[0]).toBe('suggest:ADHD:1')
+    // 一次要最多 10 条候选（自动补全 0 credit），好在同名主题不排第一时也挑得到
+    expect(ext.calls[0]).toBe('suggest:ADHD:10')
+  })
+  it('候选里有同名的取同名的：同名主题排第二也绑它，并标 exact', async () => {
+    const { service } = make()
+    const r = await service.getTagMap('adhd')
+    if (!r.ok) throw new Error(r.error)
+    expect(r.data.binding).toMatchObject({ kind: 'machine', confidence: 'exact', topic_id: 'openalex:T999', topic_name: 'ADHD' })
+    expect(r.data.focus?.parent_id).toBe('openalex:T999')
+    // exact_only 下同名命中照样自动绑
+    const strict = make({ machineBinding: 'exact_only' })
+    const s2 = await strict.service.getTagMap('adhd')
+    expect(s2.ok && [s2.data.external_match, s2.data.binding?.topic_id]).toEqual(['matched', 'openalex:T999'])
   })
   it('① 防滥用闸：没出现在公开文章里的标签不出网', async () => {
     const { service, ext } = make()
@@ -104,7 +117,7 @@ describe('标签级研究图谱', () => {
     expect(ext.calls).toEqual([])
     const open = make({ externalGate: 'any' })
     await open.service.getTagMap('some random thing')
-    expect(open.ext.calls).toEqual(['suggest:some random thing:1'])
+    expect(open.ext.calls).toEqual(['suggest:some random thing:10'])
   })
   it('② 「没问成」不缓存、下次再问；「查无」缓存；并发合并', async () => {
     let fail = true
@@ -139,7 +152,7 @@ describe('标签级研究图谱', () => {
     expect(ext.calls.some((c) => c.startsWith('suggest:Sleep'))).toBe(false)
   })
   it('③ exact_only：非同名命中进 needs_review，不显示外部文献；off：只认编辑绑定', async () => {
-    const strict = make({ machineBinding: 'exact_only' })
+    const strict = make({ machineBinding: 'exact_only' }, { exactAdhd: false })
     const r = await strict.service.getTagMap('adhd')
     expect(r.ok && [r.data.external_match, r.data.binding, r.data.records.length]).toEqual(['needs_review', null, 2])
     const exact = await strict.service.getTagMap('sleep')
@@ -286,7 +299,7 @@ describe('审查修复', () => {
 
 describe('编辑待办队列', () => {
   it('只列还没有编辑结论的标签，按文章数排；带读者现在看到的状态与机器候选', async () => {
-    const { service, bindings, ext } = make({ machineBinding: 'exact_only' })
+    const { service, bindings, ext } = make({ machineBinding: 'exact_only' }, { exactAdhd: false })
     await bindings.put(createCuratedBinding({ tag: 'sleep', topic: null, by: 'ed', at: NOW.toISOString() })!) // 已否决：不进队列
     const r = await service.bindingQueue()
     if (!r.ok) throw new Error(r.error)
@@ -300,7 +313,7 @@ describe('编辑待办队列', () => {
     expect(await noStore.bindingQueue()).toEqual({ ok: false, error: 'not_configured' })
   })
   it('first_hit 策略：读者看到的是机器绑定；minArticles 过滤长尾', async () => {
-    const { service } = make()
+    const { service } = make({}, { exactAdhd: false })
     const r = await service.bindingQueue({ minArticles: 2 })
     expect(r.ok && r.data.map((x) => [x.tag_key, x.external_match, x.binding?.confidence])).toEqual([['adhd', 'matched', 'first_hit'], ['sleep', 'matched', 'exact']])
     expect(await service.bindingQueue({ minArticles: 3 })).toEqual({ ok: true, data: [] })

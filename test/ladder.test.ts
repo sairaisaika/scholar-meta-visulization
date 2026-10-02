@@ -92,7 +92,7 @@ describe('证据视图阶梯', () => {
   })
 
   it('⑥ 信天翁：方向 + 样本量 + **精确 p** 才够；缺 p 落 direction', () => {
-    const noValue = (p: number | null, n: number) => eff({ value: NaN, ci_low: null, ci_high: null, n, p_value: p })
+    const noValue = (p: number | null, n: number) => eff({ value: null, ci_low: null, ci_high: null, n, p_value: p })
     const withP = [
       base({ direction: 'favours', effect: noValue(0.03, 80) }),
       base({ id: 'openalex:W2', direction: 'against', effect: noValue(0.4, 50) }),
@@ -100,6 +100,9 @@ describe('证据视图阶梯', () => {
     expect(pickEvidenceView(withP)).toEqual({ kind: 'albatross', usable: 2, total: 2, downgrade_reason: 'no_effect_sizes' })
     const noP = withP.map((r) => ({ ...r, effect: { ...r.effect!, p_value: null } }))
     expect(pickEvidenceView(noP).kind).toBe('direction')
+    // 旧写法 NaN 与 null 同判（0.3.0 之前没有点估计只能写 NaN）
+    const legacy = withP.map((r) => ({ ...r, effect: { ...r.effect!, value: Number.NaN } }))
+    expect(pickEvidenceView(legacy)).toEqual(pickEvidenceView(withP))
   })
 
   it('⑥ 汇总：结局方向没申报齐 / 不一致 ⇒ orientation_unclear；设计不一致 ⇒ mixed_designs；度量未知 ⇒ mixed_metrics', () => {

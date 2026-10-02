@@ -3,12 +3,14 @@
  * 判据与文案全部来自引擎本身（与 npm 包 / release 安装包是同一份源码），这里只管摆放与画图。页面不发任何网络请求。
  */
 import {
-  EVIDENCE_VIEWS, chartAvailabilityFor, getMessages, pickEvidenceView, poolEvidence, presentChartMenu, presentView,
+  EVIDENCE_VIEWS, chartAvailabilityFor, getMessages, pickEvidenceView, poolEvidence, presentCertainty, presentChartMenu, presentRiskOfBiasSummary,
+  presentView, summarizeRiskOfBias,
 } from '../../src/index'
+import type { EvidenceRobBand } from '../../src/appraisal'
 import type { ChartShape } from '../../src/charts'
 import { SCENARIOS, type Scenario, type ScenarioId } from './fixtures'
 import { TEXT, type Locale, type PresetId } from './i18n'
-import { albatrossChart, estimatesChart, forestChart, gapChart, harvestChart, recordsTable, type ChartCtx } from './charts'
+import { ROB_GLYPH, albatrossChart, estimatesChart, forestChart, gapChart, harvestChart, recordsTable, type ChartCtx } from './charts'
 import { formatter, h } from './dom'
 
 type Gate = 'unset' | 'pass' | 'fail'
@@ -121,6 +123,14 @@ function ladderSection(ctx: ChartCtx, scenario: Scenario) {
   const notes: string[] = []
   const legend = h('div', { class: 'legend' })
   if (decision.kind === 'forest') {
+    // 偏倚风险一栏的图例：只列这组研究里出现过的档（加上「未评估」）
+    const rob = summarizeRiskOfBias(records)
+    if (rob.assessed > 0) {
+      const bands = (Object.keys(rob.by_band) as EvidenceRobBand[]).filter((b) => rob.by_band[b] > 0)
+      legend.append(...bands.map((b) => robKey(b, m.rob.band[b])))
+      if (rob.assessed < rob.total) legend.append(robKey(null, m.text.rob_not_assessed))
+      figure.append(legend)
+    }
     figure.append(scroll(forestChart(records, pooling, ctx)))
     notes.push(pooling.allowed ? t.predictionNote : `${t.noDiamond}${m.pooling[pooling.reason]}`)
   } else if (decision.kind === 'estimates') {
@@ -138,11 +148,24 @@ function ladderSection(ctx: ChartCtx, scenario: Scenario) {
     figure.append(h('p', { class: 'chart-title' }, [t.countByDesign]), scroll(gapChart(records, ctx)))
     notes.push(t.claimsNote)
   }
+  const robSummary = presentRiskOfBiasSummary(records, { locale: state.locale })
+  const cert = scenario.certainty
+    ? presentCertainty({ ...scenario.certainty, outcome: t.certaintyExample.outcome, source: t.certaintyExample.source }, { locale: state.locale })
+    : null
+  if (robSummary.text || cert) notes.push(t.appraisalNote)
   for (const n of notes) figure.append(h('figcaption', {}, [n]))
 
+  const row = (dt: string, dd: Array<Node | string | null>) => h('div', {}, [h('dt', {}, [dt]), h('dd', {}, dd)])
   const facts = h('dl', { class: 'facts' }, [
-    view.why_not_higher ? h('div', {}, [h('dt', {}, [t.whyNotHigher]), h('dd', {}, [view.why_not_higher])]) : null,
-    view.pooling_text ? h('div', {}, [h('dt', {}, [t.pooling]), h('dd', {}, [view.estimate_text ?? view.pooling_text])]) : null,
+    view.why_not_higher ? row(t.whyNotHigher, [view.why_not_higher]) : null,
+    view.pooling_text ? row(t.pooling, [view.estimate_text ?? view.pooling_text]) : null,
+    view.sensitivity_text ? row(t.sensitivity, [view.sensitivity_text]) : null,
+    robSummary.text ? row(t.riskOfBias, [[robSummary.text, robSummary.missing_text].filter(Boolean).join(m.text.parts_sep)]) : null,
+    cert ? row(t.certainty, [
+      h('span', { class: 'grade', 'aria-hidden': 'true' }, [cert.symbol]), ' ', cert.text,
+      cert.reasons_text ? h('span', { class: 'sub' }, [cert.reasons_text]) : null,
+      h('span', { class: 'sub' }, [cert.meaning]),
+    ]) : null,
   ])
 
   return h('section', { class: 'block', 'aria-labelledby': 'ladder-h' }, [
@@ -235,5 +258,8 @@ const capitalize = (x: string) => x.charAt(0).toUpperCase() + x.slice(1)
 
 const key = (cls: string, label: string, line = false) =>
   h('span', { class: 'key' }, [h('i', { class: line ? `swatch line ${cls}` : `swatch ${cls}`, 'aria-hidden': 'true' }), label])
+/** 偏倚风险图例：与森林图里那一栏同样的圆点与符号；null ＝ 未评估（空心圈） */
+const robKey = (band: EvidenceRobBand | null, label: string) =>
+  h('span', { class: 'key' }, [h('i', { class: `rob-dot rob-${band ?? 'none'}`, 'aria-hidden': 'true' }, [band ? ROB_GLYPH[band] : '']), label])
 
 render()

@@ -2,6 +2,7 @@
  * OpenAlex 适配器：
  *   ① 429 退避：按 Retry-After 等一下再试；连续 429 超过上限仍如实失败（null，不当成「零」）；其他非 2xx 不重试；
  *   ② 标签解析三态：网络错误 / 非 2xx / 形状不对都是 `error`，**不是**「查无」；空结果才是 `no_match`；
+ *      配上了带 `confidence`：最多 10 条候选里有同名的取同名的（`exact`），没有才取第一条（`first_hit`）；
  *   ③ key 只走 `Authorization: Bearer` 头：不进 URL、不进日志；没配不带；可以传函数现取；
  *   ④ 注入的 fetch / baseUrl 生效；
  *   ⑤ 四级节点 bundle：实体先、同级列表后；祖先从近到远带 parent_id；兄弟去掉自己、带 works_count、不读实体自带的 siblings[]；
@@ -45,7 +46,24 @@ describe('OpenAlex · 标签解析三态', () => {
     expect(await client(jest.fn().mockResolvedValue(res(200, { results: 'nope' }))).resolveTopicForTag('adhd')).toEqual({ kind: 'error' })
     expect(await client(jest.fn().mockResolvedValue(res(200, { results: [] }))).resolveTopicForTag('焦虑')).toEqual({ kind: 'no_match' })
     expect(await client(jest.fn().mockResolvedValue(res(200, { results: [{ id: 'https://openalex.org/T10537', display_name: 'ADHD', works_count: 9 }] })))
-      .resolveTopicForTag('adhd')).toEqual({ kind: 'matched', external_id: 'T10537', display_name: 'ADHD', works_count: 9 })
+      .resolveTopicForTag('adhd')).toEqual({ kind: 'matched', external_id: 'T10537', display_name: 'ADHD', works_count: 9, confidence: 'exact' })
+  })
+  it('配上了要说多有把握：候选里有同名的取同名的（哪怕不排第一），没有才取第一条并标 first_hit', async () => {
+    const results = [
+      { id: 'https://openalex.org/T1', display_name: 'Anxiety and Depression in Adolescents', works_count: 50 },
+      { id: 'https://openalex.org/T2', display_name: 'Anxiety', works_count: 7 },
+    ]
+    expect(await client(jest.fn().mockResolvedValue(res(200, { results }))).resolveTopicForTag('#ANXIETY'))
+      .toEqual({ kind: 'matched', external_id: 'T2', display_name: 'Anxiety', works_count: 7, confidence: 'exact' })
+    // 短词的第一条常常只是字面上沾边：照样给出候选，但如实标 first_hit，不冒充确定的对应
+    const plasma = [{ id: 'https://openalex.org/T3', display_name: 'Plasma Diagnostics and Applications', works_count: 900 }]
+    expect(await client(jest.fn().mockResolvedValue(res(200, { results: plasma }))).resolveTopicForTag('app'))
+      .toEqual({ kind: 'matched', external_id: 'T3', display_name: 'Plasma Diagnostics and Applications', works_count: 900, confidence: 'first_hit' })
+  })
+  it('一次最多看 10 条候选；第 11 条以后的同名主题不算', async () => {
+    const results = Array.from({ length: 12 }, (_, i) => ({ id: `https://openalex.org/T${i + 1}`, display_name: i === 10 ? 'Sleep' : `Sleep topic ${i + 1}`, works_count: 1 }))
+    const r = await client(jest.fn().mockResolvedValue(res(200, { results }))).resolveTopicForTag('sleep')
+    expect(r).toMatchObject({ kind: 'matched', external_id: 'T1', confidence: 'first_hit' })
   })
   it('空白标签不出网', async () => {
     const f = jest.fn()

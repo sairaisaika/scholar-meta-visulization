@@ -7,6 +7,7 @@ import { EVIDENCE_FEATURES } from '../src/features'
 import * as main from '../src/index'
 import * as service from '../src/service'
 import { createMemoryTagLedgerStore, createTagLedger } from '../src/ledger'
+import { createOpenAlexClient } from '../src/openalex'
 
 const doc = (name: string) => readFileSync(join(__dirname, '..', 'docs', name), 'utf8')
 
@@ -27,7 +28,11 @@ describe('文档同步', () => {
     expect(names.length).toBeGreaterThan(8)
     const exported = { ...main, ...service } as Record<string, unknown>
     const serviceMethods = ['suggestBindings']
-    for (const n of new Set(names)) expect([n, typeof exported[n] === 'function' || serviceMethods.includes(n)]).toEqual([n, true])
+    // OpenAlex 客户端的方法（`resolveTopicForTag` 这种）：真的建一个客户端看它有没有（不出网）
+    const client = createOpenAlexClient({ fetch: (() => { throw new Error('no network in tests') }) as unknown as typeof fetch }) as unknown as Record<string, unknown>
+    for (const n of new Set(names)) {
+      expect([n, typeof exported[n] === 'function' || serviceMethods.includes(n) || typeof client[n] === 'function']).toEqual([n, true])
+    }
   })
   it('tagging.md 里用反引号提到的函数与账本方法都真实存在', () => {
     const text = doc('tagging.md')

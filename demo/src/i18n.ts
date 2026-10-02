@@ -47,7 +47,14 @@ export interface DemoText {
   countByDesign: string
   claimsNote: string
   table: string
-  columns: { study: string; design: string; direction: string; effect: string; ci: string; p: string; n: string; claim: string }
+  columns: { study: string; design: string; direction: string; effect: string; ci: string; p: string; n: string; claim: string; rob: string }
+  /** 偏倚风险与证据确定性（0.3.0） */
+  robHeader: string
+  riskOfBias: string
+  sensitivity: string
+  certainty: string
+  certaintyExample: { outcome: string; source: string }
+  appraisalNote: string
   menuTitle: string
   menuLead: string
   presets: Record<PresetId, string>
@@ -73,7 +80,7 @@ export const TEXT: Record<Locale, DemoText> = {
     ladderTitle: '证据阶梯',
     ladderLead: '同一套判据，按手上的字段从上往下找：第一级能满足的就是能诚实画到的最高一级。',
     scenarios: {
-      pooled: { name: '5 项随机对照试验，都有效应量与置信区间', about: '效应量度量相同、结局方向相同、设计相同，而且至少 5 项：可以画汇总菱形。' },
+      pooled: { name: '6 项随机对照试验，都有效应量与置信区间', about: '效应量度量相同、结局方向相同、设计相同，而且至少 5 项：可以画汇总菱形。其中一项偏倚风险高，另给去掉它之后的结果。' },
       mixed: { name: '同样的数，但设计混杂', about: '其中两项换成队列研究。森林图照画，但随机与非随机不合并，不画菱形。' },
       estimates: { name: '只有点估计', about: '报了效应量，但没有置信区间：只画点，不画区间、不画菱形。' },
       albatross: { name: '只有方向、精确 p 与样本量', about: '没有效应量，但报了精确 p 值与样本量：用 p 与样本量看效应的量级。' },
@@ -112,7 +119,13 @@ export const TEXT: Record<Locale, DemoText> = {
     countByDesign: '按研究设计计数',
     claimsNote: '这些研究只自报了「显著 / 不显著」。按显著性计票会把样本不够、没能排除重要效应的研究也算成「没有效果」，研究越多越失真（Cochrane Handbook 12.2.2.1），所以这里不画任何显著与不显著的对比。',
     table: '表格',
-    columns: { study: '研究', design: '设计', direction: '方向', effect: '效应量', ci: '95% 置信区间', p: 'p', n: 'N', claim: '作者自报' },
+    columns: { study: '研究', design: '设计', direction: '方向', effect: '效应量', ci: '95% 置信区间', p: 'p', n: 'N', claim: '作者自报', rob: '偏倚风险' },
+    robHeader: '偏倚',
+    riskOfBias: '偏倚风险',
+    sensitivity: '敏感性分析',
+    certainty: '证据确定性',
+    certaintyExample: { outcome: '焦虑症状评分（虚构）', source: '虚构的评定人（仅供演示）' },
+    appraisalNote: '偏倚风险与证据确定性都是演示用的虚构评定。引擎不评，只核对接入方传进来的评定、写明是谁评的，并据此另给一个去掉高风险研究的敏感性分析。',
     menuTitle: '图种菜单',
     menuLead: '判据只看格子的形状：互斥吗、有几个桶、是不是年份、有没有交叉表或重叠计数。画不了的图不藏起来，灰着并写明差什么。',
     presets: {
@@ -141,7 +154,7 @@ export const TEXT: Record<Locale, DemoText> = {
     ladderTitle: 'The evidence ladder',
     ladderLead: 'One rule set, read top-down against the fields you have: the first rung your data satisfies is the highest you can honestly draw.',
     scenarios: {
-      pooled: { name: '5 randomised trials with effect sizes and CIs', about: 'Same metric, same outcome direction, same design and at least 5 studies: a pooled diamond is allowed.' },
+      pooled: { name: '6 randomised trials with effect sizes and CIs', about: 'Same metric, same outcome direction, same design and at least 5 studies: a pooled diamond is allowed. One study is at high risk of bias, so the result without it is shown too.' },
       mixed: { name: 'Same numbers, mixed designs', about: 'Two of the studies are cohort studies. The forest plot still draws, but randomised and non-randomised studies are not pooled.' },
       estimates: { name: 'Point estimates only', about: 'Effect sizes without confidence intervals: points only, no intervals, no diamond.' },
       albatross: { name: 'Direction, exact p and sample size only', about: 'No effect sizes, but exact p values and sample sizes: p and N show the magnitude of the effect.' },
@@ -180,7 +193,13 @@ export const TEXT: Record<Locale, DemoText> = {
     countByDesign: 'Studies by design',
     claimsNote: 'These studies only report “significant / not significant”. Counting votes by significance counts underpowered studies that cannot rule out important effects as showing no effect, and gets worse as studies accumulate (Cochrane Handbook 12.2.2.1), so no significant-versus-not comparison is drawn here.',
     table: 'Table',
-    columns: { study: 'Study', design: 'Design', direction: 'Direction', effect: 'Effect', ci: '95% CI', p: 'p', n: 'N', claim: 'Author claim' },
+    columns: { study: 'Study', design: 'Design', direction: 'Direction', effect: 'Effect', ci: '95% CI', p: 'p', n: 'N', claim: 'Author claim', rob: 'Risk of bias' },
+    robHeader: 'RoB',
+    riskOfBias: 'Risk of bias',
+    sensitivity: 'Sensitivity analysis',
+    certainty: 'Certainty of evidence',
+    certaintyExample: { outcome: 'Anxiety symptom score (fictional)', source: 'a fictional rater (demo only)' },
+    appraisalNote: 'The risk-of-bias judgements and the certainty rating are fictional. The engine does not assess either: it checks what the host passes in, says who assessed it, and adds a sensitivity analysis without the high-risk studies.',
     menuTitle: 'The chart menu',
     menuLead: 'The rules only look at the shape of the counts: are buckets exclusive, how many there are, is it years, is there a cross-table or overlap counts. Charts that cannot be drawn are not hidden; they are greyed out with what is missing.',
     presets: {

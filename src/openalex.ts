@@ -43,13 +43,14 @@
  * （宿主往往把它原样展示给读者，好让人复打核对）；这把 key 同时是 openalex.org 账号的登录凭据。
  */
 
-import type { EvidenceRecord, EvidenceTopic, EvidenceScaleLevel } from './types'
+import type { EvidenceRecord, EvidenceTagBindingConfidence, EvidenceTopic, EvidenceScaleLevel } from './types'
 import { scopeFilter } from './dimensions'
 import type { ExternalEvidenceSource, ExternalTopicCandidate } from './ports'
 import { fetchEvidenceCounts } from './openalex-counts'
 import { OPENALEX_PROVENANCE } from './openalex-meta'
 import { isFilterSafeDoi, normalizeDoi } from './doi'
 import { isLiveSettings, settingsReader } from './settings'
+import { MACHINE_CANDIDATE_LIMIT, normalizeTag, pickMachineCandidate } from './tags'
 import type { SettingsInput } from './settings'
 export { fetchEvidenceCounts, PROVISIONAL_YEARS } from './openalex-counts'
 
@@ -130,20 +131,26 @@ const topicNode = (
 
 /**
  * 标签 → 外部主题的三态：
- * · `matched`：配上了；· `no_match`：问到了，这个标签在 OpenAlex 没有对应主题（中文标签的常态）——调用方如实落缓存，免得每次都去撞同一堵墙；
+ * · `matched`：配上了，`confidence` 说配得多有把握——`exact` 主题名归一后与标签相同；`first_hit` 只是自动补全的第一条，
+ *   **不是**确定的对应（短词、缩写常常只是字面上沾边），调用方要么标「机器匹配」，要么交编辑确认（`exact_only` 策略）；
+ * · `no_match`：问到了，这个标签在 OpenAlex 没有对应主题（中文标签的常态）——调用方如实落缓存，免得每次都去撞同一堵墙；
  * · `error`：这次没问成（网络 / 超时 / 非 2xx / 响应形状不对）——**不是**「查无」，调用方不许把它写成缓存。
  */
 export type TagTopicResolution =
-  | { kind: 'matched'; external_id: string; display_name: string; works_count: number | null }
+  | { kind: 'matched'; external_id: string; display_name: string; works_count: number | null; confidence: EvidenceTagBindingConfidence }
   | { kind: 'no_match' }
   | { kind: 'error' }
 
-/** 站内 tag → OpenAlex 主题。**0 credits**（autocomplete，不是 search）。标签原样去问（不翻译、不按语言分支）。 */
+/**
+ * 站内 tag → OpenAlex 主题。**0 credits**（autocomplete，不是 search）。标签原样去问（不翻译、不按语言分支）。
+ * 一次看最多 10 条候选：有同名的就取同名的（`exact`），没有才取第一条（`first_hit`），与服务层的机器绑定同一个挑法（`pickMachineCandidate`）。
+ */
 async function resolveTopicForTag(ctx: Ctx, tag: string): Promise<TagTopicResolution> {
-  const cands = await suggestTopicsForTag(ctx, tag, 1)
+  const cands = await suggestTopicsForTag(ctx, tag, MACHINE_CANDIDATE_LIMIT)
   if (cands === null) return { kind: 'error' }
-  if (cands.length === 0) return { kind: 'no_match' }
-  return { kind: 'matched', ...cands[0] }
+  const pick = pickMachineCandidate(normalizeTag(tag), cands)
+  if (!pick) return { kind: 'no_match' }
+  return { kind: 'matched', ...pick.candidate, confidence: pick.confidence }
 }
 
 /** 外部树上的四级（`tag` 是站内入口，不在外部树上）。 */

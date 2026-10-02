@@ -15,6 +15,12 @@
   --pole-against: #e34948;
   --pole-unclear: #898781;
   --good: #006300;
+  /* 偏倚风险：有序的五档，颜色之外还有符号（+ − × ! ?），色觉不同也分得清 */
+  --rob-low: #2b7a3d;
+  --rob-concerns: #c48a12;
+  --rob-high: #c93a39;
+  --rob-critical: #7a1f1f;
+  --rob-unknown: #6f6d68;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -33,6 +39,11 @@
     --pole-against: #e66767;
     --pole-unclear: #898781;
     --good: #0ca30c;
+    --rob-low: #3a9a4f;
+    --rob-concerns: #d9a23a;
+    --rob-high: #e66767;
+    --rob-critical: #b23a3a;
+    --rob-unknown: #8f8d87;
   }
 }
 :root[data-theme="dark"] {
@@ -51,6 +62,11 @@
   --pole-against: #e66767;
   --pole-unclear: #898781;
   --good: #0ca30c;
+  --rob-low: #3a9a4f;
+  --rob-concerns: #d9a23a;
+  --rob-high: #e66767;
+  --rob-critical: #b23a3a;
+  --rob-unknown: #8f8d87;
 }
 
 * { box-sizing: border-box; }
@@ -110,6 +126,8 @@ button, input, select { font: inherit; color: inherit; }
 .facts div { display: grid; grid-template-columns: 9em 1fr; gap: 8px; font-size: 14px; }
 .facts dt { color: var(--text-secondary); }
 .facts dd { margin: 0; }
+.facts dd .sub { display: block; color: var(--text-secondary); font-size: 13px; }
+.grade { font-size: 15px; letter-spacing: 1px; color: var(--text-primary); }
 
 .figure { margin: 16px 0 0; }
 .figure figcaption { color: var(--text-secondary); font-size: 13px; margin-top: 8px; max-width: 700px; }
@@ -147,6 +165,25 @@ button, input, select { font: inherit; color: inherit; }
 .chart .pole-favours { fill: var(--pole-favours); }
 .chart .pole-against { fill: var(--pole-against); }
 .chart .pole-unclear { fill: var(--pole-unclear); }
+.chart .rob { stroke: var(--surface); stroke-width: 2; paint-order: stroke; }
+.chart .rob-low { fill: var(--rob-low); }
+.chart .rob-concerns { fill: var(--rob-concerns); }
+.chart .rob-high { fill: var(--rob-high); }
+.chart .rob-critical { fill: var(--rob-critical); }
+.chart .rob-unknown { fill: var(--rob-unknown); }
+.chart .rob-none { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+.chart .rob-glyph { fill: #ffffff; font-size: 13px; font-weight: 700; pointer-events: none; }
+.chart .rob-glyph.on-concerns { fill: #1a1a19; }
+.rob-dot {
+  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%;
+  font-style: normal; font-size: 11px; font-weight: 700; line-height: 1; color: #ffffff;
+}
+.rob-dot.rob-low { background: var(--rob-low); }
+.rob-dot.rob-concerns { background: var(--rob-concerns); color: #1a1a19; }
+.rob-dot.rob-high { background: var(--rob-high); }
+.rob-dot.rob-critical { background: var(--rob-critical); }
+.rob-dot.rob-unknown { background: var(--rob-unknown); }
+.rob-dot.rob-none { border: 1.5px solid var(--text-muted); }
 .chart .hit { cursor: default; outline: none; }
 .chart .hit-area { fill: transparent; pointer-events: all; }
 .chart .hit:hover .hit-area { fill: var(--hover); }

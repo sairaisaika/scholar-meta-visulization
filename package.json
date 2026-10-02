@@ -1,6 +1,6 @@
 {
   "name": "scholar-meta",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Honest research-evidence views for platforms that publish academic articles with tags: which chart a body of studies can truthfully support, provenance-carrying tag→topic bindings, reliability-aware view models, and a framework-free service / HTTP / client interface.",
   "keywords": [
     "evidence-synthesis",
@@ -110,7 +110,8 @@
     "build": "tsup && node scripts/check-dist.mjs && node scripts/manifest.mjs --check",
     "check:boundary": "bash scripts/check-boundary.sh",
     "check:private": "bash scripts/check-private-terms.sh",
-    "check": "pnpm typecheck && pnpm typecheck:src && pnpm check:boundary && pnpm check:private && pnpm test && pnpm build && pnpm demo",
+    "check:package": "node scripts/check-package.mjs",
+    "check": "pnpm typecheck && pnpm typecheck:src && pnpm check:boundary && pnpm check:private && pnpm test && pnpm build && pnpm check:package && pnpm demo",
     "prepublishOnly": "pnpm check",
     "manifest": "tsup && node scripts/manifest.mjs",
     "demo": "node scripts/build-demo.mjs"

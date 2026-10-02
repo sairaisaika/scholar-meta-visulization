@@ -30,17 +30,22 @@ describe('演示场景', () => {
     expect(at('albatross')).toEqual({ harvest: true, albatross: true, forest: false })
     expect(at('claims')).toEqual({ harvest: false, albatross: false, forest: false })
   })
-  it('演示用的研究设计与效应量都过得了入库验形（不是引擎不认的写法）', () => {
+  it('演示用的研究设计、效应量（含只有 p 与样本量的）与偏倚风险都过得了入库验形，入库前后同判', () => {
     for (const s of SCENARIOS) {
       for (const r of s.records) {
-        const hasValue = !!r.effect && Number.isFinite(r.effect.value)
         const res = intakeArticle({
           id: r.external_id, title: 'demo', tags: ['demo'], is_public: true, study_design: r.study_type,
-          direction: r.direction, claim: r.self_reported_claim,
-          ...(hasValue ? { effect: { ...r.effect, metric: r.effect!.metric } } : {}),
+          direction: r.direction, claim: r.self_reported_claim, effect: r.effect, risk_of_bias: r.risk_of_bias,
         })
         expect([s.id, r.title, res.issues.filter((i) => i.action !== 'flagged').map((i) => i.code)]).toEqual([s.id, r.title, []])
+        expect([s.id, r.title, res.record!.effect, res.record!.risk_of_bias ?? null]).toEqual([s.id, r.title, r.effect, r.risk_of_bias ?? null])
       }
     }
+  })
+  it('汇总场景的敏感性分析：去掉唯一一项偏倚风险高的研究后还剩 5 项，仍可汇总', () => {
+    const pooled = SCENARIOS.find((s) => s.id === 'pooled')!
+    const sens = poolEvidence(pooled.records).sensitivity
+    expect(sens).toMatchObject({ excluded: 1, allowed: true, reason: 'ok', studies: 5 })
+    expect(sens!.estimate).not.toBeNull()
   })
 })

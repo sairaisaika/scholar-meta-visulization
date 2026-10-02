@@ -29,6 +29,8 @@
 - **契约只做加法**（加可选字段、加联合成员）。破坏性改动只能随次版本号（0.x 期间）发生，并在 CHANGELOG 那一版的「破坏性」一节写迁移步骤。
 - 改 `src/types.ts` 时，把 `EVIDENCE_CONTRACT_VERSION` 改成将要发布的版本号；CHANGELOG 必须有这一版的一节（测试核对）。
 - 公开接口清单变了（快照要更新），CHANGELOG 必须写明加了 / 删了什么。
+- **行为**也钉着：`test/regression.test.ts` 把固定输入走一遍主要入口（阶梯与汇总、图种菜单、入库验形、标签绑定、站内层、共现图、服务端到端），输出存在 `test/__snapshots__/regression.test.ts.snap`。快照变了＝接入方看到的结果变了：确认是有意的再 `pnpm jest -u test/regression.test.ts`，并在 CHANGELOG 这一版写明行为变了什么。
+- 装出来能不能用也钉着：`pnpm check:package` 按发版的方式打出 `.tgz`，在空目录里装上，用 CommonJS / ESM 各加载一遍五个入口，用 TypeScript 的 bundler 与 node16 两种解析各编译一遍接入方代码，再走一遍客户端 → 读口 → 服务。
 - 接入方怎么同步由接入方在自己的仓里定。本仓的建议：钉住本仓的提交或版本；拷贝契约后在 CI 里逐字节比对并核对 `EVIDENCE_CONTRACT_VERSION`；升级前读 CHANGELOG 的「破坏性」一节。
 
 ## 四、写功能的规矩
@@ -47,7 +49,7 @@
 ## 五、提交之前
 
 ```bash
-pnpm check        # tsc + 边界闸 + 私有词闸 + jest + 打包与产物闸（CI 在每次推送时跑同一条）
+pnpm check        # tsc + 边界闸 + 私有词闸 + jest（含行为快照）+ 打包与产物闸 + 安装包闸 + 演示页（CI 在每次推送时跑同一条）
 ```
 
 在本机仓根建 `.private-terms`（已 gitignore，每行一个不分大小写的正则），列上你自己接入的站点的私有词。
@@ -72,6 +74,6 @@ CI 也能跑这道闸：把词表存成仓库 secret `PRIVATE_TERMS`（每行一
 ## Contributing (English summary)
 
 This repository is an open-source, **host-agnostic** engine. Never commit names, domains, internal paths, database schema names, internal document or decision identifiers, product plans, or personal data of any platform that integrates it — in code, docs, tests, commit messages, branch names or PR text. Host-specific sync and coupling rules, adapters, and product/project documents live in the host's own repository.
-The public interface is whatever the five entry points export (locked by `test/__snapshots__/api-surface.test.ts.snap`). The contract in `src/types.ts` is additive-only; breaking changes happen only with a minor version bump (0.x) and a CHANGELOG migration note, and `EVIDENCE_CONTRACT_VERSION` must be updated whenever the contract changes.
+The public interface is whatever the five entry points export (locked by `test/__snapshots__/api-surface.test.ts.snap`); behaviour is locked too (`test/__snapshots__/regression.test.ts.snap`), and any change to either snapshot needs a CHANGELOG entry. `pnpm check:package` installs the packed tarball into an empty project and uses it through CommonJS, ESM, TypeScript (bundler and node16 resolution) and an end-to-end client → handler → service run. The contract in `src/types.ts` is additive-only; breaking changes happen only with a minor version bump (0.x) and a CHANGELOG migration note, and `EVIDENCE_CONTRACT_VERSION` must be updated whenever the contract changes.
 Every feature needs a producer and a consumer registered in `src/features.ts`. Run `pnpm check` before committing, with a local, git-ignored `.private-terms` file listing your own platform's private terms.
 To release, bump `version` in `package.json`, run `pnpm manifest`, rename the CHANGELOG's unreleased section to that version, update the install link in both READMEs, and push to `main`: once CI is green, the `release` workflow tags the commit, creates the GitHub release with the prebuilt package attached, and publishes to npm when an `NPM_TOKEN` secret is set.
