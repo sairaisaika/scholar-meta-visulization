@@ -13,6 +13,8 @@
 #   ④ 本地分支名（推送后分支名公开；只警告不失败——分支名有时是工具指定的）。
 # `--history`：审计全部可达历史（所有提交加进去的行与提交信息）和所有引用名（含远端分支、标签），有就失败。
 #   仓库已经公开过的词只能靠改写历史清掉，这个模式用来确认改写干净了。
+# `PRIVATE_TERMS_REDACT=1`：只印「哪一类、几处」，不印命中的内容、文件名、引用名——CI 的日志是公开的，
+#   印出命中行就等于把私有词公开了。细节在本机跑一遍看。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mode="${1:-}"
@@ -28,11 +30,18 @@ if [ -z "$pattern" ]; then
   exit 0
 fi
 
+redact="${PRIVATE_TERMS_REDACT:-}"
+# 命中的内容：本机照印；隐去模式只印处数
+show() {
+  if [ -n "$redact" ]; then echo "   （${1} 处；内容不印，在本机跑一遍看细节）"; else echo "$2"; fi
+}
+count() { printf '%s\n' "$1" | grep -c . || true; }
+
 fail=0
 hits=$(git ls-files -z --cached --others --exclude-standard | xargs -0 -r grep -nIiE -- "$pattern" 2>/dev/null || true)
 if [ -n "$hits" ]; then
   echo "❌ 文件里有私有词（推上去就公开）："
-  echo "$hits"
+  show "$(count "$hits")" "$hits"
   fail=1
 fi
 
@@ -47,25 +56,25 @@ fi
 msgs=$(git log "${range[@]}" --format='%h %s%n%b' 2>/dev/null | grep -nIiE -- "$pattern" || true)
 if [ -n "$msgs" ]; then
   echo "❌ ${scope}的提交信息里有私有词："
-  echo "$msgs"
+  show "$(count "$msgs")" "$msgs"
   fail=1
 fi
 
 added=$(git log "${range[@]}" -p --format='commit %h' 2>/dev/null | awk '/^commit /{c=$2} /^\+[^+]/{print c": "$0}' | grep -IiE -- "$pattern" || true)
 if [ -n "$added" ]; then
   echo "❌ ${scope}里加进去过私有词（删掉也还在历史里）："
-  echo "$added" | head -50
+  show "$(count "$added")" "$(echo "$added" | head -50)"
   fail=1
 fi
 
 if [ "$mode" = "--history" ]; then
   refs=$(git for-each-ref --format='%(refname:short)' | grep -iE -- "$pattern" || true)
-  if [ -n "$refs" ]; then echo "❌ 引用名里有私有词（含远端分支 / 标签）："; echo "$refs"; fail=1; fi
+  if [ -n "$refs" ]; then echo "❌ 引用名里有私有词（含远端分支 / 标签）："; show "$(count "$refs")" "$refs"; fail=1; fi
 else
   refs=$(git for-each-ref --format='%(refname:short)' refs/heads | grep -iE -- "$pattern" || true)
   if [ -n "$refs" ]; then
     echo "⚠️  本地分支名里有私有词——推送后分支名公开，合并后记得删掉远端分支，能改名就改名："
-    echo "$refs"
+    show "$(count "$refs")" "$refs"
   fi
 fi
 

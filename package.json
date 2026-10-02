@@ -1,6 +1,6 @@
 {
   "name": "scholar-meta",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Honest research-evidence views for platforms that publish academic articles with tags: which chart a body of studies can truthfully support, provenance-carrying tag→topic bindings, reliability-aware view models, and a framework-free service / HTTP / client interface.",
   "keywords": [
     "evidence-synthesis",

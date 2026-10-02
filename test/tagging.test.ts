@@ -18,6 +18,7 @@ import {
 import { ledgerPolicyFromSettings, defaultSettings } from '../src/settings'
 import { presentWorkTags, presentChangeRequests, presentTagSuggestions, presentContributionIssues } from '../src/present'
 import type { EvidenceTagActor, EvidenceTagAssertion } from '../src/types'
+import { EVIDENCE_CONTRACT_VERSION } from '../src/types'
 
 const editor: EvidenceTagActor = { kind: 'person', id: 'ed-1', tier: 'editor' }
 const editor2: EvidenceTagActor = { kind: 'person', id: 'ed-2', tier: 'editor' }
@@ -253,7 +254,7 @@ describe('⑦ 作品 id 与交换包', () => {
     const empty = (await runTagger(tagger, { work_id: 'openalex:W2', title: 'Nothing here' }))!
     const pkg = buildTagContribution(tagger, [{ work_id: 'openalex:W1', suggestions: run.suggestions }, { work_id: 'openalex:W2', suggestions: empty.suggestions }])
     expect(pkg).toEqual({
-      contract: '0.2.0', tagger: { id: 'vocabulary', version: '1' },
+      contract: EVIDENCE_CONTRACT_VERSION, tagger: { id: 'vocabulary', version: '1' },
       items: [{ work_id: 'openalex:W1', tags: [{ tag: 'ADHD', confidence: 0.7, rationale: 'matched "adhd" in title' }, { tag: 'Sleep', confidence: 0.7, rationale: 'matched "sleep" in title' }] }],
     })
     const v = validateTagContribution(JSON.parse(JSON.stringify(pkg)), { vocabulary: ['Sleep'] })

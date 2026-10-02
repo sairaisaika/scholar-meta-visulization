@@ -3,7 +3,30 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
-## 未发布
+## 0.2.1（2026-10-02）
+
+只做加法：接入方照常同步即可（契约多一个可选字段，见下）。
+
+### 新增（契约，只做加法）
+- `EvidenceCountSeries.sample_gate?`（`EvidenceSampleGate { min, n, ok }`）：接入方样本门的回显——这一维有值的篇数与门槛。
+
+### 新增（代码）
+- 站内层可以只要部分维度、带接入方自己的样本门：`countOnsiteLayer(records, { …, dimensions?, sampleGates? })`。
+  `dimensions` 只下发这几维的格子（缺省＝全部；`availability` 仍覆盖全部站内维度，契约形状不变）；
+  `sampleGates[d]` ⇒ 这一维有值的篇数不到 N 时按 `sampleOk: false` 判图（除主题图与清单外先不画）并回显 `sample_gate`。
+  引擎的比例门槛（`MIN_ONSITE_FOR_SHARE_CHARTS`）照常叠加，不做成设置。新导出 `onsiteValueCount`（样本门数的「有值篇数」）。
+- `presentSeries` 原样转交 `sample_gate`；`presentOnsiteCounts` 只给下发了格子的维度出图种菜单；验形认得 `sample_gate`。
+
+### 闸与测试
+- 契约常量表证明「齐」：`test/contract-tables.test.ts` 在编译期核对每张「先有联合、后有表」的常量表覆盖联合的全部成员
+  （漏了 `pnpm typecheck` 当场报出缺的值），阶梯表对照全部视图种类，全部常量表无重复值。
+- 私有词闸的自测与调用者隔离：子进程不再继承调用者的 `GIT_*`（比如 git 钩子里的 `GIT_DIR` 会让自测的提交落进调用者的仓）、
+  `PRIVATE_TERMS_*` 与全局 / 系统 git 配置；加了两条回归测试。
+- 私有词闸加隐去模式（`PRIVATE_TERMS_REDACT=1`：只印类别与处数，不印命中的内容、文件名、引用名）；
+  CI 从仓库 secret `PRIVATE_TERMS` 读词表并用隐去模式跑——公开的日志里不出现私有词。没设 secret 时照旧跳过。
+
+### 文档
+- README 加在线演示链接；接入指南「安装」改为 release 安装包为首选，补「只用站内层」的用法与「账本里的账号 id 用假名」。
 
 ### 发版与安装
 - `release` 工作流（`.github/workflows/release.yml`，逻辑在 `scripts/release.sh`）：`main` 上 CI 跑绿后，`package.json` 的版本还没有 tag

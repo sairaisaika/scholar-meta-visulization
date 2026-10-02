@@ -53,6 +53,7 @@ pnpm check        # tsc + 边界闸 + 私有词闸 + jest + 打包与产物闸�
 在本机仓根建 `.private-terms`（已 gitignore，每行一个不分大小写的正则），列上你自己接入的站点的私有词。
 私有词闸查会被提交的文件、未推送的提交信息、未推送提交里加进去的行（先加后删也算），分支名给警告。
 公开发布前再跑一次 `bash scripts/check-private-terms.sh --history`，审计全部历史与所有引用名。
+CI 也能跑这道闸：把词表存成仓库 secret `PRIVATE_TERMS`（每行一个正则），CI 用隐去模式（`PRIVATE_TERMS_REDACT=1`）只印类别与处数——公开的日志里不出现私有词。
 
 ## 六、多个会话 / 多人同时开发
 

@@ -11,6 +11,7 @@
  * 视图模型只含字符串和数字，React / Vue / Svelte / 原生 DOM / Vega-Lite 都能直接吃。
  */
 import type {
+  EvidenceSampleGate,
   EvidenceSettingGroup, EvidenceSettingIssue, EvidenceSettingKey, EvidenceSettings,
   EvidenceContributionIssue, EvidenceTagChangeRequest, EvidenceWorkTag, EvidenceWorkTagState,
   EvidenceBindingQueueItem, EvidenceBindingSuggestion, EvidenceCaveat, EvidenceChartAvailability, EvidenceChartBlocker, EvidenceChartKind,
@@ -132,6 +133,8 @@ export interface SeriesView {
   caveats: CaveatView[]
   footnote: string
   query_text: string
+  /** 接入方样本门（站内层给了 `sampleGates` 的维度才有；原样转交，文案由接入方按自己的门写） */
+  sample_gate: EvidenceSampleGate | null
 }
 
 function bucketLabel(dim: string, key: string, fallback: string, layer: 'external' | 'onsite', c: Ctx): string {
@@ -199,6 +202,7 @@ export function presentSeries(series: EvidenceCountSeries<string>, opts: Present
       source: series.provenance.source_label, license: series.provenance.license, date: isoDate(series.provenance.retrieved_at),
     }),
     query_text: formatMessage(c.m.text.query, { query: series.provenance.query }),
+    sample_gate: series.sample_gate ?? null,
   }
 }
 
@@ -440,7 +444,10 @@ export function presentOnsiteCounts(layer: EvidenceOnsiteCounts, opts: PresentOp
     title: layer.scope.display_name,
     total_text: formatMessage(c.m.text.onsite_count, { n: c.int(layer.total) }),
     series: layer.series.map((s) => presentSeries(s, { ...opts, layer: 'onsite' })),
-    charts: Object.fromEntries(Object.entries(layer.availability).map(([dim, a]) => [dim, presentChartMenu(a, opts)])),
+    // 只给下发了格子的维度出菜单（站内层可以只要部分维度；availability 本身覆盖全部维度）
+    charts: Object.fromEntries(Object.entries(layer.availability)
+      .filter(([dim]) => layer.series.some((s) => s.dimension === dim))
+      .map(([dim, a]) => [dim, presentChartMenu(a, opts)])),
     graph: layer.tag_graph ? presentTagGraph(layer.tag_graph, opts) : null,
   }
 }

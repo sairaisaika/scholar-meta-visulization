@@ -5,11 +5,14 @@
 
 ## 0. 安装
 
-目前没有发布到 npm。三种方式任选：
+四种方式任选：
 
-- **git 依赖**（推荐）：`pnpm add github:sairaisaika/scholar-meta-visulization#<commit>`。从 git 装到的是 TypeScript 源码，
+- **release 安装包**（推荐）：每个 GitHub release 都挂着编译好的包，
+  `pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v<版本>/scholar-meta-<版本>.tgz`（npm、yarn 同样用这个链接）。
+  装到的是五个入口的 ESM + CJS + 类型声明，不需要 `transpilePackages`；锁文件记下链接与完整性哈希。
+- **git 依赖**：`pnpm add github:sairaisaika/scholar-meta-visulization#<tag 或 commit>`。从 git 装到的是 TypeScript 源码，
   Next.js 要在 `next.config` 里加 `transpilePackages: ['scholar-meta']`；Vite、esbuild、React Native（Metro）原生能编译依赖里的 TS。
-- **编译产物**：`pnpm build` 产出 `dist/`（五个入口各一份 ESM + CJS + 类型声明）；用 `pnpm pack` 打成 tarball 再装，或者以后直接从 npm 装，拿到的都是编译好的 JS。
+- **拷贝源码**：把某个 tag 的 `src/` 原样拷进宿主仓编译（零运行时依赖、不引 `node:*`，见 `pnpm typecheck:src`），记下 tag / commit 与逐文件哈希。
 - **拷贝契约**：只想要类型时，把 `src/types.ts` 整份拷进宿主仓（它零导入），在宿主 CI 里比对它与本仓逐字节相同，并核对 `EVIDENCE_CONTRACT_VERSION`。
 
 所有浏览器能用的东西（主入口、`/client`）不依赖 `URL`、`URLSearchParams`，没有 `Intl` 时自动降级，React Native / Hermes 上也能跑。
@@ -105,7 +108,7 @@ create table evidence_tag_assertions (          -- 只追加，不改不删
   tag_label     text not null,
   op            text not null check (op in ('add', 'remove')),
   actor_kind    text not null check (actor_kind in ('person', 'model')),
-  actor_id      text not null,                  -- 内部账号 id，或 <账号>/<模型 id>
+  actor_id      text not null,                  -- 假名化的账号 id（见第 6 节），或 <账号>/<模型 id>
   actor_tier    text not null,
   model_version text,
   confidence    real,
@@ -170,6 +173,11 @@ export async function TagEvidence({ tag, locale }: { tag: string; locale: string
   )
 }
 ```
+
+**只用站内层**（不经门面，自己取记录、自己挂路由）：`countOnsiteLayer(records, { scope, dimensions, sampleGates })`。
+`dimensions` 只下发要的几维格子（`availability` 仍覆盖全部站内维度）；`sampleGates` 是宿主自己的产品样本门——
+某一维有值的篇数（`onsiteValueCount`）不到 N，这一维除主题图与清单外先不画，格子上回显 `sample_gate: { min, n, ok }`。
+引擎的比例门槛（读占比的图至少 30 篇，`MIN_ONSITE_FOR_SHARE_CHARTS`）是方法学门槛，照常叠加，不做成设置。
 
 客户端组件用类型化客户端（只打宿主自己的读口）：
 
@@ -254,6 +262,8 @@ export const openalex = createOpenAlexClient({ apiKey: () => process.env.OPENALE
 - **每日预算**：计数读口一个节点冷启动约 17 credit。设 `dailyCreditBudget`（UTC 日），花完后收费请求直接回「暂时取不到」，免费请求（自动补全、按 id 取实体）照常。多实例部署用 `onCredits` 接宿主自己的共享计数，并用共享缓存（否则每个实例各花一遍）。
 - **节点读口**可以再加一道 `allowNode(level, id)`（比如只放行绑定过的主题及其上级）；读口本身再配宿主的限流。
 - 日志里只有路由名、错误信息与计数，不含读者标识；API key 永不进 URL、日志与出处字段。
+- **标签账本只追加、不删**：断言里的 `actor.id` 用不可逆的假名（比如宿主自己保管盐的哈希），显示名另表另查；
+  账本里不放邮箱、真名。这样账号注销时删掉对照表即可，审计链不用改写。
 
 ## 7. 从 0.1 升级
 

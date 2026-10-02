@@ -19,5 +19,16 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # 类型 + 边界闸 + 私有词闸（CI 里没有私有词表，自动跳过）+ 测试 + 打包与产物闸
+      # 私有词表放在仓库 secret PRIVATE_TERMS（每行一个正则）；设了就写成仓外的临时文件，并用隐去模式跑：
+      # CI 日志是公开的，只印哪一类、几处，不印命中的内容。没设（或来自分叉的 PR 拿不到 secret）就跳过这道闸。
+      - name: 私有词表
+        env:
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+        run: |
+          if [ -n "$PRIVATE_TERMS" ]; then
+            printf '%s\n' "$PRIVATE_TERMS" > "$RUNNER_TEMP/private-terms"
+            echo "PRIVATE_TERMS_FILE=$RUNNER_TEMP/private-terms" >> "$GITHUB_ENV"
+            echo "PRIVATE_TERMS_REDACT=1" >> "$GITHUB_ENV"
+          fi
+      # 类型 + 边界闸 + 私有词闸 + 测试 + 打包与产物闸 + 演示页
       - run: pnpm check

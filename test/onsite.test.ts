@@ -6,8 +6,11 @@
  *   ④ 站内格子：互斥维分母＝有值的记录、多标签维分母＝全部记录；焦点标签不进自己的分布；
  *   ⑤ 共现图：支持度 / Jaccard / lift 按定义算；门槛压掉多少如实回报；少于 30 条印 small_corpus。
  */
-import { intakeArticle, intakeArticles, countOnsite, crossOnsite, buildTagGraph, buildRecordEdges, countOnsiteLayer, normalizeDoi, safeHttpUrl, onsiteDimensionsMatchContract } from '../src/onsite'
+import { intakeArticle, intakeArticles, countOnsite, crossOnsite, buildTagGraph, buildRecordEdges, countOnsiteLayer, normalizeDoi, safeHttpUrl, onsiteDimensionsMatchContract, onsiteValueCount } from '../src/onsite'
 import type { EvidenceIntakeIssue, EvidenceRecord } from '../src/types'
+import { ONSITE_DIMENSION_IDS } from '../src/types'
+import { presentOnsiteCounts } from '../src/present'
+import { isEvidenceOnsiteCounts } from '../src/guards'
 
 const at = '2026-09-29T00:00:00.000Z'
 const codes = (issues: EvidenceIntakeIssue[]) => issues.map((i) => i.code)
@@ -228,6 +231,44 @@ describe('站内层', () => {
     expect(avail.egm).toBeNull()                         // 标签 × 研究设计
     expect(avail.pie).toBe('needs_partition')
     expect(layer.tag_graph?.focus).toBe('x')
+  })
+  it('只要部分维度、带接入方样本门：只下发要的格子并回显 sample_gate；availability 仍覆盖全部维度；门没过只剩主题图与清单', () => {
+    const records = [
+      rec('1', { year: 2024, tags: ['x'], self_reported_claim: 'significant', study_type: 'rct' }),
+      rec('2', { year: 2024, tags: ['x', 'y'], self_reported_claim: 'non_significant' }),
+      rec('3', { year: null, tags: ['x'] }),
+    ]
+    const scope = { level: 'tag' as const, id: 'onsite:x', display_name: 'x', tag_keys: ['x'] }
+    const layer = countOnsiteLayer(records, {
+      scope, retrieved_at: at, graph: false,
+      dimensions: ['publication_year', 'self_reported_claim'],
+      sampleGates: { self_reported_claim: 3, publication_year: 2 },
+    })
+    expect(layer.series.map((s) => s.dimension)).toEqual(['publication_year', 'self_reported_claim'])
+    expect(Object.keys(layer.availability).sort()).toEqual([...ONSITE_DIMENSION_IDS].sort())
+    expect(layer.series.map((s) => s.sample_gate)).toEqual([{ min: 2, n: 2, ok: true }, { min: 3, n: 2, ok: false }])
+    const claim = Object.fromEntries(layer.availability.self_reported_claim.map((a) => [a.kind, a.blocker]))
+    expect([claim.nodes, claim.list, claim.bar]).toEqual([null, null, 'needs_more_onsite'])
+    const year = Object.fromEntries(layer.availability.publication_year.map((a) => [a.kind, a.blocker]))
+    expect([year.bar, year.timeseries]).toEqual([null, null]) // 门过了：照形状判（读占比的图仍受引擎 30 篇比例门槛）
+    expect(year.pie).toBe('needs_more_onsite')
+    // 不给门的维度不回显；不给 dimensions ＝ 全部（既有行为不变）
+    const plain = countOnsiteLayer(records, { scope, retrieved_at: at, graph: false })
+    expect(plain.series).toHaveLength(ONSITE_DIMENSION_IDS.length)
+    expect(plain.series.every((s) => s.sample_gate === undefined)).toBe(true)
+    expect(Object.fromEntries(plain.availability.self_reported_claim.map((a) => [a.kind, a.blocker])).bar).toBeNull()
+    // 视图：菜单只给下发了的维度，样本门原样转交；验形认得 sample_gate
+    const view = presentOnsiteCounts(layer, { locale: 'zh' })
+    expect(Object.keys(view.charts).sort()).toEqual(['publication_year', 'self_reported_claim'])
+    expect(view.series[1].sample_gate).toEqual({ min: 3, n: 2, ok: false })
+    expect(isEvidenceOnsiteCounts(layer)).toBe(true)
+    expect(isEvidenceOnsiteCounts({ ...layer, series: [{ ...layer.series[0], sample_gate: { min: 'x' } }] })).toBe(false)
+  })
+  it('有值篇数：多值维除去焦点标签后至少还有一个值才算', () => {
+    const records = [rec('1', { tags: ['x'] }), rec('2', { tags: ['x', 'y'] }), rec('3', { tags: [] })]
+    expect(onsiteValueCount(records, 'tag', ['x'])).toBe(1)
+    expect(onsiteValueCount(records, 'tag')).toBe(2)
+    expect(onsiteValueCount(records, 'publication_year')).toBe(records.filter((r) => r.year != null).length)
   })
 })
 

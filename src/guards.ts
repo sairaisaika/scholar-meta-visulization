@@ -9,9 +9,10 @@ const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 
 const isArr = Array.isArray
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
 
+const isSampleGate = (g: unknown) => isObj(g) && isNum(g.min) && isNum(g.n) && typeof g.ok === 'boolean'
 const isSeriesLike = (s: unknown) =>
   isObj(s) && typeof s.dimension === 'string' && isArr(s.cells) && isObj(s.denominator) && isNum((s.denominator as Record<string, unknown>).value)
-  && typeof s.partition === 'boolean' && isObj(s.provenance)
+  && typeof s.partition === 'boolean' && isObj(s.provenance) && (s.sample_gate === undefined || isSampleGate(s.sample_gate))
 
 export function isEvidenceMapData(x: unknown): x is EvidenceMapData {
   return isObj(x)

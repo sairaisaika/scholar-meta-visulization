@@ -16,12 +16,12 @@
 import type {
   EvidenceCaveat, EvidenceChartAvailability, EvidenceCountProvenance, EvidenceCountSeries, EvidenceDenominatorKind,
   EvidenceDirection, EvidenceEdge, EvidenceEffect, EvidenceIntakeIssue, EvidenceOnsiteCounts, EvidenceRecord,
-  EvidenceSelfReportedClaim, EvidenceStudyDesign, EvidenceTagEdge, EvidenceTagGraph, EvidenceTagNode, OnsiteDimensionId,
+  EvidenceSampleGate, EvidenceSelfReportedClaim, EvidenceStudyDesign, EvidenceTagEdge, EvidenceTagGraph, EvidenceTagNode, OnsiteDimensionId,
 } from './types'
 import { EVIDENCE_DIRECTIONS, EVIDENCE_SELF_REPORTED_CLAIMS, EVIDENCE_STUDY_DESIGNS, ONSITE_DIMENSION_IDS } from './types'
 import { EFFECT_METRICS, directionFromEffect, intervalExcludesNull, isEffectMetric } from './effects'
 import { groupTags, normalizeTag, recordTagKeys, TAG_MAX_LENGTH } from './tags'
-import { chartAvailabilityFor, chartShapeOf } from './charts'
+import { chartAvailabilityFor, chartShapeOf, type ChartShape } from './charts'
 import { normalizeDoi } from './doi'
 
 // ── 输入形状 ─────────────────────────────────────────────────────────────────
@@ -585,20 +585,57 @@ export function buildRecordEdges(
 
 // ── 站内层（给一个标签或一个主题下的标签组装全部站内格子）─────────────────────────────
 
+/** 这一维有值的记录数（多值维：除去不计入的键后至少还有一个值）。接入方样本门数的就是它。 */
+export function onsiteValueCount(records: readonly EvidenceRecord[], dimension: OnsiteDimensionId, excludeKeys: readonly string[] = []): number {
+  const spec = ONSITE_DIMENSIONS[dimension]
+  const exclude = new Set(excludeKeys)
+  let n = 0
+  for (const r of records) {
+    const keys = spec.keys(r)
+    if (keys !== null && keys.some((k) => !exclude.has(k))) n++
+  }
+  return n
+}
+
+/**
+ * 一个标签（或一个主题）的整层站内格子。
+ * - `dimensions`：只下发这几维的格子（缺省＝全部站内维度）。`availability` 仍覆盖全部维度——判据照真实计数算，契约形状不变；
+ * - `sampleGates`：接入方自己的产品样本门，某一维有值的篇数不到 N ⇒ 这一维按 `sampleOk: false` 判图，并在格子上回显 `sample_gate`。
+ *   引擎的比例门槛（`MIN_ONSITE_FOR_SHARE_CHARTS`，方法学门槛）照常生效、与它叠加，不做成设置。
+ */
 export function countOnsiteLayer(records: readonly EvidenceRecord[], input: {
   scope: EvidenceOnsiteCounts['scope']
   graph?: TagGraphOptions | false
+  dimensions?: readonly OnsiteDimensionId[] | undefined
+  sampleGates?: Partial<Record<OnsiteDimensionId, number>> | undefined
 } & OnsiteCountOptions): EvidenceOnsiteCounts {
   const base: OnsiteCountOptions = {
     source_label: input.source_label, license: input.license, retrieved_at: input.retrieved_at ?? new Date().toISOString(),
   }
   const exclude = input.excludeKeys ?? (input.scope.level === 'tag' ? input.scope.tag_keys : [])
-  const series = ONSITE_DIMENSION_IDS.map((d) =>
+  const all = ONSITE_DIMENSION_IDS.map((d) =>
     d === 'tag' ? crossOnsite(records, { ...base, excludeKeys: exclude }) : countOnsite(records, d, base))
-  const availability = Object.fromEntries(series.map((s) => [s.dimension, chartAvailabilityFor({
-    ...chartShapeOf({ dimension: s.dimension, series: s, overlap: null, hasCross: !!s.cross, egmPair: ONSITE_EGM_PAIR, records }),
-    onsite_n: records.length,
-  })])) as Record<OnsiteDimensionId, EvidenceChartAvailability[]>
+  const gate = (d: OnsiteDimensionId): EvidenceSampleGate | null => {
+    const min = input.sampleGates?.[d]
+    if (typeof min !== 'number' || !Number.isFinite(min)) return null
+    const n = onsiteValueCount(records, d, d === 'tag' ? exclude : [])
+    return { min, n, ok: n >= min }
+  }
+  const gates = new Map(ONSITE_DIMENSION_IDS.map((d) => [d, gate(d)] as const))
+  const availability = Object.fromEntries(all.map((s) => {
+    const shape: ChartShape = {
+      ...chartShapeOf({ dimension: s.dimension, series: s, overlap: null, hasCross: !!s.cross, egmPair: ONSITE_EGM_PAIR, records }),
+      onsite_n: records.length,
+    }
+    const g = gates.get(s.dimension)
+    if (g) shape.sampleOk = g.ok
+    return [s.dimension, chartAvailabilityFor(shape)]
+  })) as Record<OnsiteDimensionId, EvidenceChartAvailability[]>
+  const wanted = new Set<OnsiteDimensionId>(input.dimensions ?? ONSITE_DIMENSION_IDS)
+  const series = all.filter((s) => wanted.has(s.dimension)).map((s) => {
+    const g = gates.get(s.dimension)
+    return g ? { ...s, sample_gate: g } : s
+  })
   const tag_graph = input.graph === false ? null : buildTagGraph(records, {
     ...base, ...(input.graph ?? {}), focus: input.scope.level === 'tag' ? input.scope.tag_keys[0] ?? null : null,
   })

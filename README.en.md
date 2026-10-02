@@ -11,7 +11,7 @@ A research-evidence visualization engine for platforms that publish academic art
 ![node](https://img.shields.io/badge/node-%E2%89%A520-339933)
 ![types](https://img.shields.io/badge/TypeScript-strict-3178c6)
 
-[中文](README.md) · English
+[中文](README.md) · English · [Live demo](https://sairaisaika.github.io/scholar-meta-visulization/)
 
 </div>
 
@@ -71,7 +71,7 @@ Method and references: [docs/tags.md](docs/tags.md) (Chinese).
 
 ```bash
 # Prebuilt package attached to every GitHub release (works the same with npm and yarn)
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.2.0/scholar-meta-0.2.0.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.2.1/scholar-meta-0.2.1.tgz
 ```
 
 All versions are on [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases); changes are in the [CHANGELOG](CHANGELOG.md).

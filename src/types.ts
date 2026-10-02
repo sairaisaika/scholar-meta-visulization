@@ -28,7 +28,7 @@
  * 契约版本：本文件最近一次变化随的那个包版本。接入方拷贝本文件时据此核对（CHANGELOG 里必须有这一版的一节，
  * 破坏性改动写在那一节的「破坏性」下）。改本文件时把它改成将要发布的版本号（见 CONTRIBUTING.md 第三节）。
  */
-export const EVIDENCE_CONTRACT_VERSION = '0.2.0'
+export const EVIDENCE_CONTRACT_VERSION = '0.2.1'
 
 /** 文献来源。站内文章与站外文献在本层**同形**——这正是「加一个源 = 加一行」的前提。`onsite` = 宿主自己的文章（任何站点）。 */
 export type EvidenceSourceId =
@@ -487,6 +487,18 @@ export interface EvidenceCountSeries<D extends string = EvidenceDimensionId> {
   provenance: EvidenceCountProvenance
   /** 这一组格子的图注限定（0.2.0 加法；旧服务端不下发时前端按维度注册表补） */
   caveats?: EvidenceCaveat[]
+  /**
+   * 接入方样本门的回显（0.2.1 加法；站内层给了 `sampleGates` 的维度才有）：这一维有值的篇数 `n` 与门槛 `min`。
+   * `ok: false` ⇒ 这一维除主题图与清单外按 `needs_more_onsite` 灰掉；引擎自己的比例门槛照常叠加。
+   */
+  sample_gate?: EvidenceSampleGate
+}
+
+/** 接入方样本门：某一维有值的篇数 `n` 够不够门槛 `min`。 */
+export interface EvidenceSampleGate {
+  min: number
+  n: number
+  ok: boolean
 }
 
 /** 图种（七张计数图 + 饼 + 节点图 + 下钻列表 + 四张**永久列着、写明差什么**的路标）。 */

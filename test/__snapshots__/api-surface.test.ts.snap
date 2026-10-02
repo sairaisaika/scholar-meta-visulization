@@ -111,6 +111,7 @@ exports[`公开接口 scholar-meta 导出的名字 1`] = `
   "normalizeTag",
   "normalizeWorkId",
   "onsiteDimensionsMatchContract",
+  "onsiteValueCount",
   "openChangeRequest",
   "pickEvidenceView",
   "placeholders",
