@@ -136,7 +136,8 @@ const view = map ? presentEvidenceMap(map, { locale: 'en' }) : null   // null = 
 - **External sources are called server-side only**: a browser talking to a third party leaks who cares about which topic along with an IP. Browser entries contain no outbound-network code, in the import graph or in the built bundles (gated).
 - **Abuse guard**: by default only tags that appear in public articles are sent to external sources; `dailyCreditBudget` caps daily spend.
 - **Cost** (measured 2026-09-28): autocomplete and topic entities are free; upper-level entities and any list cost 1 credit (per page); a tag page costs about 2 credits cold; a node's full counts about 17.
-- **Limits**: OpenAlex is the only external source so far; external works carry no effect sizes, so forest plots rely on author-declared effects; the subfield / field / domain entity shapes and the DOI batch lookup are not yet verified against the live API (`OPENALEX_LIVE=1 pnpm jest test/openalex.live.test.ts`).
+- **Limits**: OpenAlex is the only external source so far; external works carry no effect sizes, so forest plots rely on author-declared effects; "which journals a node's works appear in" is counted in the sample only, not as a full distribution (the source's grouping returns only the top 200 sources).
+- **Verified live**: every request shape the adapter sends is checked against the real API by the `live` workflow (runs whenever the adapter changes; all passed on 2026-10-02); locally `OPENALEX_LIVE=1 pnpm jest test/openalex.live.test.ts`.
 
 </details>
 

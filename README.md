@@ -136,7 +136,8 @@ const view = map ? presentEvidenceMap(map, { locale: 'zh' }) : null   // null �
 - **只在服务端调外部源**：浏览器直连第三方会把「谁在关心什么」连同 IP 交出去；浏览器入口的依赖图与打包产物里都没有出网代码（闸会查）。
 - **防滥用**：缺省只对公开文章里出现过的标签去问外部源；`dailyCreditBudget` 封住每日花费。
 - **成本**（2026-09-28 实测）：自动补全与主题实体 0 credit；上级三级实体与任何列表各 1 credit（翻页每页 1）；标签页冷启动约 2 credit；一个节点的全量格子约 17 credit。
-- **限制**：外部源目前只有 OpenAlex；外部文献本身不带效应量，森林图靠站内作者申报；子领域 / 领域 / 大类实体与按 DOI 批量查的形状尚未对真实 API 实测（`OPENALEX_LIVE=1 pnpm jest test/openalex.live.test.ts`）。
+- **限制**：外部源目前只有 OpenAlex；外部文献本身不带效应量，森林图靠站内作者申报；「这个节点的论文都发在哪些期刊」只在示例里数，全量分布暂不提供（外部源的分组只回前 200 个来源）。
+- **实测**：适配器的每一种请求形状都由 `live` 工作流对真实 API 核对（改了适配器就跑；2026-10-02 全部通过）；本机 `OPENALEX_LIVE=1 pnpm jest test/openalex.live.test.ts`。
 
 </details>
 
