@@ -50,6 +50,21 @@ export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
     producer: svc('getNodeMap'), consumer: main('present', 'presentEvidenceMap'),
   },
   {
+    id: 'node_children', audience: 'reader', route: 'map', payload: 'EvidenceTopic',
+    answers: '往里一层：一个节点分成哪些更细的节点（大类 → 领域 → 子领域 → 主题 → 站内标签），各有多少篇',
+    producer: svc('getNodeMap'), consumer: main('present', 'presentNodeChildren'),
+  },
+  {
+    id: 'work_details', audience: 'reader', route: 'map', payload: 'EvidenceRecord',
+    answers: '一个节点里的作品：发在哪本期刊、能不能免费读（链接）、还挂着哪些别的主题、在这批里引用了谁',
+    producer: { entry: 'scholar-meta/openalex', module: 'openalex', export: 'createOpenAlexSource' }, consumer: main('present', 'presentWorks'),
+  },
+  {
+    id: 'record_facets', audience: 'reader', route: 'map', payload: 'EvidenceTopicRef',
+    answers: '这批作品还挂着哪些别的主题与站内标签、发在哪些期刊（只在这批里数，不代表全体）',
+    producer: svc('getNodeMap'), consumer: main('present', 'presentRecordFacets'),
+  },
+  {
     id: 'evidence_view', audience: 'reader', route: 'map', payload: 'EvidenceViewDecision',
     answers: '这批记录最强能画成什么图，为什么不是更强的那一种',
     producer: main('ladder', 'pickEvidenceView'), consumer: main('present', 'presentView'),
@@ -81,7 +96,7 @@ export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
   },
   {
     id: 'record_edges', audience: 'reader', route: 'map', payload: 'EvidenceEdge',
-    answers: '这批记录之间谁引用了谁（站内文章申报的参考文献对上的）、哪些站内文章共有别的标签（共现，不是引用）',
+    answers: '这批记录之间谁引用了谁（站内文章申报的参考文献、外部作品自带的引用，只连同一批里的）、哪些站内文章共有别的标签（共现，不是引用）',
     producer: main('onsite', 'buildRecordEdges'), consumer: main('present', 'presentEvidenceMap'),
   },
   {
@@ -103,6 +118,11 @@ export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
     id: 'tag_graph', audience: 'reader', route: 'tag_graph', payload: 'EvidenceTagGraph',
     answers: '站内标签之间谁常和谁一起出现（共现，不是引用），被门槛折叠了多少',
     producer: main('onsite', 'buildTagGraph'), consumer: main('present', 'presentTagGraph'),
+  },
+  {
+    id: 'review_gate', audience: 'reader', route: 'map', payload: 'EvidenceMapData',
+    answers: '开了审阅门槛时：哪些站内文章算进标签与研究图谱（接入方标了审阅时间的），还有几篇在等审阅',
+    producer: main('onsite', 'applyReviewGate'), consumer: main('present', 'presentEvidenceMap'),
   },
   {
     id: 'article_intake', audience: 'author', route: null, payload: 'EvidenceIntakeIssue',

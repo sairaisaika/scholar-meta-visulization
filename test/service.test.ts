@@ -6,7 +6,9 @@
  *   ④ 主题级只汇总编辑绑定的标签；
  *   ⑤ 计数读口：外部格子被缓存，站内层每次现算；没配外部源 ⇒ not_configured；
  *   ⑥ 绑定候选：按名字 + 按引用两路证据；编辑确认前先向外部源核实主题存在；
- *   ⑦ 宿主的数据源 / 缓存抛错不让读图崩：回 unavailable 或照常取数。
+ *   ⑦ 宿主的数据源 / 缓存抛错不让读图崩：回 unavailable 或照常取数；
+ *   ⑧ 下钻（0.4.0）：往里一层（外部树 / 主题下的站内标签）、外部示例自带的同批引用；
+ *   ⑨ 审阅门槛（0.4.0）：开了之后没审阅的站内文章不进任何读口与编辑待办，各处数出在等的篇数；没开时一切照旧。
  */
 import { createEvidenceService, createMemoryBindingStore, createMemoryCache, createMemoryOnsiteSource } from '../src/service'
 import type { EvidenceCache, ExternalEvidenceSource, ExternalLevel } from '../src/service'
@@ -349,5 +351,157 @@ describe('图谱里的边', () => {
       { from: 'onsite:1', to: 'openalex:W1', kind: 'cites' },
       { from: 'onsite:1', to: 'onsite:2', kind: 'shares_tag' },
     ])
+  })
+})
+
+describe('往里一层（0.4.0 下钻）', () => {
+  const kid = (level: ExternalLevel, id: string, n: number | null, parent: string) => ({ ...topic(level, id, `${level} ${id}`, parent), works_count: n })
+  it('上级三级问外部树并缓存；没取全的照用、标 partial、不写长缓存；没问成 ⇒ null（不是「往里没有」）', async () => {
+    let calls = 0
+    let mode: 'ok' | 'partial' | 'fail' = 'ok'
+    const ext = fakeExternal({
+      async nodeBundle(level, id) { return { node: topic(level, id, `${level} ${id}`), ancestors: [], siblings: [] } },
+      async children(level, id) {
+        calls++
+        if (mode === 'fail') return null
+        const children = [kid('subfield', '2738', 900, `openalex:${id}`), kid('subfield', '2701', 50, `openalex:${id}`)]
+        return mode === 'partial' ? { children: children.slice(0, 1), partial: true } : { children }
+      },
+    })
+    const service = createEvidenceService({ onsite: createMemoryOnsiteSource([]), external: ext.src, log: () => {} })
+    const a = await service.getNodeMap('field', '27')
+    if (!a.ok) throw new Error(a.error)
+    expect(a.data.children?.map((c) => [c.level, c.external_id, c.works_count])).toEqual([['subfield', '2738', 900], ['subfield', '2701', 50]])
+    expect(a.data.children_partial).toBeUndefined()
+    await service.getNodeMap('field', '27')
+    expect(calls).toBe(1) // 缓存命中
+    mode = 'partial'
+    const p1 = await service.getNodeMap('field', '28')
+    const p2 = await service.getNodeMap('field', '28')
+    expect(p1.ok && [p1.data.children?.length, p1.data.children_partial]).toEqual([1, true])
+    expect(p2.ok && p2.data.children_partial).toBe(true)
+    expect(calls).toBe(3) // 残缺的不进长缓存，第二次照样去取
+    mode = 'fail'
+    const f = await service.getNodeMap('domain', '4')
+    expect(f.ok && f.data.children).toBeNull()
+    await service.getNodeMap('domain', '4')
+    expect(calls).toBe(5) // 没问成不缓存
+  })
+  it('外部源没有 children 方法 ⇒ 不下发这个字段（旧适配器照常用）', async () => {
+    const ext = fakeExternal({ async nodeBundle(level, id) { return { node: topic(level, id, 'X'), ancestors: [], siblings: [] } } })
+    const service = createEvidenceService({ onsite: createMemoryOnsiteSource([]), external: ext.src, log: () => {} })
+    const r = await service.getNodeMap('field', '27')
+    expect(r.ok && 'children' in r.data).toBe(false)
+  })
+  it('主题往里是编辑绑到它的站内标签：篇数是带这个标签的站内文章，按篇数排；不问外部树', async () => {
+    const children = jest.fn(async () => ({ children: [] }))
+    const { service, bindings } = make({ external: fakeExternal({ children }).src })
+    for (const tag of ['adhd', 'sleep', 'insomnia']) {
+      await bindings.put(createCuratedBinding({ tag, topic: { id: 'openalex:T10537', display_name: 'x' }, by: 'ed', at: NOW.toISOString() })!)
+    }
+    const r = await service.getNodeMap('topic', 'T10537')
+    if (!r.ok) throw new Error(r.error)
+    // 显示名取最常见的原文写法（同数取字典序在前的）；绑了但眼下没有公开文章的标签照列，篇数 0
+    expect(r.data.children?.map((c) => [c.id, c.display_name, c.works_count, c.level, c.parent_id])).toEqual([
+      ['onsite:adhd', 'ADHD', 2, 'tag', 'openalex:T10537'],
+      ['onsite:sleep', 'Sleep', 2, 'tag', 'openalex:T10537'],
+      ['onsite:insomnia', 'insomnia', 0, 'tag', 'openalex:T10537'],
+    ])
+    expect(children).not.toHaveBeenCalled()
+  })
+  it('主题级：没配绑定表 ⇒ 不下发；绑定表抛错 ⇒ null', async () => {
+    const plain = createEvidenceService({ onsite: createMemoryOnsiteSource(articles), external: fakeExternal().src, log: () => {} })
+    const a = await plain.getNodeMap('topic', 'T10537')
+    expect(a.ok && 'children' in a.data).toBe(false)
+    const broken = createMemoryBindingStore()
+    broken.listByTopic = async () => { throw new Error('db down') }
+    const svc = createEvidenceService({ onsite: createMemoryOnsiteSource(articles), external: fakeExternal().src, bindings: broken, log: () => {} })
+    const b = await svc.getNodeMap('topic', 'T10537')
+    expect(b.ok && b.data.children).toBeNull()
+  })
+  it('外部示例自带的引用（同一批里的）连成引用边；指向这批以外的不连', async () => {
+    const ext = fakeExternal({
+      async sampleWorks() {
+        return [{ ...work('W1'), cites: ['openalex:W2', 'openalex:W9'] }, { ...work('W2'), cites: ['openalex:W1'] }, work('W3')]
+      },
+    })
+    const service = createEvidenceService({ onsite: createMemoryOnsiteSource([]), external: ext.src, log: () => {} })
+    const r = await service.getNodeMap('topic', 'T10537')
+    expect(r.ok && r.data.edges).toEqual([
+      { from: 'openalex:W1', to: 'openalex:W2', kind: 'cites' },
+      { from: 'openalex:W2', to: 'openalex:W1', kind: 'cites' },
+    ])
+  })
+})
+
+describe('⑨ 审阅门槛（0.4.0）', () => {
+  // 1、3 审阅过；2、5 没有（5 只带 'diet'：只出现在没审阅的文章上的标签）
+  const reviewed = [
+    { id: 1, title: 'A', tags: ['ADHD', 'sleep'], year: 2024, reviewed_at: '2026-09-01T00:00:00Z' },
+    { id: 2, title: 'B', tags: ['adhd', 'sleep'], year: 2023 },
+    { id: 3, title: 'C', tags: ['Sleep'], year: 2023, reviewed_at: '2026-09-02' },
+    { id: 5, title: 'E', tags: ['diet'], year: 2022 },
+  ]
+  const gated = (extra: Record<string, unknown> = {}) => {
+    const ext = fakeExternal()
+    const bindings = createMemoryBindingStore()
+    const service = createEvidenceService({
+      onsite: createMemoryOnsiteSource(reviewed), external: ext.src, bindings, now: () => NOW, log: () => {},
+      settings: { 'onsite.reviewGate': 'reviewed_only' }, ...extra,
+    })
+    return { service, ext, bindings }
+  }
+  it('标签图谱：只计入审阅过的，onsite_pending 数出在等的；没审阅的标签不去问外部源', async () => {
+    const { service, ext } = gated()
+    const r = await service.getTagMap('adhd')
+    if (!r.ok) throw new Error(r.error)
+    expect(r.data.records.filter((x) => x.source === 'onsite').map((x) => x.id)).toEqual(['onsite:1'])
+    expect(r.data.onsite_pending).toBe(1)
+    expect(r.data.focus?.works_count).toBe(1)
+    const diet = await service.getTagMap('diet')
+    if (!diet.ok) throw new Error(diet.error)
+    expect([diet.data.records.length, diet.data.onsite_pending, diet.data.external_match]).toEqual([0, 1, 'not_queried'])
+    expect(ext.calls.some((c) => c.startsWith('suggest:diet'))).toBe(false)
+  })
+  it('站内层、共现图、编辑待办都按同一个门槛；作者入库反馈说「在等审阅」', async () => {
+    const { service } = gated()
+    const counts = await service.getTagCounts('sleep')
+    expect(counts.ok && [counts.data.total, counts.data.pending]).toEqual([2, 1])
+    const graph = await service.getTagGraph({ minSupport: 1 })
+    if (!graph.ok) throw new Error(graph.error)
+    expect([graph.data.records, graph.data.pending]).toEqual([2, 2])
+    expect(graph.data.nodes.map((n) => n.key)).not.toContain('diet')
+    const queue = await service.bindingQueue()
+    expect(queue.ok && queue.data.map((q) => [q.tag_key, q.articles])).toEqual([['sleep', 2], ['adhd', 1]])
+    expect(service.intake({ id: 9, title: 'New' }).issues.map((i) => i.code)).toEqual(['awaiting_review'])
+    expect(service.intake({ id: 9, title: 'New', reviewed_at: '2026-10-01' }).issues).toEqual([])
+  })
+  it('主题级：往里一层的站内标签篇数与图谱都只算审阅过的', async () => {
+    const { service, bindings } = gated()
+    for (const tag of ['adhd', 'sleep']) {
+      await bindings.put(createCuratedBinding({ tag, topic: { id: 'openalex:T10537', display_name: 'x' }, by: 'ed', at: NOW.toISOString() })!)
+    }
+    const r = await service.getNodeMap('topic', 'T10537')
+    if (!r.ok) throw new Error(r.error)
+    expect(r.data.children?.map((c) => [c.external_id, c.works_count])).toEqual([['sleep', 2], ['adhd', 1]])
+    expect(r.data.onsite_pending).toBe(1)
+    const counts = await service.getCounts('topic', 'T10537')
+    expect(counts.ok && [counts.data.onsite?.total, counts.data.onsite?.pending]).toEqual([2, 1])
+  })
+  it('门槛没开（缺省）：一切照旧，不下发 pending；作者入库不提审阅', async () => {
+    const service = createEvidenceService({ onsite: createMemoryOnsiteSource(reviewed), external: fakeExternal().src, log: () => {} })
+    const r = await service.getTagMap('adhd')
+    expect(r.ok && [r.data.records.filter((x) => x.source === 'onsite').length, 'onsite_pending' in r.data]).toEqual([2, false])
+    const c = await service.getTagCounts('sleep')
+    expect(c.ok && 'pending' in c.data).toBe(false)
+    expect(service.intake({ id: 9, title: 'New' }).issues).toEqual([])
+  })
+  it('后台切换门槛立刻生效（共现图的缓存键带着门槛）', async () => {
+    let gate: 'off' | 'reviewed_only' = 'off'
+    const service = createEvidenceService({ onsite: createMemoryOnsiteSource(reviewed), settings: () => ({ 'onsite.reviewGate': gate }), log: () => {} })
+    const a = await service.getTagGraph({ minSupport: 1 })
+    gate = 'reviewed_only'
+    const b = await service.getTagGraph({ minSupport: 1 })
+    expect(a.ok && b.ok && [a.data.records, b.data.records, b.data.pending]).toEqual([4, 2, 2])
   })
 })

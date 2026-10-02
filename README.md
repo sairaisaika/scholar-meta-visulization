@@ -20,9 +20,12 @@
 ## 在线演示
 
 **[打开演示页 →](https://sairaisaika.github.io/scholar-meta-visulization/)**　不用装任何东西，引擎直接在浏览器里跑：换一组研究，看它能画到证据阶梯的哪一级、为什么不是更高一级；
+从大类一路点到文章，看每一层往里有什么、文章发在哪本期刊、能不能免费读、互相怎么引用，再拨一下「只计入审阅过的文章」；
 拨一拨格子的形状，看哪些图能画、画不了的差什么。数据是虚构的，页面不连网。
 
 [![演示页：六项虚构试验的森林图，右侧一栏是偏倚风险；上方是汇总估计、去掉高风险研究后的敏感性分析与证据确定性评级](.github/images/demo-zh.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
+
+[![演示页的下钻：大类 › 领域 › 子领域 › 主题的面包屑，左边是往里一层的站内标签与篇数，右边是文章清单——期刊、能不能免费读、还挂着的主题与标签、互相引用；审阅门槛开着，提示还有 2 篇在等审阅](.github/images/explore-zh.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
 
 ## 它做什么
 
@@ -71,6 +74,7 @@ flowchart LR
 | 站内与站外不上同一根轴 | 分层下发，各自声明分母与图注 |
 | 作者自报的数字先验形 | 写反的区间、不含点估计的区间、矛盾的方向都会被拦下并告诉作者 |
 | 偏倚风险与证据确定性不由引擎评 | 编辑或外部综述评好传进来，必须写明谁评的；图上逐项标出（没评过不当成低风险），汇总另给去掉高风险研究的敏感性分析 |
+| 进标签系统可以要求先审阅 | 站点开了审阅门槛，只有标了审阅时间的文章（比如有认证专家评论过）计入；谁算专家由站点定，没审阅的照常发表、写明还有几篇在等 |
 | 标签由谁定有规则 | 模型可以换，输出一律验形；人压过模型，同级分歧标为「有争议」且不计入；推翻上一级要走修改申请，审核通过即生效 |
 
 方法与参考文献见 [docs/tags.md](docs/tags.md)。
@@ -79,7 +83,7 @@ flowchart LR
 
 ```bash
 # 编译好的安装包，挂在每个 GitHub release 上（npm、yarn 同样用这个链接）
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.3.0/scholar-meta-0.3.0.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.4.0/scholar-meta-0.4.0.tgz
 ```
 
 各版本见 [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases)，改动见 [CHANGELOG](CHANGELOG.md)。
@@ -114,7 +118,7 @@ const view = map ? presentEvidenceMap(map, { locale: 'zh' }) : null   // null �
 | `scholar-meta/client` | 浏览器 · 移动端 | 类型化读口客户端，只打你自己的 API |
 | `scholar-meta/service` | 服务端 | 门面与端口：文章源、绑定表、缓存、外部源 |
 | `scholar-meta/http` | 服务端 | `Request → Response` 读口，四个 GET 路由 |
-| `scholar-meta/openalex` | 服务端 | OpenAlex 适配器：候选主题、四级缩放（同父兄弟带篇数）、全量计数、每日额度 |
+| `scholar-meta/openalex` | 服务端 | OpenAlex 适配器：候选主题、四级缩放（同父兄弟带篇数）、往里一层、作品的期刊与免费链接、全量计数、每日额度 |
 
 **给接入方的约定**（改之前先在 CHANGELOG 说明）
 

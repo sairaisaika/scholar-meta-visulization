@@ -43,7 +43,7 @@
  * （宿主往往把它原样展示给读者，好让人复打核对）；这把 key 同时是 openalex.org 账号的登录凭据。
  */
 
-import type { EvidenceRecord, EvidenceTagBindingConfidence, EvidenceTopic, EvidenceScaleLevel } from './types'
+import type { EvidenceRecord, EvidenceTagBindingConfidence, EvidenceTopic, EvidenceScaleLevel, EvidenceVenue } from './types'
 import { scopeFilter } from './dimensions'
 import type { ExternalEvidenceSource, ExternalTopicCandidate } from './ports'
 import { fetchEvidenceCounts } from './openalex-counts'
@@ -51,6 +51,7 @@ import { OPENALEX_PROVENANCE } from './openalex-meta'
 import { isFilterSafeDoi, normalizeDoi } from './doi'
 import { isLiveSettings, settingsReader } from './settings'
 import { MACHINE_CANDIDATE_LIMIT, normalizeTag, pickMachineCandidate } from './tags'
+import { safeHttpUrl } from './url'
 import type { SettingsInput } from './settings'
 export { fetchEvidenceCounts, PROVISIONAL_YEARS } from './openalex-counts'
 
@@ -190,7 +191,8 @@ export interface OpenAlexNodeBundle {
   partial?: boolean
 }
 
-async function fetchNodeBundle({ getJson, log }: Ctx, level: OpenAlexNodeLevel, id: string): Promise<OpenAlexNodeBundle | null> {
+async function fetchNodeBundle(ctx: Ctx, level: OpenAlexNodeLevel, id: string): Promise<OpenAlexNodeBundle | null> {
+  const { getJson } = ctx
   const spec = NODE_LEVELS[level]
   if (!spec.idShape.test(id)) return null
   const out = await getJson(`/${spec.path}/${id}`)
@@ -215,37 +217,70 @@ async function fetchNodeBundle({ getJson, log }: Ctx, level: OpenAlexNodeLevel, 
   })
 
   // 兄弟：同级列表按父过滤（domain 级无父 ⇒ 全部 domain）。⚠️ 不读实体自带的 siblings[]（见头注：上级级别那不是同父兄弟）
+  // 实体拿到了、列表没拿到：回残缺 bundle（兄弟为空或不全）比整体 null 强——调用方仍能画焦点与祖先
   const listPath = spec.parent === null
     ? `/${spec.path}?${SIBLING_SELECT}`
     : parent ? `/${spec.path}?filter=${spec.parent}.id:${parent.id}&${SIBLING_SELECT}` : null
-  const siblings: EvidenceTopic[] = []
+  const { nodes: siblings, partial } = listPath
+    ? await listNodes(ctx, level, listPath, { exclude: self.id, parentId: node.parent_id, what: 'siblings' })
+    : { nodes: [], partial: false }
+  return partial ? { node, ancestors, siblings, partial } : { node, ancestors, siblings }
+}
+
+/** 约定：一层节点按 works_count 从多到少（没有篇数的排最后，同数按 id），不依赖外部源列表的缺省顺序；残缺时只对拿到的排。 */
+const byWorksCount = (a: EvidenceTopic, b: EvidenceTopic) =>
+  (b.works_count ?? -1) - (a.works_count ?? -1) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+
+/**
+ * 按父过滤的一层节点列表（兄弟与往里一层共用）。第一页 URL 不带页码，第二页起显式 `&page=N`；
+ * 任何一页没拿到就止步并标 `partial`，已拿到的照留；到翻页上限还没完也标 `partial`。
+ */
+async function listNodes(
+  { getJson, log }: Ctx, level: OpenAlexNodeLevel, listPath: string,
+  opts: { exclude?: string; parentId: string | null; what: 'siblings' | 'children' },
+): Promise<{ nodes: EvidenceTopic[]; partial: boolean }> {
+  const nodes: EvidenceTopic[] = []
   let partial = false
-  // 第一页 URL 不带页码，第二页起显式 `&page=N`；任何一页没拿到就止步，已拿到的照留
-  for (let page = 1; listPath && page <= SIBLING_MAX_PAGES; page++) {
+  for (let page = 1; page <= SIBLING_MAX_PAGES; page++) {
     const list = await getJson(page === 1 ? listPath : `${listPath}&page=${page}`)
     const j = list ? (list.json as { meta?: { count?: unknown }; results?: unknown }) : null
     if (!j || !Array.isArray(j.results)) {
-      // 实体拿到了、列表没拿到：回残缺 bundle（兄弟为空或不全）比整体 null 强——调用方仍能画焦点与祖先
-      log('[evidence.openalex] siblings unavailable, partial bundle', { path: listPath, page })
+      log(`[evidence.openalex] ${opts.what} unavailable, partial bundle`, { path: listPath, page })
       partial = true
       break
     }
     for (const raw of j.results) {
       const s = named(raw)
-      if (!s || s.id === self.id) continue
+      if (!s || s.id === opts.exclude) continue
       const wc = (raw as { works_count?: unknown }).works_count
-      siblings.push(topicNode(level, s.id, s.name, { parent_id: node.parent_id, works_count: typeof wc === 'number' ? wc : null }))
+      nodes.push(topicNode(level, s.id, s.name, { parent_id: opts.parentId, works_count: typeof wc === 'number' ? wc : null }))
     }
     const count = typeof j.meta?.count === 'number' ? j.meta.count : null
     if (j.results.length < SIBLING_PER_PAGE || count === null || page * SIBLING_PER_PAGE >= count) break
     if (page === SIBLING_MAX_PAGES) {
-      log('[evidence.openalex] siblings truncated at page cap, partial bundle', { path: listPath, count })
+      log(`[evidence.openalex] ${opts.what} truncated at page cap, partial bundle`, { path: listPath, count })
       partial = true
     }
   }
-  // 约定：兄弟按 works_count 从多到少（没有篇数的排最后，同数按 id），不依赖外部源列表的缺省顺序；残缺时只对拿到的排
-  siblings.sort((a, b) => (b.works_count ?? -1) - (a.works_count ?? -1) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-  return partial ? { node, ancestors, siblings, partial } : { node, ancestors, siblings }
+  nodes.sort(byWorksCount)
+  return { nodes, partial }
+}
+
+/** 往里一层是哪一级；主题往里没有外部的一层（站内标签由服务层按编辑绑定补上）。 */
+const CHILD_LEVEL: Record<OpenAlexNodeLevel, OpenAlexNodeLevel | null> = { domain: 'field', field: 'subfield', subfield: 'topic', topic: null }
+
+/**
+ * 一个节点往里一层：大类 → 领域 → 子领域 → 主题（**1 credit**；同父超过 200 个时每多一页再 1）。
+ * 主题级、id 形状不对 ⇒ null（不出网）；第一页就没拿到 ⇒ null（这次没问成，**不是**「没有往里的一层」）；
+ * 后面的页没拿到 ⇒ 带 `partial: true` 回已拿到的。按 works_count 从多到少。
+ */
+async function fetchNodeChildren(ctx: Ctx, level: OpenAlexNodeLevel, id: string): Promise<{ children: EvidenceTopic[]; partial?: boolean } | null> {
+  const child = CHILD_LEVEL[level]
+  if (!child || !NODE_LEVELS[level].idShape.test(id)) return null
+  const path = `/${NODE_LEVELS[child].path}?filter=${level}.id:${id}&${SIBLING_SELECT}`
+  const { nodes, partial } = await listNodes(ctx, child, path, { parentId: `openalex:${id}`, what: 'children' })
+  if (partial && nodes.length === 0) return null
+  return partial ? { children: nodes, partial } : { children: nodes }
 }
 
 /** 兼容旧调用方：`fetchNodeBundle('topic', id)` 的薄包装，字段名 `topic` 不变。 */
@@ -325,7 +360,8 @@ async function fetchWorksForTopic(ctx: Ctx, externalId: string, limit = OPENALEX
 async function fetchWorksForNode({ getJson }: Ctx, level: OpenAlexLevel, externalId: string, limit = OPENALEX_WORKS_LIMIT): Promise<EvidenceRecord[] | null> {
   const filter = scopeFilter(level, externalId, 'primary_topic')
   if (!filter) return null
-  const select = 'id,doi,title,publication_year,type,cited_by_count,open_access,authorships'
+  // 0.4.0 多取三列：primary_location（发在哪）、topics（自己挂的主题）、referenced_works（只用来连同一批里的引用边，不下发）
+  const select = 'id,doi,title,publication_year,type,cited_by_count,open_access,authorships,primary_location,topics,referenced_works'
   const out = await getJson(
     `/works?filter=${filter},is_retracted:false&sort=cited_by_count:desc&per_page=${Math.min(Math.max(limit, 1), 50)}&select=${select}`,
   )
@@ -334,6 +370,7 @@ async function fetchWorksForNode({ getJson }: Ctx, level: OpenAlexLevel, externa
   if (!Array.isArray(results)) return null
   const retrieved = new Date().toISOString()
   const records: EvidenceRecord[] = []
+  const refs = new Map<string, string[]>()
   for (const raw of results) {
     if (!raw || typeof raw !== 'object') continue
     const r = raw as Record<string, unknown>
@@ -370,9 +407,38 @@ async function fetchWorksForNode({ getJson }: Ctx, level: OpenAlexLevel, externa
         ? ((r.open_access as { is_oa: boolean }).is_oa)
         : null,
       provenance: { ...OPENALEX_PROVENANCE, retrieved_at: retrieved },
+      venue: venueOf(r.primary_location),
+      oa_url: safeHttpUrl((r.open_access as { oa_url?: unknown } | undefined)?.oa_url),
+      topics: (Array.isArray(r.topics) ? r.topics : []).map(named).filter((t): t is { id: string; name: string } => t !== null)
+        .slice(0, 5).map((t) => ({ id: `openalex:${t.id}`, display_name: t.name })),
     })
+    if (Array.isArray(r.referenced_works)) {
+      refs.set(`openalex:${id}`, r.referenced_works.map((u) => shortId(typeof u === 'string' ? u : null)).filter((x): x is string => x !== null).map((x) => `openalex:${x}`))
+    }
+  }
+  // 引用边只连同一批里的：别的引用不下发（一篇综述能引几百篇，整串带给浏览器没有意义）
+  const inBatch = new Set(records.map((x) => x.id))
+  for (const rec of records) {
+    const cites = [...new Set((refs.get(rec.id) ?? []).filter((x) => x !== rec.id && inBatch.has(x)))]
+    if (cites.length > 0) rec.cites = cites
   }
   return records
+}
+
+/** 作品的主要发表位置 → 发在哪（期刊 / 来源）；没有来源（比如只有落地页）⇒ null。 */
+function venueOf(location: unknown): EvidenceVenue | null {
+  if (!location || typeof location !== 'object') return null
+  const src = (location as { source?: unknown }).source
+  const n = named(src)
+  if (!n) return null
+  const v = src as Record<string, unknown>
+  return {
+    id: `openalex:${n.id}`, name: n.name,
+    type: typeof v.type === 'string' ? v.type : null,
+    is_oa: typeof v.is_oa === 'boolean' ? v.is_oa : null,
+    issn_l: typeof v.issn_l === 'string' ? v.issn_l : null,
+    publisher: typeof v.host_organization_name === 'string' ? v.host_organization_name : null,
+  }
 }
 
 // ── 全量计数 ────────────────────────────────────────────────────────────────
@@ -518,6 +584,7 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
   return {
     resolveTopicForTag: (tag: string) => resolveTopicForTag(ctx, tag),
     fetchNodeBundle: (level: OpenAlexNodeLevel, id: string) => fetchNodeBundle(ctx, level, id),
+    fetchNodeChildren: (level: OpenAlexNodeLevel, id: string) => fetchNodeChildren(ctx, level, id),
     fetchTopicBundle: (externalId: string) => fetchTopicBundle(ctx, externalId),
     fetchWorksForTopic: async (externalId: string, limit?: number) => fetchWorksForTopic(ctx, externalId, await worksLimit(limit)),
     fetchWorksForNode: async (level: OpenAlexLevel, externalId: string, limit?: number) => fetchWorksForNode(ctx, level, externalId, await worksLimit(limit)),
@@ -548,6 +615,7 @@ export function createOpenAlexSource(clientOrOptions: OpenAlexClient | OpenAlexO
       return r ? r.map(cand) : null
     },
     nodeBundle: (level, externalId) => client.fetchNodeBundle(level, externalId),
+    children: (level, externalId) => client.fetchNodeChildren(level, externalId),
     sampleWorks: (level, externalId, limit) => client.fetchWorksForNode(level, externalId, limit),
     counts: (level, externalId, scope, displayName) => fetchEvidenceCounts(client, level, externalId, scope, { display_name: displayName }),
     async topicsForDois(dois) {

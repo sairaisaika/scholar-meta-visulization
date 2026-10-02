@@ -66,6 +66,29 @@ export interface EvidenceMessageTemplates {
   list_sep: string
   parts_sep: string
   clause_sep: string
+  /** 下钻：往里一层、作品清单、这批作品还挂着什么（0.4.0） */
+  children_title: string
+  children_partial: string
+  children_unavailable: string
+  children_none: string
+  children_no_tags: string
+  node_works: string
+  authors_more: string
+  work_read_onsite: string
+  work_free: string
+  work_not_free: string
+  work_access_unknown: string
+  venue_with_type: string
+  venue_oa: string
+  work_cites: string
+  work_cited_by: string
+  work_citations: string
+  facet_count: string
+  facet_sample: string
+  facet_onsite: string
+  facet_more: string
+  /** 审阅门槛：还有几篇在等（0.4.0） */
+  onsite_pending: string
 }
 
 export interface EvidenceMessageCatalog {
@@ -112,6 +135,8 @@ export interface EvidenceMessageCatalog {
     down: Record<EvidenceCertaintyDowngrade, string>
     up: Record<EvidenceCertaintyUpgrade, string>
   }
+  /** 作品发表来源的类型（外部源的原文是开放词表：这里没有的回落到原文；0.4.0） */
+  venueType: Record<string, string>
   text: EvidenceMessageTemplates
 }
 
@@ -190,6 +215,7 @@ const zh: EvidenceMessageCatalog = {
     positive_rate_not_efficacy: '阳性率回答「多少文章报告了显著结果」，不回答「干预有没有效」；按显著与否计票在方法学上无效（Cochrane Handbook 12.2.2.1）。',
     model_decided_tags: '有些标签是模型打的、还没有人确认过；人工审核之后数字可能会变。',
     disputed_tags_excluded: '审核意见不一致的标签暂不计入，定下来之后再算。',
+    primary_location_only: '期刊按主要发表位置算：同一篇的预印本、机构库版本不另算；能免费读的版本可能在别处。',
   },
   external: {
     matched: '已对应到外部文献库的主题。',
@@ -250,6 +276,7 @@ const zh: EvidenceMessageCatalog = {
     unknown_rob_tool: '偏倚风险的工具认不出（只收 RoB 2、ROBINS-I 或 other），偏倚风险已忽略。',
     rob_judgement_invalid: '偏倚风险的总体判断不是这种工具的档位，已忽略。',
     rob_source_missing: '偏倚风险没写是谁评的，已忽略（读者要能看到这个判断从哪来）。',
+    awaiting_review: '这篇文章还没有通过审阅，审阅之后才计入标签与研究图谱。',
   },
   studyDesign: {
     rct: '随机对照试验', non_randomised_controlled: '非随机对照研究', cohort: '队列研究', case_control: '病例对照研究',
@@ -291,6 +318,11 @@ const zh: EvidenceMessageCatalog = {
     'cache.countsDays': { label: '全量计数缓存', help: '主题的全量格子保存几天（冷启动一次约 17 credit）。' },
     'onsite.label': { label: '站内来源名称', help: '脚注里站内文章的来源名，比如站名或栏目名。' },
     'onsite.license': { label: '站内文章许可', help: '站内文章的许可（比如 CC BY 4.0），脚注逐条印出。' },
+    'onsite.reviewGate': {
+      label: '审阅门槛',
+      help: '打开后，只有站点标记为「已审阅」的文章（比如有资质的人评论或审核过）才进标签与研究图谱；还没审阅的照常发表，只是暂不计入，图上会写明还有几篇在等。',
+      options: { off: '不设门槛', reviewed_only: '只计入已审阅的文章' },
+    },
     'graph.minSupport': { label: '共现图门槛', help: '标签与共现至少出现几次才画进共现图（读者请求没指定时的缺省值）。' },
     'graph.maxNodes': { label: '共现图最多标签数', help: '共现图最多画几个标签（读者请求没指定时的缺省值）。' },
     'http.cacheMaxAge': { label: '读口缓存时长', help: '公开读口成功响应的 Cache-Control max-age。' },
@@ -368,6 +400,10 @@ const zh: EvidenceMessageCatalog = {
     down: { risk_of_bias: '偏倚风险', inconsistency: '结果不一致', indirectness: '间接性', imprecision: '不精确', publication_bias: '发表偏倚' },
     up: { large_effect: '效应很大', dose_response: '有剂量反应关系', plausible_confounding: '可能的混杂只会削弱所见效应' },
   },
+  venueType: {
+    journal: '期刊', repository: '知识库 / 预印本库', conference: '会议', 'ebook platform': '电子书平台', 'book series': '丛书',
+    metadata: '元数据库', other: '其他',
+  },
   text: {
     footnote: '来源：{source}（{license}），取数于 {date}',
     query: '查询：{query}',
@@ -410,6 +446,27 @@ const zh: EvidenceMessageCatalog = {
     list_sep: '、',
     parts_sep: ' · ',
     clause_sep: '；',
+    children_title: '往里一层：{level}（{n} 个）',
+    children_partial: '只列出了其中 {n} 个，其余这次没取到。',
+    children_unavailable: '往里一层这次没取到，稍后再试。',
+    children_none: '这一层往里没有更细的分类。',
+    children_no_tags: '还没有站内标签由编辑绑到这个主题。',
+    node_works: '{n} 篇',
+    authors_more: '{list} 等',
+    work_read_onsite: '在{source}阅读',
+    work_free: '可免费阅读',
+    work_not_free: '没有已知的免费版本',
+    work_access_unknown: '不清楚有没有免费版本',
+    venue_with_type: '{name}（{type}）',
+    venue_oa: '全刊开放获取',
+    work_cites: '引用了这里的 {n} 篇',
+    work_cited_by: '被这里的 {n} 篇引用',
+    work_citations: '被引 {n} 次',
+    facet_count: '{count} / {total} 篇',
+    facet_sample: '在被引最多的 {n} 篇外部作品里',
+    facet_onsite: '在 {n} 篇站内文章里',
+    facet_more: '另有 {n} 个',
+    onsite_pending: '另有 {n} 篇站内文章在等审阅，审阅之后才计入。',
   },
 }
 
@@ -473,6 +530,7 @@ const en: EvidenceMessageCatalog = {
     positive_rate_not_efficacy: 'The positive-result rate says how many articles report significant results, not whether an intervention works; vote counting by significance is invalid (Cochrane Handbook 12.2.2.1).',
     model_decided_tags: 'Some tags were assigned by a model and not yet confirmed by a person; counts may change after review.',
     disputed_tags_excluded: 'Tags that reviewers disagree on are left out until the disagreement is settled.',
+    primary_location_only: 'Journals are counted by primary location: preprints and repository copies of the same work are not counted separately, and the free version may be hosted elsewhere.',
   },
   external: {
     matched: 'Matched to a topic in the external literature database.',
@@ -533,6 +591,7 @@ const en: EvidenceMessageCatalog = {
     unknown_rob_tool: 'The risk-of-bias tool was not recognised (RoB 2, ROBINS-I or other); the risk-of-bias judgement was ignored.',
     rob_judgement_invalid: 'The overall risk-of-bias judgement is not one of this tool’s levels; it was ignored.',
     rob_source_missing: 'The risk-of-bias judgement does not say who made it, so it was ignored (readers need to see where it comes from).',
+    awaiting_review: 'This article has not been reviewed yet; it will count towards tags and the evidence map once it has.',
   },
   studyDesign: {
     rct: 'Randomised controlled trial', non_randomised_controlled: 'Non-randomised controlled study', cohort: 'Cohort study',
@@ -575,6 +634,11 @@ const en: EvidenceMessageCatalog = {
     'cache.countsDays': { label: 'Full counts cache', help: 'Days to keep a topic\'s full counts (about 17 credits per cold start).' },
     'onsite.label': { label: 'On-site source name', help: 'Source name printed in footnotes for on-site articles, such as the site or section name.' },
     'onsite.license': { label: 'On-site licence', help: 'Licence of on-site articles (for example CC BY 4.0), printed in footnotes.' },
+    'onsite.reviewGate': {
+      label: 'Review gate',
+      help: 'When on, only articles your site marks as reviewed (for example, commented on or checked by a qualified person) count towards tags and the evidence map. Unreviewed articles stay published but are not counted yet, and the map says how many are waiting.',
+      options: { off: 'No gate', reviewed_only: 'Count reviewed articles only' },
+    },
     'graph.minSupport': { label: 'Tag graph threshold', help: 'Minimum occurrences for a tag or co-occurrence to be drawn (default when a request does not say).' },
     'graph.maxNodes': { label: 'Tag graph size', help: 'Maximum number of tags in the tag graph (default when a request does not say).' },
     'http.cacheMaxAge': { label: 'API cache lifetime', help: 'Cache-Control max-age of successful public API responses.' },
@@ -652,29 +716,33 @@ const en: EvidenceMessageCatalog = {
     down: { risk_of_bias: 'risk of bias', inconsistency: 'inconsistency', indirectness: 'indirectness', imprecision: 'imprecision', publication_bias: 'publication bias' },
     up: { large_effect: 'a large effect', dose_response: 'a dose–response gradient', plausible_confounding: 'plausible confounding that would reduce the effect' },
   },
+  venueType: {
+    journal: 'journal', repository: 'repository', conference: 'conference', 'ebook platform': 'e-book platform', 'book series': 'book series',
+    metadata: 'metadata', other: 'other',
+  },
   text: {
     footnote: 'Source: {source} ({license}), retrieved {date}',
     query: 'Query: {query}',
-    unknown: '{n} more works have no value on this dimension and are not in the denominator',
+    unknown: 'Works with no value on this dimension, not in the denominator: {n}',
     usable: '{usable} of {total} records meet this level\'s requirements',
     multi_label_sum: 'A work can fall into several buckets, so buckets add up to more than {n}',
-    graph_threshold: 'Only tags and co-occurrences seen at least {min} times are drawn ({records} articles)',
-    graph_collapsed: '{tags} more tags and {edges} more co-occurrences fall below the threshold and are not drawn',
+    graph_threshold: 'Only tags and co-occurrences seen at least {min} times are drawn (articles: {records})',
+    graph_collapsed: 'Below the threshold and not drawn: tags {tags}, co-occurrences {edges}',
     pooled: 'Random-effects summary ({metric}, {k} studies): {estimate}, 95% CI {ci_low} to {ci_high}; 95% prediction interval {pi_low} to {pi_high}; I² = {i2}',
-    sample: 'External works show only the {n} most cited: a sample, not the whole',
+    sample: 'External works: only the most cited are shown ({n}), a sample, not the whole',
     onsite_only: 'On-site articles only; this is not all research on the topic.',
-    onsite_count: '{n} on-site articles',
+    onsite_count: 'On-site articles: {n}',
     scope_primary: 'Scope: works with this as their primary topic, {total} in total',
     scope_topics: 'Scope: works tagged with this topic at all, {total} in total',
-    scope_other: 'The other scope gives {n} works (percentages depend on the scope)',
+    scope_other: 'Works in the other scope: {n} (percentages depend on the scope)',
     cited_evidence: 'Citation evidence: of {works} works cited by articles with this tag, {in_topic} have this as their primary topic ({share}, 95% interval {ci_low}–{ci_high})',
     autocomplete_rank: 'Name search rank {rank}',
     name_exact: 'Same name',
     name_contains: 'Partly the same name',
     name_none: 'Different name',
     provisional: 'provisional',
-    undeclared_design: '{n} articles declared no study design',
-    queue_articles: '{n} articles',
+    undeclared_design: 'Articles with no declared study design: {n}',
+    queue_articles: 'Articles: {n}',
     queue_candidate: 'Candidate topic: {topic}',
     suggestion_confidence: 'Confidence {value}',
     work_tag_decided: '{state} (decided by {tier})',
@@ -694,6 +762,27 @@ const en: EvidenceMessageCatalog = {
     list_sep: ', ',
     parts_sep: ' · ',
     clause_sep: '; ',
+    children_title: 'One level in: {level} ({n})',
+    children_partial: 'The list is incomplete ({n} shown); the rest could not be retrieved this time.',
+    children_unavailable: 'Could not retrieve the next level this time; try again later.',
+    children_none: 'There is no finer level below this one.',
+    children_no_tags: 'No on-site tags have been bound to this topic by an editor yet.',
+    node_works: 'Works: {n}',
+    authors_more: '{list} et al.',
+    work_read_onsite: 'Read on {source}',
+    work_free: 'Free to read',
+    work_not_free: 'No known free version',
+    work_access_unknown: 'Free access unknown',
+    venue_with_type: '{name} ({type})',
+    venue_oa: 'fully open access',
+    work_cites: 'Cites {n} of the works listed here',
+    work_cited_by: 'Cited by {n} of the works listed here',
+    work_citations: 'Citations: {n}',
+    facet_count: '{count} of {total}',
+    facet_sample: 'Counted in the most-cited external works ({n})',
+    facet_onsite: 'Counted in on-site articles ({n})',
+    facet_more: '{n} more',
+    onsite_pending: 'On-site articles waiting for review, not counted yet: {n}',
   },
 }
 

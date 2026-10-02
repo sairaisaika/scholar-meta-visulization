@@ -5,7 +5,10 @@
  *   ③ 图种菜单：画不了的灰着并写明差什么；
  *   ④ 阶梯摘要、汇总估计的一句话；绑定徽章（机器绑定必带 machine_binding 图注）；
  *   ⑤ 研究图谱：外部层状态、只有站内、示例不代表全体、出处脚注；
- *   ⑥ 共现图：节点面积 ∝ 计数、边强度用 lift、线宽用计数；折叠数写进图注。
+ *   ⑥ 共现图：节点面积 ∝ 计数、边强度用 lift、线宽用计数；折叠数写进图注；
+ *   ⑦ 下钻（0.4.0）：往里一层只给相对长度不给占比、三种「没有」分开说；作品清单的期刊 / 免费链接 / 别的主题与标签 / 同批引用；
+ *      「还挂着什么」只在这批里数、不列焦点自己；
+ *   ⑧ 审阅门槛（0.4.0）：有在等审阅的才说一句，没有或没开门槛时什么都不说。
  */
 import {
   EVIDENCE_MESSAGES, getMessages, mergeMessages, formatMessage, placeholders, BINDING_BADGES,
@@ -13,17 +16,19 @@ import {
 import type { EvidenceMessageCatalog } from '../src/messages'
 import {
   presentSeries, presentChartMenu, presentView, presentBinding, presentEvidenceMap, presentTagGraph, presentIntakeIssues,
-  presentBindingSuggestions, presentCounts, formatProvenance, effectDecimals,
+  presentBindingSuggestions, presentCounts, formatProvenance, effectDecimals, presentNodeChildren, presentWorks, presentRecordFacets,
+  presentOnsiteCounts,
 } from '../src/present'
 import {
   EVIDENCE_CAVEATS, EVIDENCE_CHART_BLOCKERS, EVIDENCE_CHART_KINDS, EVIDENCE_DOWNGRADE_REASONS, EVIDENCE_EXTERNAL_MATCHES,
   EVIDENCE_INTAKE_ISSUES, EVIDENCE_POOLING_REASONS, EVIDENCE_STUDY_DESIGNS, EVIDENCE_DIMENSION_IDS, ONSITE_DIMENSION_IDS,
   EVIDENCE_DENOMINATOR_KINDS, EVIDENCE_EFFECT_METRICS,
 } from '../src/types'
-import type { EvidenceCountSeries, EvidenceMapData, EvidenceRecord } from '../src/types'
+import type { EvidenceCountSeries, EvidenceMapData, EvidenceRecord, EvidenceTopic } from '../src/types'
 import { chartAvailability } from '../src/charts'
-import { buildTagGraph, intakeArticle } from '../src/onsite'
+import { buildTagGraph, countOnsiteLayer, intakeArticle } from '../src/onsite'
 import { SHARE_RELIABILITIES } from '../src/stats'
+import { isEvidenceMapData } from '../src/guards'
 
 const at = '2026-09-29T12:34:56.000Z'
 const prov = { source_label: 'OpenAlex', license: 'CC0 1.0', query: '/works?filter=primary_topic.id:T1&group_by=authorships.countries', retrieved_at: at, credits: 1 }
@@ -180,7 +185,7 @@ describe('绑定与研究图谱', () => {
     expect(v.title).toBe('ADHD')
     expect(v.notices).toEqual([])
     expect(v.caveats.map((c) => c.key)).toEqual(['machine_binding', 'sample_not_population', 'onsite_self_selected', 'self_reported', 'small_corpus'])
-    expect(v.counts_text).toEqual(['1 on-site articles', 'External works show only the 1 most cited: a sample, not the whole'])
+    expect(v.counts_text).toEqual(['On-site articles: 1', 'External works: only the most cited are shown (1), a sample, not the whole'])
     expect(v.footnotes).toEqual(['Source: Site (CC BY 4.0), retrieved 2026-09-29', 'Source: OpenAlex (CC0 1.0), retrieved 2026-09-29'])
     const onlyOnsite = presentEvidenceMap({ ...map, records: [onsite], onsite_only: true, external_match: 'unavailable', binding: null }, { locale: 'en' })
     expect(onlyOnsite.notices).toEqual([EVIDENCE_MESSAGES.en.external.unavailable, EVIDENCE_MESSAGES.en.text.onsite_only])
@@ -197,7 +202,7 @@ describe('共现图、入库问题、绑定候选、计数读口', () => {
     expect(v.nodes.find((n) => n.key === 'b')!.size).toBeCloseTo(Math.sqrt(4 / 5), 12)
     expect(Math.max(...v.edges.map((e) => e.strength))).toBe(1)
     expect(Math.max(...v.edges.map((e) => e.width))).toBe(1)
-    expect(v.caption).toEqual(['Only tags and co-occurrences seen at least 2 times are drawn (8 articles)', '1 more tags and 0 more co-occurrences fall below the threshold and are not drawn'])
+    expect(v.caption).toEqual(['Only tags and co-occurrences seen at least 2 times are drawn (articles: 8)', 'Below the threshold and not drawn: tags 1, co-occurrences 0'])
     expect(v.caveats.map((c) => c.key)).toContain('cooccurrence_not_citation')
   })
   it('入库问题给作者一句话', () => {
@@ -224,7 +229,7 @@ describe('共现图、入库问题、绑定候选、计数读口', () => {
       availability: { country: chartAvailability({ dimension: 'country', series: series(), overlap: null, hasCross: false }) } as never,
     }, { locale: 'en' })
     expect(v.scope_text).toBe('Scope: works with this as their primary topic, 110,442 in total')
-    expect(v.other_scope_text).toBe('The other scope gives 180,000 works (percentages depend on the scope)')
+    expect(v.other_scope_text).toBe('Works in the other scope: 180,000 (percentages depend on the scope)')
     expect(v.series[0].layer).toBe('external')
     expect(v.charts.country.find((i) => i.kind === 'upset')!.available).toBe(false)
     expect(v.onsite).toBeNull()
@@ -261,5 +266,118 @@ describe('编辑待办队列视图', () => {
       tag_key: 'adhd', label: 'ADHD', articles: 12, articles_text: '12 篇文章', badge: 'none',
       status_text: EVIDENCE_MESSAGES.zh.external.needs_review, candidate_text: '候选主题：Attention Deficit Hyperactivity Disorder',
     }])
+  })
+})
+
+describe('⑦ 下钻（0.4.0）', () => {
+  const P = { source_label: 'OpenAlex', license: 'CC0 1.0', retrieved_at: at }
+  const node = (level: EvidenceTopic['level'], id: string, name: string, n: number | null, source: EvidenceTopic['source'] = 'openalex'): EvidenceTopic =>
+    ({ id: `${source}:${id}`, source, external_id: id, level, display_name: name, description: null, parent_id: null, works_count: n })
+  const work = (id: string, over: Partial<EvidenceRecord> = {}): EvidenceRecord => ({
+    id: `openalex:${id}`, source: 'openalex', external_id: id, title: `Work ${id}`, year: 2020, authors: ['A', 'B'], doi: null, url: `https://doi.org/10.1/${id}`,
+    topic_ids: [], study_type: null, self_reported_claim: null, direction: null, effect: null, cited_by_count: 1234, is_retracted: false,
+    is_open_access: false, provenance: P, ...over,
+  })
+  const base = (over: Partial<EvidenceMapData>): EvidenceMapData => ({
+    level: 'topic', focus: node('topic', 'T1', 'Sleep', 900), parent: null, siblings: [], records: [],
+    view: { kind: 'gap_map', usable: 0, total: 0, downgrade_reason: 'too_few' }, pooling: { allowed: false, reason: 'not_applicable', studies: 0 },
+    sources: [], onsite_only: false, external_match: 'matched', binding: null, ...over,
+  })
+
+  it('往里一层：相对长度（不是占比）、按级出说法；没下发 ⇒ null；三种「没有」分开说', () => {
+    const m = base({ level: 'field', focus: node('field', '27', 'Medicine', 5000), children: [node('subfield', '2738', 'Psychiatry', 800), node('subfield', '2701', 'Anatomy', 200), node('subfield', '9', 'X', null)] })
+    const v = presentNodeChildren(m, { locale: 'zh' })!
+    expect(v.title).toBe('往里一层：子领域（3 个）')
+    expect(v.rows.map((r) => [r.label, r.count_text, r.size])).toEqual([['Psychiatry', '800 篇', 1], ['Anatomy', '200 篇', 0.25], ['X', null, null]])
+    expect(v.notice).toBeNull()
+    expect(v.caveats.map((c) => c.key)).toEqual(['multi_label'])
+    expect(presentEvidenceMap(m, { locale: 'zh' }).children?.title).toBe(v.title)
+    expect(isEvidenceMapData({ ...m, children: 'x' })).toBe(false)
+    expect(isEvidenceMapData({ ...m, children: null })).toBe(true)
+    expect(presentNodeChildren(base({}))).toBeNull()
+    expect(presentEvidenceMap(base({})).children).toBeNull()
+    expect(presentNodeChildren(base({ level: 'field', children: null }), { locale: 'en' })?.notice).toBe(EVIDENCE_MESSAGES.en.text.children_unavailable)
+    expect(presentNodeChildren(base({ level: 'field', children: [node('subfield', '1', 'One', 3)], children_partial: true }), { locale: 'en' })?.notice)
+      .toBe('The list is incomplete (1 shown); the rest could not be retrieved this time.')
+    expect(presentNodeChildren(base({ level: 'subfield', children: [] }), { locale: 'zh' })?.notice).toBe(EVIDENCE_MESSAGES.zh.text.children_none)
+    // 主题往里是站内标签：篇数写成站内文章数；没有绑定的标签另一句
+    const tags = presentNodeChildren(base({ children: [node('tag', 'sleep', 'Sleep', 4, 'onsite')] }), { locale: 'zh' })!
+    expect([tags.level_text, tags.rows[0].count_text, tags.caveats]).toEqual(['标签', '站内文章 4 篇', []])
+    expect(presentNodeChildren(base({ children: [] }), { locale: 'zh' })?.notice).toBe(EVIDENCE_MESSAGES.zh.text.children_no_tags)
+  })
+
+  it('作品清单：期刊与类型、免费链接（没有已知的 ≠ 读不到）、别的主题不含焦点、同批引用、被引数只做参考', () => {
+    const one = work('W1', {
+      authors: ['A', 'B', 'C', 'D'], oa_url: 'https://repo.example/w1.pdf', is_open_access: true,
+      venue: { id: 'openalex:S1', name: 'Journal One', type: 'journal', is_oa: true, issn_l: null, publisher: null },
+      topics: [{ id: 'openalex:T1', display_name: 'Sleep' }, { id: 'openalex:T2', display_name: 'Insomnia' }],
+    })
+    const two = work('W2', { venue: { id: 'openalex:S2', name: 'Some Repo', type: 'repository', is_oa: null, issn_l: null, publisher: null } })
+    const three = work('W3', { is_open_access: null, venue: { id: 'openalex:S3', name: 'Odd', type: 'newtype', is_oa: null, issn_l: null, publisher: null } })
+    const onsite = intakeArticle({ id: 'a', title: 'Mine', tags: ['Sleep', 'stress', 'STRESS'], url: 'https://site.example/a' }, { retrieved_at: at, source_label: 'Site', license: 'CC BY 4.0' }).record!
+    const m = base({
+      records: [onsite, one, two, three],
+      children: [node('tag', 'sleep', 'Sleep', 1, 'onsite')],
+      edges: [{ from: 'openalex:W1', to: 'openalex:W2', kind: 'cites' }, { from: 'openalex:W3', to: 'openalex:W2', kind: 'cites' }, { from: 'onsite:a', to: 'openalex:W1', kind: 'shares_tag' }],
+    })
+    const [mine, w1, w2, w3] = presentWorks(m, { locale: 'zh' })
+    expect(mine).toMatchObject({ layer: 'onsite', read_url: 'https://site.example/a', open: true, access_text: '在Site阅读', other_tags: ['stress'], citations_text: null, venue_text: null })
+    expect(w1).toMatchObject({
+      layer: 'external', authors_text: 'A、B、C 等', venue_text: 'Journal One（期刊） · 全刊开放获取', venue_id: 'openalex:S1',
+      read_url: 'https://repo.example/w1.pdf', open: true, access_text: '可免费阅读', other_topics: [{ id: 'openalex:T2', label: 'Insomnia' }],
+      cites: 1, cited_by: 0, links_text: '引用了这里的 1 篇', citations_text: '被引 1,234 次',
+    })
+    expect(w1.risk_of_bias.assessed).toBe(false)
+    expect(w2).toMatchObject({ venue_text: 'Some Repo（知识库 / 预印本库）', read_url: null, open: false, access_text: '没有已知的免费版本', cites: 0, cited_by: 2, links_text: '被这里的 2 篇引用' })
+    // 词典里没有的来源类型回落到原文；开放与否不知道就说不知道
+    expect(w3).toMatchObject({ venue_text: 'Odd（newtype）', open: null, access_text: '不清楚有没有免费版本' })
+    expect(presentWorks(m, { locale: 'en' })[1]).toMatchObject({ authors_text: 'A, B, C et al.', venue_text: 'Journal One (journal) · fully open access', access_text: 'Free to read', citations_text: 'Citations: 1,234' })
+  })
+
+  it('还挂着什么：只在这批里数、不列焦点（标签级还不列它绑到的主题）、按篇数排、多的折起来', () => {
+    const t = (id: string) => ({ id: `openalex:${id}`, display_name: `Topic ${id}` })
+    const v = (id: string) => ({ id: `openalex:${id}`, name: `Venue ${id}`, type: 'journal', is_oa: null, issn_l: null, publisher: null })
+    const recs = [
+      work('W1', { topics: [t('T1'), t('T2'), t('T3')], venue: v('S1') }),
+      work('W2', { topics: [t('T2'), t('T2')], venue: v('S1') }),
+      work('W3', { topics: [t('T3'), t('T4')], venue: v('S2') }),
+    ]
+    const onsite = ['x', 'y'].map((id, i) => intakeArticle({ id, title: id, tags: i === 0 ? ['Sleep', 'Stress'] : ['sleep', 'stress', 'Diet'] }, { retrieved_at: at, source_label: 'Site', license: 'CC BY 4.0' }).record!)
+    const tagMap = base({
+      level: 'tag', focus: node('tag', 'sleep', 'Sleep', 2, 'onsite'), records: [...onsite, ...recs],
+      binding: { tag_key: 'sleep', topic_id: 'openalex:T1', topic_name: 'Topic T1', kind: 'curated', confidence: null, bound_at: at, bound_by: 'ed', note: null },
+    })
+    const f = presentRecordFacets(tagMap, { locale: 'zh', limit: 2 })
+    // T1 是它绑到的主题，不列；W2 重复挂的 T2 只算一次
+    expect(f.topics.rows.map((r) => [r.id, r.count, r.count_text])).toEqual([['openalex:T2', 2, '2 / 3 篇'], ['openalex:T3', 2, '2 / 3 篇']])
+    expect([f.topics.more, f.topics.more_text, f.topics.base_text]).toEqual([1, '另有 1 个', '在被引最多的 3 篇外部作品里'])
+    expect(f.tags.rows.map((r) => [r.id, r.label, r.count])).toEqual([['stress', 'Stress', 2], ['diet', 'Diet', 1]])
+    expect(f.tags.base_text).toBe('在 2 篇站内文章里')
+    expect(f.venues.rows.map((r) => [r.label, r.count])).toEqual([['Venue S1', 2], ['Venue S2', 1]])
+    expect(f.caveats.map((c) => c.key)).toEqual(['sample_not_population', 'multi_label', 'primary_location_only'])
+    // 主题级：焦点主题不列；没有外部作品时那两栏是空的，也不印「在 0 篇里」
+    const topicMap = presentRecordFacets(base({ records: onsite }), { locale: 'en' })
+    expect([topicMap.topics.rows, topicMap.topics.base_text, topicMap.venues.base_text]).toEqual([[], null, null])
+    expect(topicMap.tags.base_text).toBe('Counted in on-site articles (2)')
+    expect(topicMap.caveats.map((c) => c.key)).toEqual(['multi_label'])
+  })
+})
+
+describe('⑧ 审阅门槛（0.4.0）', () => {
+  const recs = ['a', 'b'].map((id) => intakeArticle({ id, title: id, tags: ['Sleep', 'Diet'] }, { retrieved_at: at, source_label: 'Site', license: 'CC BY 4.0' }).record!)
+  it('研究图谱、站内层、共现图：有在等的才说一句', () => {
+    const map: EvidenceMapData = {
+      level: 'tag', focus: null, parent: null, siblings: [], records: recs, view: { kind: 'gap_map', usable: 2, total: 2, downgrade_reason: 'too_few' },
+      pooling: { allowed: false, reason: 'not_applicable', studies: 0 }, sources: [], onsite_only: true,
+    }
+    expect(presentEvidenceMap({ ...map, onsite_pending: 3 }, { locale: 'zh' }).notices).toContain('另有 3 篇站内文章在等审阅，审阅之后才计入。')
+    expect(presentEvidenceMap({ ...map, onsite_pending: 0 }, { locale: 'zh' }).notices.join('')).not.toContain('审阅')
+    expect(presentEvidenceMap(map, { locale: 'en' }).notices.join('')).not.toContain('review')
+    const layer = countOnsiteLayer(recs, { scope: { level: 'tag', id: 'onsite:sleep', display_name: 'Sleep', tag_keys: ['sleep'] }, retrieved_at: at })
+    expect(presentOnsiteCounts({ ...layer, pending: 2 }, { locale: 'en' }).pending_text).toBe('On-site articles waiting for review, not counted yet: 2')
+    expect(presentOnsiteCounts(layer).pending_text).toBeNull()
+    const graph = buildTagGraph(recs, { minSupport: 1, retrieved_at: at })
+    expect(presentTagGraph({ ...graph, pending: 1 }, { locale: 'zh' }).caption).toContain('另有 1 篇站内文章在等审阅，审阅之后才计入。')
+    expect(presentTagGraph(graph, { locale: 'zh' }).caption.join('')).not.toContain('审阅')
   })
 })

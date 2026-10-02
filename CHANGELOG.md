@@ -3,6 +3,44 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
+## 0.4.0（2026-10-02）
+
+只有加法，没有破坏性改动：逐级下钻（往里一层、作品的期刊 / 免费链接 / 别的主题 / 同批引用）与审阅门槛。升级步骤见接入指南第 8 节「从 0.3 到 0.4」。
+
+### 新增（契约，加法）
+- 往里一层：`EvidenceMapData.children?: EvidenceTopic[] | null`（`null` ＝ 这次没取到，`[]` ＝ 往里没有）与 `children_partial?`；主题往里是编辑绑到它的站内标签（`level: 'tag'`，篇数＝站内文章数）。
+- 作品细节：`EvidenceRecord.venue?`（`EvidenceVenue { id, name, type, is_oa, issn_l, publisher }`）、`oa_url?`、`topics?`（`EvidenceTopicRef[]`）、`cites?`（同一批里引用了谁）。
+- 审阅门槛：`EvidenceRecord.reviewed_at?`、`EvidenceMapData.onsite_pending?`、`EvidenceOnsiteCounts.pending?`、`EvidenceTagGraph.pending?`；设置 `onsite.reviewGate`（`off` / `reviewed_only`，缺省 `off`）；入库问题 `awaiting_review`（只做标记）。
+- 图注 `primary_location_only`（期刊按主要发表位置算）。
+- `EVIDENCE_CONTRACT_VERSION = '0.4.0'`。
+
+### 新增（代码）
+- OpenAlex 适配器：`fetchNodeChildren(level, id)`（大类 → 领域 → 子领域 → 主题，按父过滤的列表，1 credit；第一页没拿到 ⇒ `null`，后面的页没拿到 ⇒ `partial`），外部源接口多一个可选方法 `children`；
+  示例作品多取 `primary_location`、`topics`、`referenced_works` 三列（仍是 1 credit）：带上期刊、开放获取地址（只收 http(s)）、最多 5 个自己的主题，引用只留同一批里的。
+- 服务：`getNodeMap` 带上往里一层（上级三级问外部源、缓存同缩放包、没取全的不进长缓存；主题级列出编辑绑定的站内标签与篇数）；
+  `buildRecordEdges` 把外部作品自带的引用也连成引用边；审阅门槛开着时，标签图谱、主题图谱、站内层、共现图、编辑待办、绑定候选都只算审阅过的站内文章，并数出在等的篇数，`intake` 对没审阅的文章多回一条 `awaiting_review`。
+- `applyReviewGate(records)`、`isReviewed(record)`：不用服务门面的接入方自己过门槛。
+- 展示：`presentNodeChildren`（相对长度，不给占比）、`presentWorks`（期刊、能不能免费读、别的主题与标签、同批引用、被引数）、`presentRecordFacets`（这批作品还挂着的主题、站内标签、期刊——只在这批里数）；
+  `presentEvidenceMap` 多 `children`，有在等审阅的文章时 `notices` 里说一句；`presentOnsiteCounts` 多 `pending_text`；`presentTagGraph` 的图注里说在等的篇数。
+- 词典：`venueType` 一节、下钻与 `onsite_pending` 的模板（中英）。
+
+### 行为变化
+- `presentEvidenceMap` 的视图模型多一个 `children` 字段（没下发时为 `null`）。
+- 几句英文的计数改成「名词: 数字」的写法，不再出现「1 articles」：`onsite_count`（`On-site articles: 3`）、`queue_articles`、`undeclared_design`、`unknown`、`sample`、`scope_other`、`graph_threshold`、`graph_collapsed`。中文不变。
+- 服务层示例作品的缓存键换了（`sample2`），升级后每个节点第一次请求会重新取一次示例（1 credit）；共现图的缓存键带上审阅门槛，切换门槛立即生效。
+- 行为快照：标签研究图谱那一例多了 `children: null`；新增一例「下钻」（子领域往里一层、主题往里的站内标签、作品清单、还挂着什么、同批引用）。
+
+### 闸与测试
+- `test/openalex.live.test.ts` 加往里一层与作品细节的实测；新工作流 `.github/workflows/live.yml`：手动触发，或推送改了适配器时对真实 API 跑一遍（有仓库 secret `OPENALEX_API_KEY` 就带上）。
+- 服务、适配器、展示、入库、演示各加下钻与审阅门槛的用例。
+
+### 文档
+- 接入指南：第 1 节加「只让审阅过的文章进标签系统」，第 4 节加「下钻：从大类一路点到文章」，第 8 节加「从 0.3 到 0.4」；README 的诚实规则加一行、入口表与演示一节跟着改；架构文档的功能表加四行。
+- 「这个节点的论文都发在哪些期刊」的全量分布暂不提供：外部源的分组只回前 200 个来源，按引擎的分母规则会算错，等有了「截断的格子」这种形状再加。
+
+### 演示
+- 新区块「下钻」：一棵虚构的分类树，从大类一路点到文章；文章的期刊、能不能免费读、还挂着的主题与标签、互相引用（指针停在一篇上会标出有引用关系的），以及审阅门槛的开关。跑的是引擎真正的服务层，外部源换成内存里的树，页面仍不连网。
+
 ## 0.3.0（2026-10-02）
 
 **破坏性一处**：`EvidenceEffect.value` 可以是 `null`（见下，迁移只需改读它的地方）。其余是加法与修正。升级步骤见接入指南第 8 节。

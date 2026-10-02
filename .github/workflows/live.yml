@@ -1,0 +1,39 @@
+name: live
+
+# 对真实的 OpenAlex 跑一遍冒烟测试（test/openalex.live.test.ts）：只按文档实现、用模拟响应测过的请求形状在这里核对。
+# 手动触发，或改了适配器 / 维度注册表 / 这份测试时跑；不进推送的 check（外部服务的抖动不该挡住发版）。
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - src/openalex.ts
+      - src/openalex-counts.ts
+      - src/dimensions.ts
+      - test/openalex.live.test.ts
+      - .github/workflows/live.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # 设了仓库 secret OPENALEX_API_KEY 就带上（适配器只把它放进请求头，不进 URL、不进日志）；没设按无 key 的额度跑
+      - name: OpenAlex 真实 API 冒烟测试（约 25 credits）
+        env:
+          OPENALEX_LIVE: '1'
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: pnpm jest test/openalex.live.test.ts

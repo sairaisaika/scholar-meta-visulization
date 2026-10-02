@@ -8,7 +8,7 @@
  *   ⑤ 四级节点 bundle：实体先、同级列表后；祖先从近到远带 parent_id；兄弟去掉自己、带 works_count、不读实体自带的 siblings[]；
  *      id 形状不对不出网；列表失败回残缺 bundle 不回 null；同父超过 200 个翻页（实测 subfield 3312 有 224 个 topic），不足一页不翻。
  */
-import { createOpenAlexClient } from '../src/openalex'
+import { createOpenAlexClient, createOpenAlexSource } from '../src/openalex'
 
 const res = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   ({ ok: status >= 200 && status < 300, status, headers: new Headers(headers), json: async () => body })
@@ -283,5 +283,92 @@ describe('OpenAlex · fetchNodeBundle（四级节点：实体 + 同父兄弟列�
     const t = await createOpenAlexClient({ fetch: asFetch(g), log: jest.fn() }).fetchNodeBundle('topic', 'T10537')
     expect(g).toHaveBeenCalledTimes(2)
     expect(t?.siblings).toHaveLength(16)
+  })
+})
+
+describe('OpenAlex · 下钻（0.4.0）：往里一层与作品细节', () => {
+  const SEL = 'select=id,display_name,works_count&per_page=200'
+  const urls = (f: jest.Mock) => f.mock.calls.map((c) => c[0] as string)
+  const client = (f: jest.Mock, log = jest.fn()) => createOpenAlexClient({ fetch: asFetch(f), log })
+
+  it('往里一层：大类 → 领域 → 子领域 → 主题，各走按父过滤的列表；parent_id 指回本节点；按篇数从多到少', async () => {
+    const page = (path: string, ids: Array<[string, number | null]>) => ({ meta: { count: ids.length }, results: ids.map(([id, n]) => ({ id: `https://openalex.org/${path}${id}`, display_name: `n${id}`, ...(n === null ? {} : { works_count: n }) })) })
+    const f = jest.fn()
+      .mockResolvedValueOnce(res(200, page('fields/', [['27', 10], ['32', 30]])))
+      .mockResolvedValueOnce(res(200, page('subfields/', [['2738', 5]])))
+      .mockResolvedValueOnce(res(200, page('', [['T1', null], ['T2', 7]])))
+    const c = client(f)
+    const d = await c.fetchNodeChildren('domain', '4')
+    const fl = await c.fetchNodeChildren('field', '27')
+    const s = await c.fetchNodeChildren('subfield', '2738')
+    expect(urls(f)).toEqual([
+      `https://api.openalex.org/fields?filter=domain.id:4&${SEL}`,
+      `https://api.openalex.org/subfields?filter=field.id:27&${SEL}`,
+      `https://api.openalex.org/topics?filter=subfield.id:2738&${SEL}`,
+    ])
+    expect(d?.children.map((x) => [x.level, x.external_id, x.works_count, x.parent_id])).toEqual([['field', '32', 30, 'openalex:4'], ['field', '27', 10, 'openalex:4']])
+    expect(fl?.children.map((x) => x.id)).toEqual(['openalex:2738'])
+    expect(s?.children.map((x) => [x.level, x.external_id, x.works_count])).toEqual([['topic', 'T2', 7], ['topic', 'T1', null]])
+    expect(d && 'partial' in d).toBe(false)
+  })
+  it('主题级（外部树往里没有了）与 id 形状不对 ⇒ null，且不出网', async () => {
+    const f = jest.fn()
+    expect(await client(f).fetchNodeChildren('topic', 'T10537')).toBeNull()
+    expect(await client(f).fetchNodeChildren('field', 'T27')).toBeNull()
+    expect(await client(f).fetchNodeChildren('subfield', '27&select=x')).toBeNull()
+    expect(f).not.toHaveBeenCalled()
+  })
+  it('第一页没拿到 ⇒ null（这次没问成，不是「往里没有」）；后面的页没拿到 ⇒ 已拿到的照留并标 partial', async () => {
+    expect(await client(jest.fn().mockResolvedValue(res(500, {}))).fetchNodeChildren('field', '27')).toBeNull()
+    const log = jest.fn()
+    const big = { meta: { count: 224 }, results: Array.from({ length: 200 }, (_, i) => ({ id: `https://openalex.org/T${i + 1}`, display_name: `t${i + 1}`, works_count: 1 })) }
+    const f = jest.fn().mockResolvedValueOnce(res(200, big)).mockResolvedValueOnce(res(500, {}))
+    const r = await client(f, log).fetchNodeChildren('subfield', '3312')
+    expect(urls(f)[1]).toBe(`https://api.openalex.org/topics?filter=subfield.id:3312&${SEL}&page=2`)
+    expect(r?.children).toHaveLength(200)
+    expect(r?.partial).toBe(true)
+    expect(log.mock.calls.some(([m]) => String(m).includes('children unavailable'))).toBe(true)
+  })
+  it('外部源接口：children 走同一条路', async () => {
+    const f = jest.fn().mockResolvedValue(res(200, { meta: { count: 1 }, results: [{ id: 'https://openalex.org/fields/27', display_name: 'Medicine', works_count: 9 }] }))
+    const src = createOpenAlexSource({ fetch: asFetch(f), log: jest.fn() })
+    expect((await src.children!('domain', '4'))?.children.map((x) => x.display_name)).toEqual(['Medicine'])
+  })
+
+  it('作品：多取发表来源、开放获取地址、自己挂的主题与引用；引用只留同一批里的（去重、不连自己）', async () => {
+    const W = (n: number) => `https://openalex.org/W${n}`
+    const f = jest.fn().mockResolvedValue(res(200, { results: [
+      {
+        id: W(1), title: 'One', publication_year: 2020, type: 'article', doi: 'https://doi.org/10.1/one',
+        open_access: { is_oa: true, oa_status: 'green', oa_url: 'https://repo.example.org/one.pdf' },
+        primary_location: { source: { id: 'https://openalex.org/S1', display_name: 'Journal One', type: 'journal', is_oa: false, issn_l: '1234-5678', host_organization_name: 'Publisher P' } },
+        topics: Array.from({ length: 7 }, (_, i) => ({ id: `https://openalex.org/T${i + 1}`, display_name: `Topic ${i + 1}`, score: 0.9 })),
+        referenced_works: [W(2), W(2), W(1), W(99), 'not-a-url'],
+      },
+      {
+        id: W(2), title: 'Two', publication_year: 2019, type: 'preprint',
+        open_access: { is_oa: false, oa_url: null },
+        primary_location: { source: null, landing_page_url: 'https://x.example' },
+        topics: [{ id: 'https://openalex.org/T5', display_name: 'Topic 5' }],
+        referenced_works: [W(1)],
+      },
+      { id: W(3), title: 'Three', open_access: { is_oa: true, oa_url: 'javascript:alert(1)' }, primary_location: { source: { id: 'https://openalex.org/S3', display_name: 'Repo' } } },
+    ] }))
+    const recs = (await client(f).fetchWorksForNode('topic', 'T1', 3))!
+    expect(urls(f)[0]).toContain('select=id,doi,title,publication_year,type,cited_by_count,open_access,authorships,primary_location,topics,referenced_works')
+    const [one, two, three] = recs
+    expect(one.venue).toEqual({ id: 'openalex:S1', name: 'Journal One', type: 'journal', is_oa: false, issn_l: '1234-5678', publisher: 'Publisher P' })
+    expect(one.oa_url).toBe('https://repo.example.org/one.pdf')
+    expect(one.topics?.map((t) => t.id)).toEqual(['openalex:T1', 'openalex:T2', 'openalex:T3', 'openalex:T4', 'openalex:T5'])
+    expect(one.topics?.[0]).toEqual({ id: 'openalex:T1', display_name: 'Topic 1' })
+    expect(one.cites).toEqual(['openalex:W2'])
+    expect(two.venue).toBeNull()
+    expect(two.oa_url).toBeNull()
+    expect(two.cites).toEqual(['openalex:W1'])
+    // 只放 http(s) 链接；不完整的来源字段回 null
+    expect(three.oa_url).toBeNull()
+    expect(three.venue).toEqual({ id: 'openalex:S3', name: 'Repo', type: null, is_oa: null, issn_l: null, publisher: null })
+    expect(three.topics).toEqual([])
+    expect('cites' in three).toBe(false)
   })
 })

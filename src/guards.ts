@@ -22,6 +22,7 @@ export function isEvidenceMapData(x: unknown): x is EvidenceMapData {
     && isObj(x.pooling) && typeof x.pooling.allowed === 'boolean'
     && typeof x.onsite_only === 'boolean'
     && (x.certainty === undefined || x.certainty === null || isArr(x.certainty))
+    && (x.children === undefined || x.children === null || isArr(x.children))
 }
 
 export function isEvidenceTagGraph(x: unknown): x is EvidenceTagGraph {

@@ -75,6 +75,11 @@ export interface OnsiteArticle {
    * `source` 写清楚是谁评的（必填）。见 appraisal.ts。
    */
   risk_of_bias?: { tool?: unknown; overall?: unknown; source?: unknown } | null
+  /**
+   * 审阅时间（0.4.0；ISO 串或 Date）：接入方认定「审阅过」的时刻，比如第一条合格的专家评论——谁算专家由接入方定。
+   * 开了审阅门槛时，没有它的文章照常发表，但暂不计入标签与研究图谱（见 `applyReviewGate`）。
+   */
+  reviewed_at?: string | Date | null
   is_public?: boolean | null
   is_retracted?: boolean | null
 }
@@ -90,6 +95,8 @@ export interface OnsiteIntakeOptions {
   maxTags?: number
   /** 年份上限（缺省＝今年 + 1） */
   maxYear?: number
+  /** 开了审阅门槛（0.4.0）：没有有效审阅时间的文章加一条 `awaiting_review`（只做标记，记录照出；计不计入看 `applyReviewGate`） */
+  requireReview?: boolean
 }
 
 export interface IntakeResult {
@@ -289,6 +296,9 @@ export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}):
   const rob = checkRiskOfBias(a.risk_of_bias)
   if (rob.issue) issues.push(rob.issue)
 
+  const reviewed_at = isoTime(a.reviewed_at)
+  if (opts.requireReview && !reviewed_at) issues.push({ code: 'awaiting_review', field: 'reviewed_at', action: 'flagged' })
+
   const references: string[] = []
   const refSeen = new Set<string>()
   for (const ref of Array.isArray(a.references) ? a.references : []) {
@@ -322,8 +332,34 @@ export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}):
     },
     tags,
     ...(rob.value ? { risk_of_bias: rob.value } : {}),
+    ...(reviewed_at ? { reviewed_at } : {}),
   }
   return { record, issues, references }
+}
+
+/** ISO 串或 Date → ISO 串；认不出的为 null。 */
+function isoTime(x: unknown): string | null {
+  const d = x instanceof Date ? x : typeof x === 'string' && x.trim().length > 0 && x.length <= 64 ? new Date(x) : null
+  return d && !Number.isNaN(d.getTime()) ? d.toISOString() : null
+}
+
+/** 这条记录有没有有效的审阅时间（接入方自己映射出来的记录也认，只要是认得出的时间）。 */
+export function isReviewed(record: Pick<EvidenceRecord, 'reviewed_at'>): boolean {
+  return typeof record.reviewed_at === 'string' && !Number.isNaN(Date.parse(record.reviewed_at))
+}
+
+/**
+ * 审阅门槛（0.4.0）：站内记录只留审阅过的，其余数一个 `pending`（「另有 n 篇在等审阅」）。外部记录不受影响，原样留下。
+ * 服务层在设置 `onsite.reviewGate: 'reviewed_only'` 时替宿主调；不用服务门面的接入方在自己的查询里过滤，或者调它。
+ */
+export function applyReviewGate<R extends Pick<EvidenceRecord, 'source' | 'reviewed_at'>>(records: readonly R[]): { records: R[]; pending: number } {
+  const kept: R[] = []
+  let pending = 0
+  for (const r of records) {
+    if (r.source !== 'onsite' || isReviewed(r)) kept.push(r)
+    else pending++
+  }
+  return { records: kept, pending }
 }
 
 /** 一批文章入库；只把有问题的文章列进 `issues`。 */
@@ -546,6 +582,7 @@ export interface RecordEdgeOptions {
 /**
  * 这批记录之间的边：
  *   · `cites`：站内文章在参考文献里申报的 DOI，对上了这批记录里另一条记录的 DOI（站内文章或外部示例都算）；
+ *     外部记录自带的 `cites`（0.4.0 起，外部源的引用列表）指向这批里的记录时也连；
  *   · `shares_tag`：两篇站内文章除焦点标签外还共有标签——是**共现**，不是引用、不是合作（图注 `cooccurrence_not_citation`）。
  * `references` 是 intake 给出的「记录 id → 归一化 DOI 列表」。边按确定的次序输出，同一对只出一条。
  */
@@ -562,15 +599,16 @@ export function buildRecordEdges(
   }
   const edges: EvidenceEdge[] = []
   const seen = new Set<string>()
+  const ids = new Set(records.map((r) => r.id))
+  const cite = (from: string, to: string) => {
+    const id = `${from}\u0000${to}\u0000cites`
+    if (to === from || seen.has(id)) return
+    seen.add(id)
+    edges.push({ from, to, kind: 'cites' })
+  }
   for (const r of records) {
-    for (const d of references.get(r.id) ?? []) {
-      for (const to of byDoi.get(d) ?? []) {
-        const id = `${r.id}\u0000${to}\u0000cites`
-        if (to === r.id || seen.has(id)) continue
-        seen.add(id)
-        edges.push({ from: r.id, to, kind: 'cites' })
-      }
-    }
+    for (const d of references.get(r.id) ?? []) for (const to of byDoi.get(d) ?? []) cite(r.id, to)
+    for (const to of r.cites ?? []) if (ids.has(to)) cite(r.id, to)
   }
   const focus = new Set(opts.focusKeys ?? [])
   const minShared = Math.max(1, opts.minSharedTags ?? 1)

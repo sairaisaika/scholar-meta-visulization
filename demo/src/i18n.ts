@@ -55,6 +55,12 @@ export interface DemoText {
   certainty: string
   certaintyExample: { outcome: string; source: string }
   appraisalNote: string
+  /** 下钻（0.4.0） */
+  explore: {
+    title: string; lead: string; gate: string; gateHelp: string; crumbs: string; works: string; linksHint: string
+    facetTopics: string; facetTags: string; facetVenues: string; locked: string; loading: string; unavailable: string
+    none: string; fake: string; fakeLink: string
+  }
   menuTitle: string
   menuLead: string
   presets: Record<PresetId, string>
@@ -74,7 +80,7 @@ export const TEXT: Record<Locale, DemoText> = {
     title: 'scholar-meta 演示',
     sep: '：',
     tagline: '手上有什么数据，就诚实地画到哪一级。',
-    intro: '这一页在浏览器里直接跑引擎的判据。换一组研究，看它能画到证据阶梯的哪一级、为什么不是更高一级；换一种格子的形状，看哪些图能画、画不了的差在哪。',
+    intro: '这一页在浏览器里直接跑引擎的判据。换一组研究，看它能画到证据阶梯的哪一级、为什么不是更高一级；从大类一路点到文章，看每一层往里有什么、文章发在哪、能不能免费读、互相怎么引用；换一种格子的形状，看哪些图能画、画不了的差在哪。',
     fictional: '所有研究都是虚构的样例，只为演示判据。页面不连网。',
     source: '源码与文档',
     ladderTitle: '证据阶梯',
@@ -126,6 +132,24 @@ export const TEXT: Record<Locale, DemoText> = {
     certainty: '证据确定性',
     certaintyExample: { outcome: '焦虑症状评分（虚构）', source: '虚构的评定人（仅供演示）' },
     appraisalNote: '偏倚风险与证据确定性都是演示用的虚构评定。引擎不评，只核对接入方传进来的评定、写明是谁评的，并据此另给一个去掉高风险研究的敏感性分析。',
+    explore: {
+      title: '下钻：从大类一路点到文章',
+      lead: '每一层列出往里一层：大类 → 领域 → 子领域 → 主题，主题再往里是编辑绑到它的站内标签。条长只用来比大小——一篇作品可以同时在几个子节点下，所以不给占比。点到最里层，看这里有哪些文章、发在哪本期刊、能不能免费读、还挂着哪些别的主题与标签、互相怎么引用。',
+      gate: '审阅门槛：只计入审阅过的站内文章',
+      gateHelp: '比如「至少有一条认证专家的评论」——谁算专家、什么算审阅由站点定，引擎只看站点标的审阅时间。没审阅的文章照常发表，只是暂不计入标签与图谱，并写明还有几篇在等。',
+      crumbs: '位置',
+      works: '文章',
+      linksHint: '指针移到（或键盘选中）一篇文章上，会标出这一批里和它有引用关系的文章。',
+      facetTopics: '这批作品还挂着的主题',
+      facetTags: '这批文章还挂着的站内标签',
+      facetVenues: '发在哪些期刊',
+      locked: '演示只填了一条路径，灰着的点不进去。',
+      loading: '正在取数据…',
+      unavailable: '暂时取不到，稍后再试。',
+      none: '没有',
+      fake: '这一节的分类、篇数、文章、期刊与链接都是虚构的。跑的是引擎真正的服务层，外部文献库换成了内存里的一棵树，页面不连网。',
+      fakeLink: '演示用的虚构链接',
+    },
     menuTitle: '图种菜单',
     menuLead: '判据只看格子的形状：互斥吗、有几个桶、是不是年份、有没有交叉表或重叠计数。画不了的图不藏起来，灰着并写明差什么。',
     presets: {
@@ -148,7 +172,7 @@ export const TEXT: Record<Locale, DemoText> = {
     title: 'scholar-meta demo',
     sep: ': ',
     tagline: 'Draw exactly as far as your data honestly allows.',
-    intro: 'This page runs the engine’s rules in your browser. Pick a set of studies to see which rung of the evidence ladder it reaches and why not higher; change the shape of a set of counts to see which charts can be drawn and what the others are missing.',
+    intro: 'This page runs the engine’s rules in your browser. Pick a set of studies to see which rung of the evidence ladder it reaches and why not higher; drill down from a domain to the articles to see what each level contains, where the articles were published, whether they are free to read and how they cite each other; change the shape of a set of counts to see which charts can be drawn and what the others are missing.',
     fictional: 'All studies are fictional examples made up to show the rules. The page makes no network requests.',
     source: 'Source and docs',
     ladderTitle: 'The evidence ladder',
@@ -200,6 +224,24 @@ export const TEXT: Record<Locale, DemoText> = {
     certainty: 'Certainty of evidence',
     certaintyExample: { outcome: 'Anxiety symptom score (fictional)', source: 'a fictional rater (demo only)' },
     appraisalNote: 'The risk-of-bias judgements and the certainty rating are fictional. The engine does not assess either: it checks what the host passes in, says who assessed it, and adds a sensitivity analysis without the high-risk studies.',
+    explore: {
+      title: 'Drill down: from a domain to the articles',
+      lead: 'Each level lists the next one in: domain → field → subfield → topic, and inside a topic the on-site tags an editor bound to it. Bar length only compares sizes: a work can sit under several children, so no shares are given. At the innermost level, see which articles are there, where they were published, whether they are free to read, which other topics and tags they carry and how they cite each other.',
+      gate: 'Review gate: count reviewed on-site articles only',
+      gateHelp: 'For example “at least one comment from a verified expert”: the site decides who counts as an expert and what counts as a review; the engine only reads the review time the site sets. Unreviewed articles stay published but are not counted yet, and the page says how many are waiting.',
+      crumbs: 'Location',
+      works: 'Articles',
+      linksHint: 'Point at (or tab to) an article to mark the articles in this batch it cites or is cited by.',
+      facetTopics: 'Other topics these works carry',
+      facetTags: 'Other on-site tags these articles carry',
+      facetVenues: 'Where they were published',
+      locked: 'Only one path is filled in for the demo; greyed-out rows cannot be opened.',
+      loading: 'Loading…',
+      unavailable: 'Not available right now; try again later.',
+      none: 'None',
+      fake: 'The taxonomy, counts, articles, journals and links in this section are fictional. It runs the engine’s real service layer with the external index replaced by an in-memory tree; the page makes no network requests.',
+      fakeLink: 'a fictional demo link',
+    },
     menuTitle: 'The chart menu',
     menuLead: 'The rules only look at the shape of the counts: are buckets exclusive, how many there are, is it years, is there a cross-table or overlap counts. Charts that cannot be drawn are not hidden; they are greyed out with what is missing.',
     presets: {

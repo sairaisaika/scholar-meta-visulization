@@ -28,7 +28,7 @@
  * 契约版本：本文件最近一次变化随的那个包版本。接入方拷贝本文件时据此核对（CHANGELOG 里必须有这一版的一节，
  * 破坏性改动写在那一节的「破坏性」下）。改本文件时把它改成将要发布的版本号（见 CONTRIBUTING.md 第三节）。
  */
-export const EVIDENCE_CONTRACT_VERSION = '0.3.0'
+export const EVIDENCE_CONTRACT_VERSION = '0.4.0'
 
 /** 文献来源。站内文章与站外文献在本层**同形**——这正是「加一个源 = 加一行」的前提。`onsite` = 宿主自己的文章（任何站点）。 */
 export type EvidenceSourceId =
@@ -137,6 +137,32 @@ export interface EvidenceRiskOfBias {
   source: string
 }
 
+// ── 下钻要用的作品细节（0.4.0 加法）────────────────────────────────────────────────
+
+/**
+ * 作品发在哪：期刊、会议、预印本库、机构库……（外部源有就给；站内文章不带）。
+ * 「这一篇能不能免费读」看记录上的 `oa_url`，不看这里——同一本期刊里，有的文章开放、有的不开放。
+ */
+export interface EvidenceVenue {
+  /** `<source>:<external_id>`（如 `openalex:S137773608`） */
+  id: string
+  name: string
+  /** journal / repository / conference / ebook platform…（外部源的原文，不翻译） */
+  type: string | null
+  /** 整本是开放获取的（全刊开放）；不知道为 null */
+  is_oa: boolean | null
+  /** ISSN-L（期刊的统一编号）；没有为 null */
+  issn_l: string | null
+  /** 出版方 / 托管机构的名字；没有为 null */
+  publisher: string | null
+}
+
+/** 带名字的主题引用（作品自己挂的主题；`id` 与 `EvidenceTopic.id` 同形，可以直接拿去打开那个节点）。 */
+export interface EvidenceTopicRef {
+  id: string
+  display_name: string
+}
+
 /** 归一化的一条「证据」。站内文章与站外文献都落这个形状。 */
 export interface EvidenceRecord {
   /** `<source>:<external_id>`，全局唯一 */
@@ -178,6 +204,21 @@ export interface EvidenceRecord {
    * 缺省 / null ＝ 没评过：图上标「未评估」，**不当成低风险**。
    */
   risk_of_bias?: EvidenceRiskOfBias | null
+  /** 发在哪（0.4.0 加法；外部源有就给） */
+  venue?: EvidenceVenue | null
+  /**
+   * 能免费读的地址（开放获取的最佳版本；0.4.0 加法）。null ＝ 没有已知的开放版本——**不等于**读不到（可能在付费墙后，或有没收录的版本）。
+   */
+  oa_url?: string | null
+  /** 这篇作品自己挂的主题，主主题在前（0.4.0 加法；外部源有就给）。下钻时「这些文章还挂着哪些别的主题」从这里来 */
+  topics?: EvidenceTopicRef[]
+  /** 这条记录引用了**同一次下发里**的哪几条（记录 id；0.4.0 加法）。只列同一批里的，用来连「引用」边 */
+  cites?: string[]
+  /**
+   * 接入方标的审阅时间（ISO；0.4.0 加法）：比如第一条合格的专家评论的时间——**谁算专家、什么算审阅由接入方定**，引擎不判断。
+   * 只有开了审阅门槛（设置 `onsite.reviewGate`）时引擎才看它：没有 ⇒ 照常发表，只是暂不计入标签与研究图谱。外部记录不带。
+   */
+  reviewed_at?: string | null
 }
 
 /**
@@ -206,7 +247,7 @@ export interface EvidenceTopic {
 
 /**
  * 记录之间的边（2026-09-28 加法）。`from` / `to` 都是 `EvidenceRecord.id`（`<source>:<external_id>` 形）。
- * · `cites`：from 引用了 to。目前只有**站内**引用边（消费方的文章引用表）；外部引用边（OpenAlex `referenced_works`）以后再接；
+ * · `cites`：from 引用了 to。两个来源：站内文章申报的参考文献 DOI 对上了同一批里的记录；外部记录的 `cites`（0.4.0 起，外部源给的引用列表与同一批求交）；
  * · `shares_tag`：两条记录挂同一个站内标签——是共现，不是引用、不是合作。
  * 边只表达「有关系」，不表达支持 / 反对：证据方向仍只看 `EvidenceRecord.direction`。
  */
@@ -377,6 +418,16 @@ export interface EvidenceMapData {
    * 不下发 ＝ 没接评级；`[]` ＝ 这个范围没有评级；`null` ＝ 这次没取到（**不是**「没有评级」）。
    */
   certainty?: EvidenceCertainty[] | null
+  /**
+   * 往里一层（0.4.0 加法）：大类 → 领域 → 子领域 → 主题；主题往里是编辑绑到它的站内标签（`works_count` ＝ 带这个标签的站内文章数）。
+   * 按篇数从多到少。不下发 ＝ 旧服务端、没接、或已经是最里一层（标签级）；`[]` ＝ 问到了，往里没有；
+   * `null` ＝ 这次没取到（**不是**「往里没有」）。一篇作品可以同时挂在几个子节点下：各项相加会超过本节点的篇数。
+   */
+  children?: EvidenceTopic[] | null
+  /** 往里一层没取全（某一页失败或到了翻页上限）：UI 说「只列出了一部分」 */
+  children_partial?: boolean
+  /** 站内还有几篇文章在等审阅、没有计入（0.4.0 加法；接入方开了审阅门槛时才有，见设置 `onsite.reviewGate`） */
+  onsite_pending?: number
 }
 
 // ── 证据确定性（0.3.0 加法）──────────────────────────────────────────────────────────
@@ -532,6 +583,8 @@ export const EVIDENCE_CAVEATS = [
   // ↓ 0.2.0 加法（标签账本）
   'model_decided_tags',        // 计入的标签里有模型打的、还没有人确认过
   'disputed_tags_excluded',    // 有争议的标签暂不计入
+  // ↓ 0.4.0 加法
+  'primary_location_only',     // 期刊按主要发表位置算：同一篇的预印本、机构库版本不另算；能免费读的版本可能在别处
 ] as const
 export type EvidenceCaveat = (typeof EVIDENCE_CAVEATS)[number]
 
@@ -677,6 +730,8 @@ export interface EvidenceTagGraph {
   records: number
   caveats: EvidenceCaveat[]
   provenance: EvidenceCountProvenance
+  /** 还有几篇在等审阅、没有计入（0.4.0 加法；开了审阅门槛时才有） */
+  pending?: number
 }
 
 /** 站内层（0.2.0 加法）：一个标签（或一个主题下编辑绑定过的全部标签）的站内文章，按站内维度分组。 */
@@ -689,6 +744,8 @@ export interface EvidenceOnsiteCounts {
   /** 每个站内维度下每种图能不能画（记录级的四张——阳性率 / 收获 / 信天翁 / 森林——按站内记录真实具备的字段判） */
   availability: Record<OnsiteDimensionId, EvidenceChartAvailability[]>
   tag_graph: EvidenceTagGraph | null
+  /** 还有几篇在等审阅、没有计入（0.4.0 加法；开了审阅门槛时才有） */
+  pending?: number
 }
 
 /** 格子计数读口的响应体。 */
@@ -828,6 +885,8 @@ export interface EvidenceSettings {
   'cache.countsDays': number
   'onsite.label': string
   'onsite.license': string
+  /** 0.4.0：审阅门槛——`reviewed_only` 时只有接入方标了审阅时间的站内文章才进标签与研究图谱 */
+  'onsite.reviewGate': 'off' | 'reviewed_only'
   'graph.minSupport': number
   'graph.maxNodes': number
   'http.cacheMaxAge': number
@@ -932,6 +991,7 @@ export const EVIDENCE_INTAKE_ISSUES = [
   'ci_incomplete', 'ci_inverted', 'ci_excludes_estimate',     // 只清空置信区间
   'ci_without_estimate',                                      // 只清空置信区间（0.3.0 加法：没有点估计的区间核不了）
   'unknown_rob_tool', 'rob_judgement_invalid', 'rob_source_missing', // 偏倚风险整个清空（0.3.0 加法）
+  'awaiting_review',                                          // 只做标记：接入方开了审阅门槛、这篇还没审阅——照常发表，暂不计入标签与研究图谱（0.4.0 加法）
   'n_invalid', 'p_invalid',
   'direction_conflicts_effect',                               // 方向改为 unclear、orientation 清空
   'claim_conflicts_ci', 'p_conflicts_ci',                     // 只做标记

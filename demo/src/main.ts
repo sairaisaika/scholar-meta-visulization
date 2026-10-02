@@ -12,6 +12,7 @@ import { SCENARIOS, type Scenario, type ScenarioId } from './fixtures'
 import { TEXT, type Locale, type PresetId } from './i18n'
 import { ROB_GLYPH, albatrossChart, estimatesChart, forestChart, gapChart, harvestChart, recordsTable, type ChartCtx } from './charts'
 import { formatter, h } from './dom'
+import { createExplorer } from './explore'
 
 type Gate = 'unset' | 'pass' | 'fail'
 interface MenuState {
@@ -45,6 +46,8 @@ const state = {
 }
 
 const app = document.getElementById('app')!
+// 下钻区块的数据是异步取的（引擎的服务层）：取到之后整页重画一次
+const explorer = createExplorer(state.locale, () => render())
 /** 图按实际显示宽度排版：先按上一次量到的宽度画，量出来不一样就再画一遍（第二遍必然一致） */
 let figureWidth = 640
 const measure = () => (app.querySelector('.figure') as HTMLElement | null)?.clientWidth ?? 0
@@ -58,7 +61,7 @@ function render() {
   const m = getMessages(state.locale)
   const ctx: ChartCtx = { t, m, num: formatter(state.locale === 'zh' ? 'zh-CN' : 'en', 2), width: figureWidth }
   const scenario = SCENARIOS.find((x) => x.id === state.scenario)!
-  app.replaceChildren(header(), ladderSection(ctx, scenario), menuSection(ctx, scenario), footer(ctx))
+  app.replaceChildren(header(), ladderSection(ctx, scenario), explorer.section(t), menuSection(ctx, scenario), footer(ctx))
   const fw = measure()
   if (fw && Math.abs(fw - figureWidth) > 1) { figureWidth = fw; render(); return }
   if (focusKey) (app.querySelector(`[data-focus="${focusKey}"]`) as HTMLElement | null)?.focus()
@@ -80,7 +83,7 @@ function header() {
     ]),
     h('nav', { class: 'lang', 'aria-label': 'Language' }, langs.map(([code, label]) => {
       const b = h('button', { type: 'button', 'aria-pressed': state.locale === code ? 'true' : 'false', 'data-focus': `lang-${code}` }, [label])
-      b.addEventListener('click', () => { state.locale = code; store.set('smv-demo-locale', code); render() })
+      b.addEventListener('click', () => { state.locale = code; store.set('smv-demo-locale', code); explorer.setLocale(code); render() })
       return b
     })),
     h('p', { class: 'intro' }, [t.intro]),
@@ -263,3 +266,4 @@ const robKey = (band: EvidenceRobBand | null, label: string) =>
   h('span', { class: 'key' }, [h('i', { class: `rob-dot rob-${band ?? 'none'}`, 'aria-hidden': 'true' }, [band ? ROB_GLYPH[band] : '']), label])
 
 render()
+void explorer.load()

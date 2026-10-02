@@ -5,6 +5,8 @@ import { SCENARIOS } from '../demo/src/fixtures'
 import { pickEvidenceView, poolEvidence } from '../src/ladder'
 import { chartAvailabilityFor } from '../src/charts'
 import { intakeArticle } from '../src/onsite'
+import { OPEN_PATH, TREE, createDemoExplorer, demoArticles, demoExternal, pathTo } from '../demo/src/explore-data'
+import { presentNodeChildren, presentWorks } from '../src/present'
 
 describe('演示场景', () => {
   it.each(SCENARIOS.map((s) => [s.id, s] as const))('%s：阶梯的级别、降级原因、能否汇总都与声称的一致', (_id, s) => {
@@ -47,5 +49,47 @@ describe('演示场景', () => {
     const sens = poolEvidence(pooled.records).sensitivity
     expect(sens).toMatchObject({ excluded: 1, allowed: true, reason: 'ok', studies: 5 })
     expect(sens!.estimate).not.toBeNull()
+  })
+})
+
+describe('演示的下钻（0.4.0）', () => {
+  it('站内文章都过得了入库验形（中英两份）；审阅时间认得出', () => {
+    for (const locale of ['zh', 'en'] as const) {
+      for (const a of demoArticles(locale)) {
+        const r = intakeArticle(a)
+        expect([locale, a.id, r.issues]).toEqual([locale, a.id, []])
+        expect(!!r.record?.reviewed_at).toBe('reviewed_at' in a)
+      }
+    }
+  })
+  it('填满的那条路径一路点得进去：每一层往里都有、篇数从多到少；面包屑从大类开始', async () => {
+    const svc = createDemoExplorer('zh', () => false)
+    for (const id of OPEN_PATH.slice(0, -1)) {
+      const r = await svc.getNodeMap(TREE[id].level, id)
+      if (!r.ok) throw new Error(r.error)
+      const counts = (r.data.children ?? []).map((c) => c.works_count ?? 0)
+      expect(counts.length).toBeGreaterThan(1)
+      expect(counts).toEqual([...counts].sort((a, b) => b - a))
+      const next = OPEN_PATH[OPEN_PATH.indexOf(id) + 1]
+      expect(r.data.children?.map((c) => c.external_id)).toContain(next)
+    }
+    expect(pathTo('T9101011')).toEqual([...OPEN_PATH])
+  })
+  it('主题往里是编辑绑定的站内标签；审阅门槛一开，标签篇数变少并说出在等的篇数；外部示例的引用只连同一批里的', async () => {
+    let gate = false
+    const svc = createDemoExplorer('en', () => gate)
+    const off = await svc.getNodeMap('topic', 'T9101011')
+    gate = true
+    const on = await svc.getNodeMap('topic', 'T9101011')
+    if (!off.ok || !on.ok) throw new Error('unavailable')
+    const kids = (m: typeof off.data) => presentNodeChildren(m, { locale: 'en' })!.rows.map((r) => [r.label, r.count])
+    expect(kids(off.data)).toEqual([['insomnia', 4], ['sleep hygiene', 3], ['CBT-I', 2]])
+    expect(kids(on.data)).toEqual([['insomnia', 3], ['CBT-I', 2], ['sleep hygiene', 2]])
+    expect([off.data.onsite_pending, on.data.onsite_pending]).toEqual([undefined, 2])
+    const ids = new Set(on.data.records.map((r) => r.id))
+    expect(on.data.edges?.filter((e) => e.kind === 'cites').every((e) => ids.has(e.from) && ids.has(e.to))).toBe(true)
+    expect(presentWorks(on.data).some((w) => w.links_text !== null)).toBe(true)
+    // 大类的示例里有全部 9 篇（每篇的主主题都在树上）
+    expect((await demoExternal.sampleWorks('domain', '91', 25))?.length).toBe(9)
   })
 })

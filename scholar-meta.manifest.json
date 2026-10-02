@@ -1,8 +1,8 @@
 {
   "manifest_version": 1,
   "id": "scholar-meta",
-  "version": "0.3.0",
-  "contract_version": "0.3.0",
+  "version": "0.4.0",
+  "contract_version": "0.4.0",
   "repository": "https://github.com/sairaisaika/scholar-meta-visulization",
   "changelog": "CHANGELOG.md",
   "entries": [
@@ -26,6 +26,21 @@
     },
     {
       "id": "node_map",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "node_children",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "work_details",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "record_facets",
       "audience": "reader",
       "route": "map"
     },
@@ -83,6 +98,11 @@
       "id": "tag_graph",
       "audience": "reader",
       "route": "tag_graph"
+    },
+    {
+      "id": "review_gate",
+      "audience": "reader",
+      "route": "map"
     },
     {
       "id": "article_intake",
@@ -379,6 +399,38 @@
       "help": {
         "zh": "站内文章的许可（比如 CC BY 4.0），脚注逐条印出。",
         "en": "Licence of on-site articles (for example CC BY 4.0), printed in footnotes."
+      }
+    },
+    {
+      "key": "onsite.reviewGate",
+      "group": "onsite",
+      "type": "enum",
+      "options": [
+        "off",
+        "reviewed_only"
+      ],
+      "default": "off",
+      "unit": null,
+      "since": "0.4.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "审阅门槛",
+        "en": "Review gate"
+      },
+      "help": {
+        "zh": "打开后，只有站点标记为「已审阅」的文章（比如有资质的人评论或审核过）才进标签与研究图谱；还没审阅的照常发表，只是暂不计入，图上会写明还有几篇在等。",
+        "en": "When on, only articles your site marks as reviewed (for example, commented on or checked by a qualified person) count towards tags and the evidence map. Unreviewed articles stay published but are not counted yet, and the map says how many are waiting."
+      },
+      "option_labels": {
+        "zh": {
+          "off": "不设门槛",
+          "reviewed_only": "只计入已审阅的文章"
+        },
+        "en": {
+          "off": "No gate",
+          "reviewed_only": "Count reviewed articles only"
+        }
       }
     },
     {

@@ -31,7 +31,9 @@ import {
   createCuratedBinding, groupTags, MACHINE_CANDIDATE_LIMIT, normalizeTag, pickMachineCandidate, recordTagKeys, resolveTagBinding, splitTopicId, tagNameMatch,
 } from './tags'
 import type { MachineBindingPolicy, MachineResolution } from './tags'
-import { buildRecordEdges, buildTagGraph, countOnsiteLayer, intakeArticle, intakeArticles, ONSITE_DEFAULT_LABEL, ONSITE_DEFAULT_LICENSE } from './onsite'
+import {
+  applyReviewGate, buildRecordEdges, buildTagGraph, countOnsiteLayer, intakeArticle, intakeArticles, ONSITE_DEFAULT_LABEL, ONSITE_DEFAULT_LICENSE,
+} from './onsite'
 import type { IntakeResult, TagGraphOptions } from './onsite'
 import { wilsonInterval } from './stats'
 import { fnv1a, sampleDois } from './doi'
@@ -208,6 +210,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       onsiteMeta: { source_label: eff['onsite.label'], license: eff['onsite.license'] },
       graph: { minSupport: eff['graph.minSupport'], maxNodes: eff['graph.maxNodes'] },
       ledgerApply: eff['ledger.apply'],
+      reviewGate: eff['onsite.reviewGate'],
     }
   }
   type Cfg = ReturnType<typeof toCfg>
@@ -262,15 +265,22 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       ledger = { decisions, mode: c.ledgerApply, disputed: applied.stats.disputed_excluded > 0 }
     }
     const want = tagKeys ? new Set(tagKeys) : null
-    const records = want ? all.filter((r) => recordTagKeys(r).some((k) => want.has(k))) : all
+    const scoped = want ? all.filter((r) => recordTagKeys(r).some((k) => want.has(k))) : all
+    // 审阅门槛：没审阅的照常发表，只是不进标签与图谱；数一下有几篇在等（只数圈进来的这些）
+    const gated = c.reviewGate === 'reviewed_only' ? applyReviewGate(scoped) : null
+    const records = gated ? gated.records : scoped
+    const pending = gated ? gated.pending : undefined
     const tagCaveats: EvidenceCaveat[] = []
     if (ledger) {
       // 「有模型决定的标签」只看最终圈进来的记录（再套一遍是幂等的，只为数它）；「有争议没计入」看候选全体：争议可能正是它没被圈进来的原因
       if (applyWorkTags(records, ledger.decisions, { mode: ledger.mode }).stats.model_decided > 0) tagCaveats.push('model_decided_tags')
       if (ledger.disputed) tagCaveats.push('disputed_tags_excluded')
     }
-    return { records, references: out.references, tagCaveats }
+    return { records, references: out.references, tagCaveats, pending }
   }
+  /** 开了审阅门槛才下发「还有几篇在等」 */
+  const pendingField = <K extends string>(key: K, pending: number | undefined) =>
+    (pending === undefined ? {} : { [key]: pending }) as Partial<Record<K, number>>
 
   /** 账本的图注加到「标签」那一维的格子与共现图上 */
   const withTagCaveats = <T extends EvidenceOnsiteCounts>(data: T, extra: readonly EvidenceCaveat[]): T => extra.length === 0 ? data : {
@@ -286,20 +296,27 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       return null
     }
   }
-  async function curatedKeysForTopic(topicId: string): Promise<string[]> {
+  /** 编辑绑到这个主题的标签键。null ＝ 绑定表这次没取到（日志已记）；没配绑定表 ⇒ []。 */
+  async function curatedKeysForTopic(topicId: string): Promise<string[] | null> {
     if (!store) return []
     try {
       return (await store.listByTopic(topicId)).filter((b) => b.kind === 'curated' && b.topic_id === topicId).map((b) => b.tag_key)
     } catch (e) {
       log('[evidence.service] binding store failed', { error: e instanceof Error ? e.message : String(e) })
-      return []
+      return null
     }
   }
 
   const bundle = (c: Cfg, source: ExternalEvidenceSource, level: ExternalLevel, id: string) =>
     cached<ExternalNodeBundle>(ck('bundle', source.id, level, id), c.ttl.bundle, () => source.nodeBundle(level, id), (b) => !b.partial)
+  // 缓存键带版本：0.4.0 起示例作品带发表来源、开放获取地址、自己挂的主题与同一批里的引用，旧键下存的没有这些
   const sample = (c: Cfg, source: ExternalEvidenceSource, level: ExternalLevel, id: string) =>
-    cached<EvidenceRecord[]>(ck('sample', source.id, level, id, c.sampleSize), c.ttl.sample, () => source.sampleWorks(level, id, c.sampleSize))
+    cached<EvidenceRecord[]>(ck('sample2', source.id, level, id, c.sampleSize), c.ttl.sample, () => source.sampleWorks(level, id, c.sampleSize))
+  /** 往里一层（外部树）：分类树很少变，与缩放包同样缓存；没取全的不进长缓存 */
+  const childrenOf = (c: Cfg, source: ExternalEvidenceSource, level: ExternalLevel, id: string) =>
+    source.children
+      ? cached(ck('children', source.id, level, id), c.ttl.bundle, () => source.children!(level, id), (v) => !v.partial)
+      : Promise.resolve(undefined)
 
   async function machineResolve(c: Cfg, source: ExternalEvidenceSource, key: string, label: string): Promise<MachineResolution> {
     // 缓存键带挑法的版本：0.3.0 起从最多 10 条候选里优先挑同名的，旧键下存的是「只看第一条」的结果
@@ -345,7 +362,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       const c = await cfg()
       const key = normalizeTag(tag)
       if (!key) return fail('invalid_input')
-      const { records: onsite, references } = await onsiteRecords(c, [key])
+      const { records: onsite, references, pending } = await onsiteRecords(c, [key])
       const label = groupTags(onsite).find((g) => g.key === key)?.label ?? tag.trim()
       const curated = await safeBinding(key)
       const humanDecided = !!curated && curated.tag_key === key && (curated.kind === 'curated' || curated.kind === 'rejected')
@@ -369,7 +386,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         external_match = 'not_queried'
       }
       if (binding?.topic_id) {
-        siblings = (await curatedKeysForTopic(binding.topic_id)).filter((k) => k !== key).map((k) => tagNode(k, k, binding!.topic_id, null))
+        siblings = ((await curatedKeysForTopic(binding.topic_id)) ?? []).filter((k) => k !== key).map((k) => tagNode(k, k, binding!.topic_id, null))
       }
       const records = [...onsite, ...external]
       const certainty = await certaintyFor(opts.certainty, { level: 'tag', id: key })
@@ -387,6 +404,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         binding,
         edges: buildRecordEdges(records, references, { focusKeys: [key] }),
         ...(certainty !== undefined ? { certainty } : {}),
+        ...pendingField('onsite_pending', pending),
       })
     }),
 
@@ -395,15 +413,29 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       if (!isValidNodeId(level, externalId)) return fail('invalid_input')
       if (!ext) return fail('not_configured')
       if (opts.allowNode && !(await opts.allowNode(level, externalId))) return fail('not_found')
-      const [b, s] = await Promise.all([bundle(c, ext, level, externalId), sample(c, ext, level, externalId)])
+      const [b, s, kids] = await Promise.all([
+        bundle(c, ext, level, externalId), sample(c, ext, level, externalId), level === 'topic' ? undefined : childrenOf(c, ext, level, externalId),
+      ])
       if (!b) return fail('unavailable')
       const topicId = `${ext.id}:${externalId}`
       let onsite: EvidenceRecord[] = []
       let references: ReadonlyMap<string, readonly string[]> = new Map()
       let keys: string[] = []
+      let pending: number | undefined
+      // 往里一层：上级三级问外部树；主题往里是编辑绑到它的站内标签（篇数＝带这个标签的站内文章，与图谱同一批）
+      let children: EvidenceTopic[] | null | undefined = kids === undefined ? undefined : kids?.children ?? null
+      const childrenPartial = !!kids?.partial
       if (level === 'topic') {
-        keys = await curatedKeysForTopic(topicId)
-        if (keys.length > 0) ({ records: onsite, references } = await onsiteRecords(c, keys))
+        const bound = await curatedKeysForTopic(topicId)
+        keys = bound ?? []
+        if (keys.length > 0) ({ records: onsite, references, pending } = await onsiteRecords(c, keys))
+        else if (c.reviewGate === 'reviewed_only') pending = 0
+        if (store) {
+          const groups = new Map(groupTags(onsite).map((g) => [g.key, g]))
+          children = bound === null ? null : keys
+            .map((k) => tagNode(k, groups.get(k)?.label ?? k, topicId, groups.get(k)?.count ?? 0))
+            .sort((x, y) => (y.works_count ?? 0) - (x.works_count ?? 0) || (x.external_id < y.external_id ? -1 : x.external_id > y.external_id ? 1 : 0))
+        }
       }
       const records = [...onsite, ...(s ?? [])]
       const certainty = await certaintyFor(opts.certainty, { level, id: topicId })
@@ -421,6 +453,9 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         binding: null,
         edges: buildRecordEdges(records, references, { focusKeys: keys }),
         ...(certainty !== undefined ? { certainty } : {}),
+        ...(children !== undefined ? { children } : {}),
+        ...(childrenPartial ? { children_partial: true } : {}),
+        ...pendingField('onsite_pending', pending),
       })
     }),
 
@@ -436,15 +471,18 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       if (!counts) return fail('unavailable')
       if (level !== 'topic') return ok(counts)
       const topicId = `${ext.id}:${externalId}`
-      const keys = await curatedKeysForTopic(topicId)
+      const keys = (await curatedKeysForTopic(topicId)) ?? []
       if (keys.length === 0) return ok({ ...counts, onsite: null })
-      const { records, tagCaveats } = await onsiteRecords(c, keys)
+      const { records, tagCaveats, pending } = await onsiteRecords(c, keys)
       return ok({
         ...counts,
-        onsite: withTagCaveats(countOnsiteLayer(records, {
-          scope: { level: 'topic', id: topicId, display_name: b.node.display_name, tag_keys: keys },
-          ...c.onsiteMeta, retrieved_at: now().toISOString(), excludeKeys: [],
-        }), tagCaveats),
+        onsite: {
+          ...withTagCaveats(countOnsiteLayer(records, {
+            scope: { level: 'topic', id: topicId, display_name: b.node.display_name, tag_keys: keys },
+            ...c.onsiteMeta, retrieved_at: now().toISOString(), excludeKeys: [],
+          }), tagCaveats),
+          ...pendingField('pending', pending),
+        },
       })
     }),
 
@@ -452,12 +490,15 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       const c = await cfg()
       const key = normalizeTag(tag)
       if (!key) return fail('invalid_input')
-      const { records, tagCaveats } = await onsiteRecords(c, [key])
+      const { records, tagCaveats, pending } = await onsiteRecords(c, [key])
       const label = groupTags(records).find((g) => g.key === key)?.label ?? tag.trim()
-      return ok(withTagCaveats(countOnsiteLayer(records, {
-        scope: { level: 'tag', id: `onsite:${key}`, display_name: label, tag_keys: [key] },
-        ...c.onsiteMeta, retrieved_at: now().toISOString(),
-      }), tagCaveats))
+      return ok({
+        ...withTagCaveats(countOnsiteLayer(records, {
+          scope: { level: 'tag', id: `onsite:${key}`, display_name: label, tag_keys: [key] },
+          ...c.onsiteMeta, retrieved_at: now().toISOString(),
+        }), tagCaveats),
+        ...pendingField('pending', pending),
+      })
     }),
 
     getTagGraph: (query = {}) => guard(async () => {
@@ -467,10 +508,14 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       const graphOpts: TagGraphOptions = {
         focus, minSupport: query.minSupport ?? c.graph.minSupport, maxNodes: query.maxNodes ?? c.graph.maxNodes, ...c.onsiteMeta,
       }
-      const graph = await cached<EvidenceTagGraph>(ck('graph', focus ?? '*', graphOpts.minSupport ?? '-', graphOpts.maxNodes ?? '-'), c.ttl.onsite, async () => {
-        const { records, tagCaveats } = await onsiteRecords(c, focus ? [focus] : undefined)
+      // 键带审阅门槛：后台切换门槛后不会读到另一种口径下算的图
+      const graph = await cached<EvidenceTagGraph>(ck('graph', c.reviewGate, focus ?? '*', graphOpts.minSupport ?? '-', graphOpts.maxNodes ?? '-'), c.ttl.onsite, async () => {
+        const { records, tagCaveats, pending } = await onsiteRecords(c, focus ? [focus] : undefined)
         const built = buildTagGraph(records, { ...graphOpts, retrieved_at: now().toISOString() })
-        const g = tagCaveats.length > 0 ? { ...built, caveats: [...new Set([...built.caveats, ...tagCaveats])] } : built
+        const g = {
+          ...(tagCaveats.length > 0 ? { ...built, caveats: [...new Set([...built.caveats, ...tagCaveats])] } : built),
+          ...pendingField('pending', pending),
+        }
         if (store && g.nodes.length > 0) {
           const keys = g.nodes.map((n) => n.key)
           let found = new Map<string, EvidenceTagBinding>()
@@ -593,7 +638,10 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       return ok(out)
     }),
 
-    intake: (article) => intakeArticle(article, { ...cfgNow().onsiteMeta, retrieved_at: now().toISOString() }),
+    intake: (article) => {
+      const c = cfgNow()
+      return intakeArticle(article, { ...c.onsiteMeta, retrieved_at: now().toISOString(), requireReview: c.reviewGate === 'reviewed_only' })
+    },
 
     settings: async () => (await cfg()).settings,
   }

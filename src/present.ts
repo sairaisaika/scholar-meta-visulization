@@ -18,7 +18,9 @@ import type {
   EvidenceCountSeries, EvidenceCountsData, EvidenceDimensionId, EvidenceExternalMatch, EvidenceIntakeIssue, EvidenceMapData,
   EvidenceEffectMetric, EvidenceOnsiteCounts, EvidencePooling, EvidenceProvenance, EvidenceTagBinding, EvidenceTagGraph, EvidenceViewDecision,
   EvidenceViewKind, OnsiteDimensionId, EvidenceCertainty, EvidenceCertaintyLevel, EvidenceRecord, EvidenceRiskOfBias,
+  EvidenceScaleLevel, EvidenceVenue,
 } from './types'
+import { groupTags, normalizeTag } from './tags'
 import { robBand, summarizeRiskOfBias } from './appraisal'
 import type { EvidenceRobBand } from './appraisal'
 import { EVIDENCE_DIMENSIONS } from './dimensions'
@@ -487,6 +489,8 @@ export interface EvidenceMapView {
   risk_of_bias: RiskOfBiasSummaryView
   /** 证据确定性评级（0.3.0；没接或没有为空数组，没取到时 notices 里有一句） */
   certainty: CertaintyView[]
+  /** 往里一层（0.4.0；服务端没下发时为 null） */
+  children: NodeChildrenView | null
   caveats: CaveatView[]
   footnotes: string[]
 }
@@ -500,6 +504,7 @@ export function presentEvidenceMap(map: EvidenceMapData, opts: PresentOptions = 
   if (map.external_match && map.external_match !== 'matched') notices.push(c.m.external[map.external_match])
   if (map.onsite_only) notices.push(c.m.text.onsite_only)
   if (map.certainty === null) notices.push(c.m.text.certainty_unavailable)
+  if (map.onsite_pending) notices.push(formatMessage(c.m.text.onsite_pending, { n: c.int(map.onsite_pending) }))
   const keys: EvidenceCaveat[] = []
   if (binding?.caveat) keys.push('machine_binding')
   if (external > 0) keys.push('sample_not_population')
@@ -523,8 +528,256 @@ export function presentEvidenceMap(map: EvidenceMapData, opts: PresentOptions = 
     view: presentView(map.view, map.pooling, opts),
     risk_of_bias: presentRiskOfBiasSummary(map.records, opts),
     certainty: (map.certainty ?? []).map((x) => presentCertainty(x, opts)),
+    children: presentNodeChildren(map, opts),
     caveats: caveatViews(keys, c),
     footnotes: map.sources.map((p) => formatProvenance(p, opts)),
+  }
+}
+
+// ── 下钻（0.4.0）：往里一层、作品清单、这批作品还挂着什么 ─────────────────────────────
+
+/** 往里一层是哪一级：大类 → 领域 → 子领域 → 主题 → 站内标签 */
+const CHILD_SCALE: Record<EvidenceScaleLevel, EvidenceScaleLevel | null> = { domain: 'field', field: 'subfield', subfield: 'topic', topic: 'tag', tag: null }
+
+export interface NodeChildRowView {
+  /** 节点 id：外部树上的拿去 `getNodeMap(level, external_id)`，站内标签拿去 `getTagMap` */
+  id: string
+  external_id: string
+  level: EvidenceScaleLevel
+  label: string
+  /** 外部树：全库篇数；站内标签：带这个标签的站内文章数；不知道为 null */
+  count: number | null
+  count_text: string | null
+  /** 相对这一层最大的那个，∈ [0, 1]：只给横条长度比大小——一篇可以同时在几个子节点下，**不是**占比；没有篇数为 null */
+  size: number | null
+}
+
+export interface NodeChildrenView {
+  /** 往里一层是什么（「子领域」「标签」…） */
+  level_text: string
+  /** 「往里一层：子领域（12 个）」 */
+  title: string
+  rows: NodeChildRowView[]
+  /** 只列出了一部分 / 这次没取到 / 往里没有（各一句）；正常为 null */
+  notice: string | null
+  caveats: CaveatView[]
+}
+
+/**
+ * 往里一层 → 一行一个子节点（按篇数从多到少，与服务端同序）。服务端没下发（旧服务端、没接、标签级）⇒ null。
+ * 一篇作品可以同时挂在几个子节点下：各项相加会超过本节点的篇数，所以只给相对长度、不给占比（图注 `multi_label`）。
+ */
+export function presentNodeChildren(map: EvidenceMapData, opts: PresentOptions = {}): NodeChildrenView | null {
+  if (map.children === undefined) return null
+  const c = context(opts)
+  const childLevel = CHILD_SCALE[map.level] ?? 'tag'
+  const list = map.children ?? []
+  const max = Math.max(0, ...list.map((x) => x.works_count ?? 0))
+  const rows: NodeChildRowView[] = list.map((x) => ({
+    id: x.id,
+    external_id: x.external_id,
+    level: x.level,
+    label: x.display_name,
+    count: x.works_count,
+    count_text: x.works_count === null ? null
+      : formatMessage(x.level === 'tag' ? c.m.text.onsite_count : c.m.text.node_works, { n: c.int(x.works_count) }),
+    size: x.works_count === null ? null : max > 0 ? x.works_count / max : 0,
+  }))
+  const notice = map.children === null ? c.m.text.children_unavailable
+    : map.children_partial ? formatMessage(c.m.text.children_partial, { n: c.int(rows.length) })
+      : rows.length === 0 ? (childLevel === 'tag' ? c.m.text.children_no_tags : c.m.text.children_none)
+        : null
+  return {
+    level_text: c.m.scale[childLevel],
+    title: formatMessage(c.m.text.children_title, { level: c.m.scale[childLevel], n: c.int(rows.length) }),
+    rows,
+    notice,
+    caveats: rows.length > 1 ? caveatViews(['multi_label'], c) : [],
+  }
+}
+
+/** 焦点之外：作品清单与「还挂着什么」都不重复列焦点自己（标签级的焦点还包括它绑到的主题；主题级还包括往里一层的标签） */
+function focusOf(map: EvidenceMapData): { topics: Set<string>; tagKeys: Set<string> } {
+  const topics = new Set<string>()
+  const tagKeys = new Set<string>()
+  if (map.focus) {
+    if (map.level === 'tag') tagKeys.add(map.focus.external_id)
+    else topics.add(map.focus.id)
+  }
+  if (map.level === 'tag' && map.binding?.topic_id) topics.add(map.binding.topic_id)
+  for (const ch of map.children ?? []) if (ch.level === 'tag') tagKeys.add(ch.external_id)
+  return { topics, tagKeys }
+}
+
+function venueText(v: EvidenceVenue, c: Ctx): string {
+  const type = v.type ? c.m.venueType[v.type] ?? v.type : null
+  const name = type ? formatMessage(c.m.text.venue_with_type, { name: v.name, type }) : v.name
+  return v.is_oa ? [name, c.m.text.venue_oa].join(c.m.text.parts_sep) : name
+}
+
+export interface WorkRowView {
+  id: string
+  layer: 'onsite' | 'external'
+  title: string
+  /** 原文页：站内文章的链接、外部作品的 DOI 或落地页 */
+  url: string | null
+  year_text: string | null
+  /** 前三位作者，多了加「等」；没有为 null */
+  authors_text: string | null
+  /** 「Journal One（期刊）· 全刊开放获取」；站内文章与没有来源的为 null */
+  venue_text: string | null
+  venue_id: string | null
+  /**
+   * 能读到全文的地址：外部作品＝开放获取的最佳版本（只放 http(s)），站内文章＝它自己的链接；
+   * 外部作品没有已知的开放版本为 null——**不等于**读不到（可能在付费墙后，或有没收录的版本）。
+   */
+  read_url: string | null
+  /** true 可免费读 · false 没有已知的免费版本 · null 不清楚（站内文章为 true：就在站内） */
+  open: boolean | null
+  /** 「可免费阅读」「没有已知的免费版本」「在本站阅读」… */
+  access_text: string
+  /** 这篇还挂着的别的主题（不含焦点），id 可以直接拿去打开那个节点 */
+  other_topics: Array<{ id: string; label: string }>
+  /** 站内文章还挂着的别的标签（原文，不含焦点与往里一层的那些） */
+  other_tags: string[]
+  /** 在这批里：引用了几篇、被几篇引用（只数同一次下发里的） */
+  cites: number
+  cited_by: number
+  links_text: string | null
+  /** 外部源给的全库被引数（只做排序参考，**不是**效应） */
+  citations_text: string | null
+  risk_of_bias: RiskOfBiasView
+}
+
+/**
+ * 一个节点（或标签）里的作品清单：标题、作者、年份、发在哪、能不能免费读、还挂着哪些别的主题 / 标签、
+ * 在这批里引用了谁、被谁引用。顺序与 `map.records` 相同（站内在前，外部按被引从多到少）。
+ */
+export function presentWorks(map: EvidenceMapData, opts: PresentOptions = {}): WorkRowView[] {
+  const c = context(opts)
+  const focus = focusOf(map)
+  const out = new Map<string, number>()
+  const inn = new Map<string, number>()
+  for (const e of map.edges ?? []) {
+    if (e.kind !== 'cites') continue
+    out.set(e.from, (out.get(e.from) ?? 0) + 1)
+    inn.set(e.to, (inn.get(e.to) ?? 0) + 1)
+  }
+  return map.records.map((r) => {
+    const onsite = r.source === 'onsite'
+    const authors = r.authors.slice(0, 3).join(c.m.text.list_sep)
+    const cites = out.get(r.id) ?? 0
+    const citedBy = inn.get(r.id) ?? 0
+    const links = [
+      cites > 0 ? formatMessage(c.m.text.work_cites, { n: c.int(cites) }) : null,
+      citedBy > 0 ? formatMessage(c.m.text.work_cited_by, { n: c.int(citedBy) }) : null,
+    ].filter((x): x is string => x !== null)
+    const seenTags = new Set<string>()
+    const otherTags: string[] = []
+    for (const raw of r.tags ?? []) {
+      const k = normalizeTag(raw)
+      if (!k || focus.tagKeys.has(k) || seenTags.has(k)) continue
+      seenTags.add(k)
+      otherTags.push(raw.trim())
+    }
+    const open = onsite ? true : r.oa_url ? true : r.is_open_access
+    return {
+      id: r.id,
+      layer: onsite ? 'onsite' : 'external',
+      title: r.title,
+      url: r.url,
+      year_text: r.year === null ? null : String(r.year),
+      authors_text: r.authors.length === 0 ? null : r.authors.length > 3 ? formatMessage(c.m.text.authors_more, { list: authors }) : authors,
+      venue_text: r.venue ? venueText(r.venue, c) : null,
+      venue_id: r.venue?.id ?? null,
+      read_url: onsite ? r.url : r.oa_url ?? null,
+      open,
+      access_text: onsite ? formatMessage(c.m.text.work_read_onsite, { source: r.provenance.source_label })
+        : open === true ? c.m.text.work_free : open === false ? c.m.text.work_not_free : c.m.text.work_access_unknown,
+      other_topics: (r.topics ?? []).filter((t) => !focus.topics.has(t.id)).map((t) => ({ id: t.id, label: t.display_name })),
+      other_tags: otherTags,
+      cites,
+      cited_by: citedBy,
+      links_text: links.length > 0 ? links.join(c.m.text.parts_sep) : null,
+      citations_text: onsite || r.cited_by_count === null ? null : formatMessage(c.m.text.work_citations, { n: c.int(r.cited_by_count) }),
+      risk_of_bias: presentRiskOfBias(r.risk_of_bias, opts),
+    }
+  })
+}
+
+export interface FacetRowView {
+  id: string
+  label: string
+  count: number
+  /** 「3 / 25 篇」：在哪一批里数的见 `base_text` */
+  count_text: string
+}
+
+export interface FacetView {
+  rows: FacetRowView[]
+  /** 没列出来的还有几个 */
+  more: number
+  more_text: string | null
+  /** 在哪一批里数的（「在被引最多的 25 篇外部作品里」「在 12 篇站内文章里」）；这一批是空的为 null */
+  base_text: string | null
+}
+
+export interface RecordFacetsView {
+  /** 外部作品还挂着的别的主题（不含焦点），id 可以直接拿去打开那个节点 */
+  topics: FacetView
+  /** 站内文章还挂着的别的标签（不含焦点与往里一层的那些），id 是归一后的标签键 */
+  tags: FacetView
+  /** 外部作品发在哪些期刊 / 来源（按主要发表位置） */
+  venues: FacetView
+  caveats: CaveatView[]
+}
+
+/**
+ * 这批作品还挂着什么：别的主题、别的站内标签、发在哪些期刊。**只在这批里数**——外部的是被引最多的那几篇示例，
+ * 不代表这个节点的全体（图注 `sample_not_population`）；一篇可以挂好几个主题，各项相加会超过篇数（`multi_label`）。
+ */
+export function presentRecordFacets(map: EvidenceMapData, opts: PresentOptions & { limit?: number } = {}): RecordFacetsView {
+  const c = context(opts)
+  const limit = Math.max(1, Math.min(opts.limit ?? 10, 50))
+  const focus = focusOf(map)
+  const external = map.records.filter((r) => r.source !== 'onsite')
+  const onsite = map.records.filter((r) => r.source === 'onsite')
+  const facet = (counts: Map<string, { label: string; n: number }>, total: number, base: string | null): FacetView => {
+    const all = [...counts.entries()]
+      .map(([id, v]) => ({ id, label: v.label, count: v.n }))
+      .sort((a, b) => b.count - a.count || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0))
+    const more = Math.max(0, all.length - limit)
+    return {
+      rows: all.slice(0, limit).map((x) => ({ ...x, count_text: formatMessage(c.m.text.facet_count, { count: c.int(x.count), total: c.int(total) }) })),
+      more,
+      more_text: more > 0 ? formatMessage(c.m.text.facet_more, { n: c.int(more) }) : null,
+      base_text: total > 0 ? base : null,
+    }
+  }
+  const bump = (m: Map<string, { label: string; n: number }>, id: string, label: string) => {
+    const cur = m.get(id)
+    if (cur) cur.n++
+    else m.set(id, { label, n: 1 })
+  }
+  const topics = new Map<string, { label: string; n: number }>()
+  const venues = new Map<string, { label: string; n: number }>()
+  for (const r of external) {
+    for (const t of new Map((r.topics ?? []).map((t) => [t.id, t])).values()) if (!focus.topics.has(t.id)) bump(topics, t.id, t.display_name)
+    if (r.venue) bump(venues, r.venue.id, r.venue.name)
+  }
+  // 站内标签：按别名组数篇数，显示名取最常见的原文写法（与标签层同一个归组）
+  const tags = new Map(groupTags(onsite).filter((g) => !focus.tagKeys.has(g.key)).map((g) => [g.key, { label: g.label, n: g.count }]))
+  const sampleBase = formatMessage(c.m.text.facet_sample, { n: c.int(external.length) })
+  const onsiteBase = formatMessage(c.m.text.facet_onsite, { n: c.int(onsite.length) })
+  const keys: EvidenceCaveat[] = []
+  if (topics.size + venues.size > 0) keys.push('sample_not_population')
+  if (topics.size + tags.size > 0) keys.push('multi_label')
+  if (venues.size > 0) keys.push('primary_location_only')
+  return {
+    topics: facet(topics, external.length, sampleBase),
+    tags: facet(tags, onsite.length, onsiteBase),
+    venues: facet(venues, external.length, sampleBase),
+    caveats: caveatViews(keys, c),
   }
 }
 
@@ -553,6 +806,7 @@ export function presentTagGraph(graph: EvidenceTagGraph, opts: PresentOptions = 
   if (graph.collapsed.tags > 0 || graph.collapsed.edges > 0) {
     caption.push(formatMessage(c.m.text.graph_collapsed, { tags: c.int(graph.collapsed.tags), edges: c.int(graph.collapsed.edges) }))
   }
+  if (graph.pending) caption.push(formatMessage(c.m.text.onsite_pending, { n: c.int(graph.pending) }))
   return {
     focus: graph.focus,
     nodes: graph.nodes.map((n) => ({ ...n, size: Math.sqrt(n.count / maxCount) })),
@@ -570,6 +824,8 @@ export function presentTagGraph(graph: EvidenceTagGraph, opts: PresentOptions = 
 export interface OnsiteCountsView {
   title: string
   total_text: string
+  /** 「另有 3 篇站内文章在等审阅」：开了审阅门槛且有在等的才有，否则 null（0.4.0） */
+  pending_text: string | null
   series: SeriesView[]
   charts: Record<string, ChartMenuItem[]>
   graph: TagGraphView | null
@@ -580,6 +836,7 @@ export function presentOnsiteCounts(layer: EvidenceOnsiteCounts, opts: PresentOp
   return {
     title: layer.scope.display_name,
     total_text: formatMessage(c.m.text.onsite_count, { n: c.int(layer.total) }),
+    pending_text: layer.pending ? formatMessage(c.m.text.onsite_pending, { n: c.int(layer.pending) }) : null,
     series: layer.series.map((s) => presentSeries(s, { ...opts, layer: 'onsite' })),
     // 只给下发了格子的维度出菜单（站内层可以只要部分维度；availability 本身覆盖全部维度）
     charts: Object.fromEntries(Object.entries(layer.availability)

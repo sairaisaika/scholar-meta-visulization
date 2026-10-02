@@ -34,6 +34,7 @@
 | `direction` | 效应方向 | favours / against / unclear / not_applicable；与点估计矛盾会被改为 unclear |
 | `effect` | 效应量：`metric` `value` `ci_low` `ci_high` `n` `p_value` `higher_is_better` | 见 `EVIDENCE_INTAKE_ISSUES`：区间要含点估计、比值 > 0、p 在 (0, 1] …；`value` 可以不填——只有精确 p 与样本量（加上 `direction`）也收，能到信天翁图那一级 |
 | `references` | 参考文献 DOI 列表 | 用来按引用给标签推荐主题 |
+| `reviewed_at` | 审阅时间（ISO 串或 Date；0.4.0） | 认不出的不带；只有开了审阅门槛才看它，见本节最后 |
 | `is_public` · `is_retracted` | | `false` / `true` 的整篇不收 |
 
 作者保存文章时，可以顺手把问题清单回给他（引擎不改宿主的数据，只告诉作者哪里不对）：
@@ -43,6 +44,20 @@ import { presentIntakeIssues } from 'scholar-meta'
 const { issues } = evidence.intake(articleRow)
 return presentIntakeIssues(issues, { locale })   // [{ code, field, action, text }]
 ```
+
+### 只让审阅过的文章进标签系统（审阅门槛，0.4.0）
+
+有的站点要求文章先经过有资质的人审阅（比如至少有一条认证专家的评论），才进标签与研究图谱。引擎给的是通用的门槛，
+**谁算专家、什么算审阅由接入方定**，引擎只看一个时间：
+
+1. 接入方给每篇文章算一个 `reviewed_at`：认定「审阅过」的那一刻（比如第一条合格评论的时间）。合格的评论被删、评论人失去资格时重新算（可能变回空），并让相关缓存失效。
+2. 后台把设置 `onsite.reviewGate` 设成 `reviewed_only`（缺省 `off`）。之后服务层的每个读口——标签图谱、主题图谱（含往里一层的站内标签）、站内层、共现图、
+   编辑待办与绑定候选——都只算审阅过的站内文章；外部文献不受影响。只出现在没审阅文章上的标签也不会去问外部源（防滥用闸看的是计入的文章）。
+3. 没审阅的文章照常发表，只是暂不计入：`EvidenceMapData.onsite_pending`、站内层与共现图的 `pending` 说还有几篇在等，
+   视图模型里有现成的一句（`presentEvidenceMap(...).notices`、`presentOnsiteCounts(...).pending_text`、`presentTagGraph(...).caption`）。
+4. 作者保存文章时，门槛开着、文章还没审阅，`evidence.intake(row)` 多一条 `awaiting_review`（只做标记），可以原样回给作者。
+
+不用服务门面的接入方：要么在自己的查询里只取审阅过的文章，要么把 `reviewed_at` 映射到记录上、用 `applyReviewGate(records)` 过一遍（回 `{ records, pending }`）。
 
 ## 2. 三个端口
 
@@ -206,6 +221,28 @@ export function TagGraph({ tag, locale }: { tag: string; locale: string }) {
 }
 ```
 
+### 下钻：从大类一路点到文章（0.4.0）
+
+`getNodeMap(level, id)` 带上往里一层（`children`）：大类 → 领域 → 子领域 → 主题，主题再往里是编辑绑到它的站内标签。读者一路点进去，到最里一层看文章：
+
+```ts
+import { presentNodeChildren, presentWorks, presentRecordFacets } from 'scholar-meta'
+
+const r = await evidence.getNodeMap('subfield', '2738')        // 浏览器里：client.getNodeMap('subfield', '2738')
+if (r.ok) {
+  const children = presentNodeChildren(r.data, { locale })      // 往里一层：每行 id · label · count_text · size（相对长度，不是占比）
+  const works = presentWorks(r.data, { locale })                // 作品：期刊、能不能免费读（read_url）、别的主题、在这批里引用了谁
+  const facets = presentRecordFacets(r.data, { locale })        // 这批作品还挂着哪些主题、站内标签、发在哪些期刊（只在这批里数）
+}
+```
+
+- 点子节点：外部树上的行用 `getNodeMap(row.level, row.external_id)`，站内标签的行用 `getTagMap(row.external_id)`；作品的 `other_topics[i].id`（`openalex:T…`）同样能点进去。
+- `children: null` ＝ 这次没取到（`notice` 有一句）；`[]` ＝ 往里没有；`children_partial` ＝ 只列了一部分。一篇作品可以同时挂在几个子节点下，所以只给相对长度，不给占比。
+- 引用：同一批里谁引用了谁（`map.edges` 里 `kind: 'cites'`），站内文章申报的参考文献与外部作品自带的引用都算；只连同一批里的，不把整串参考文献带给浏览器。
+- 免费读：`read_url` 是开放获取的最佳版本（外部源给的），为空**不等于**读不到；`venue_text` 里的「全刊开放获取」说的是整本期刊。
+- 成本：往里一层上级三级各 1 credit（同父超过 200 个时每多一页再 1），缓存同缩放包；主题往里的站内标签不出网。示例作品多取了几列，仍是 1 credit。
+- 「这个节点的论文都发在哪些期刊」的全量分布暂不提供：外部源的分组只回前 200 个来源，按引擎的分母规则会算错；`presentRecordFacets` 的期刊一栏只在示例里数，并如实写明。
+
 视图模型里已经算好了：百分比（只用声明的分母）、Wilson 区间、`reliability`（分母 < 30 时 `share` 为 null，只画计数）、
 `sum_exceeds_denominator`（为 true 时禁止饼图与 100% 堆叠）、`provisional`（画虚线）、图注与出处。组件只管排版。
 
@@ -311,6 +348,15 @@ export const openalex = createOpenAlexClient({ apiKey: () => process.env.OPENALE
   账本里不放邮箱、真名。这样账号注销时删掉对照表即可，审计链不用改写。
 
 ## 8. 升级
+
+### 从 0.3 到 0.4
+
+- 只有加法：往里一层（`EvidenceMapData.children` / `children_partial`）、作品细节（`EvidenceRecord.venue` / `oa_url` / `topics` / `cites`）、
+  审阅门槛（`reviewed_at`、设置 `onsite.reviewGate`、`onsite_pending` / `pending`、入库问题 `awaiting_review`）、图注 `primary_location_only`。
+- 自己实现外部源的：可以加一个可选方法 `children(level, id)`；没有它照常用，图谱只是不带往里一层。
+- 自己写词典的：多了 `venueType` 一节和一组 `text` 模板（下钻、`onsite_pending`）——类型会指出哪些没写。
+- 服务层的示例作品缓存键换了，升级后每个节点第一次请求会重新取一次示例（1 credit）。
+- 行为上：`presentEvidenceMap` 多一个 `children` 字段；几句英文计数改成「Articles: 3」的写法（不再出现「1 articles」），按字符串断言的测试跟着改。
 
 ### 从 0.2 到 0.3
 

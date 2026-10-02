@@ -44,6 +44,11 @@ export interface ExternalEvidenceSource {
   /** 标签 → 候选主题（按名字）。标签原样去问，不翻译。 */
   suggestTopics(tag: string, limit: number): Promise<ExternalTopicCandidate[] | null>
   nodeBundle(level: ExternalLevel, externalId: string): Promise<ExternalNodeBundle | null>
+  /**
+   * 往里一层（可选，0.4.0）：大类 → 领域 → 子领域 → 主题。没有这个方法 ⇒ 图谱不带 `children`。
+   * null ＝ 这次没问成；`{ children: [] }` ＝ 问到了、没有；`partial` ＝ 没取全。
+   */
+  children?(level: ExternalLevel, externalId: string): Promise<{ children: EvidenceTopic[]; partial?: boolean } | null>
   /** 下钻示例（被引最多的若干篇），不代表全体 */
   sampleWorks(level: ExternalLevel, externalId: string, limit: number): Promise<EvidenceRecord[] | null>
   /** 全量格子（可选：没有就不提供计数读口） */

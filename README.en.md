@@ -20,9 +20,12 @@ A research-evidence visualization engine for platforms that publish academic art
 ## Live demo
 
 **[Open the demo →](https://sairaisaika.github.io/scholar-meta-visulization/)**　Nothing to install — the engine runs in your browser. Pick a set of studies to see which rung of the evidence ladder
-it reaches and why not a higher one; change the shape of the counts to see which charts can be drawn and what the others are missing. The data is fictional and the page makes no network requests.
+it reaches and why not a higher one; drill down from a domain to the articles to see what each level contains, where the articles were published, whether they are free to read and how they cite each other, and flip the "reviewed articles only" gate;
+change the shape of the counts to see which charts can be drawn and what the others are missing. The data is fictional and the page makes no network requests.
 
 [![Demo: a forest plot of six fictional trials with a risk-of-bias column, above it the pooled estimate, a sensitivity analysis without the high-risk study, and a certainty-of-evidence rating](.github/images/demo-en.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
+
+[![Demo drill-down: breadcrumbs domain › field › subfield › topic; on the left the on-site tags one level in with their counts, on the right the article list with journal, free-to-read status, other topics and tags, and citations between them; the review gate is on and says 2 articles are waiting for review](.github/images/explore-en.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
 
 ## What it does
 
@@ -71,6 +74,7 @@ Vote counting by significance is never a level; citation counts never go on an e
 | On-site and external data never share an axis | separate layers, each with its own denominator and caveats |
 | Author-declared numbers are validated first | inverted or inconsistent intervals and contradicting directions are caught and reported |
 | The engine never rates risk of bias or certainty itself | editors or external reviews pass judgements in, always saying who assessed them; each study is marked on the chart (not assessed is never treated as low risk), and pooling adds a sensitivity analysis without high-risk studies |
+| Entering the tag system can require a review | with the review gate on, only articles the site marks as reviewed (for example, commented on by a verified expert) count; the site decides who is an expert, and unreviewed articles stay published while the page says how many are waiting |
 | Who decides a tag follows rules | tagging models are pluggable and their output is validated; people outrank models; disagreement within the deciding tier is marked disputed and left out of counts; overturning a higher tier needs a change request, which takes effect once accepted |
 
 Method and references: [docs/tags.md](docs/tags.md) (Chinese).
@@ -79,7 +83,7 @@ Method and references: [docs/tags.md](docs/tags.md) (Chinese).
 
 ```bash
 # Prebuilt package attached to every GitHub release (works the same with npm and yarn)
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.3.0/scholar-meta-0.3.0.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.4.0/scholar-meta-0.4.0.tgz
 ```
 
 All versions are on [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases); changes are in the [CHANGELOG](CHANGELOG.md).
@@ -114,7 +118,7 @@ const view = map ? presentEvidenceMap(map, { locale: 'en' }) : null   // null = 
 | `scholar-meta/client` | browser · mobile | typed client for your own API |
 | `scholar-meta/service` | server | facade and ports: articles, bindings, cache, external source |
 | `scholar-meta/http` | server | `Request → Response` handler with four GET routes |
-| `scholar-meta/openalex` | server | OpenAlex adapter: candidates, four-level zoom (same-parent siblings with counts), full counts, daily budget |
+| `scholar-meta/openalex` | server | OpenAlex adapter: candidates, four-level zoom (same-parent siblings with counts), one level in, journals and free-to-read links of works, full counts, daily budget |
 
 **Conventions integrators can rely on** (any change is announced in the CHANGELOG first)
 

@@ -1,7 +1,7 @@
 /**
  * 行为回归快照：固定输入走一遍主要入口，把输出钉进快照（`test/__snapshots__/regression.test.ts.snap`）。
  * ─────────────────────────────────────────────────────────────────────────────
- * 别的测试各钉一条规则；这里钉的是「整体行为」——判据、文案、数字格式、验形、绑定、站内层、共现图、服务端到端。
+ * 别的测试各钉一条规则；这里钉的是「整体行为」——判据、文案、数字格式、验形、绑定、站内层、共现图、服务端到端、下钻。
  * 接入方升级时最怕的是「接口没变、结果悄悄变了」：这份快照一变，CI 当场红，改动的人必须
  *   ① 确认是有意的改动，`pnpm jest -u test/regression.test.ts` 更新快照并检查差异；
  *   ② 在 CHANGELOG 这一版里写明行为变了什么（CONTRIBUTING 第三节）。
@@ -13,7 +13,7 @@ import { chartAvailabilityFor, type ChartShape } from '../src/charts'
 import { intakeArticle } from '../src/onsite'
 import { buildTagGraph, countOnsiteLayer } from '../src/onsite'
 import { normalizeTag, pickMachineCandidate, resolveTagBinding } from '../src/tags'
-import { presentEvidenceMap, presentRiskOfBiasSummary, presentView } from '../src/present'
+import { presentEvidenceMap, presentNodeChildren, presentRecordFacets, presentRiskOfBiasSummary, presentView, presentWorks } from '../src/present'
 import { poolRandomEffects, wilsonInterval } from '../src/stats'
 import { createEvidenceService } from '../src/service'
 import { createMemoryBindingStore, createMemoryCertaintySource, createMemoryOnsiteSource } from '../src/ports'
@@ -173,5 +173,61 @@ describe('行为回归快照', () => {
     if (!r.ok) throw new Error(r.error)
     const view = presentEvidenceMap(r.data, { locale: 'zh' })
     expect(stable({ data: r.data, view })).toMatchSnapshot()
+  })
+
+  it('服务端到端：下钻——子领域往里一层、主题往里的站内标签、作品清单（期刊 / 免费链接 / 别的主题 / 同批引用）、还挂着什么', async () => {
+    const node = (level: EvidenceTopic['level'], id: string, name: string, n: number | null, parent: string | null = null): EvidenceTopic =>
+      ({ id: `openalex:${id}`, source: 'openalex', external_id: id, level, display_name: name, description: null, parent_id: parent, works_count: n })
+    const work = (id: string, over: Partial<EvidenceRecord>): EvidenceRecord => ({
+      id: `openalex:${id}`, source: 'openalex', external_id: id, title: `Work ${id}`, year: 2015, authors: ['A. Author', 'B. Author', 'C. Author', 'D. Author'],
+      doi: `https://doi.org/10.1000/${id.toLowerCase()}`, url: `https://doi.org/10.1000/${id.toLowerCase()}`, topic_ids: [], study_type: null, publication_type: 'article',
+      self_reported_claim: null, direction: null, effect: null, cited_by_count: 1000, is_retracted: false, is_open_access: false,
+      provenance: { source_label: 'OpenAlex', license: 'CC0 1.0', retrieved_at: AT }, ...over,
+    })
+    const journal = { id: 'openalex:S1', name: 'Journal of Sleep', type: 'journal', is_oa: false, issn_l: '0000-0000', publisher: 'Publisher' }
+    const ext: ExternalEvidenceSource = {
+      id: 'openalex',
+      async suggestTopics() { return [] },
+      async nodeBundle(level, id) {
+        return level === 'subfield'
+          ? { node: node('subfield', id, 'Neurology', 5000, 'openalex:27'), ancestors: [node('field', '27', 'Medicine', 90000)], siblings: [] }
+          : { node: node('topic', id, 'Sleep', 900, 'openalex:2802'), ancestors: [node('subfield', '2802', 'Neurology', 5000)], siblings: [] }
+      },
+      async children(_level, id) {
+        return { children: [node('topic', 'T8', 'Sleep', 900, `openalex:${id}`), node('topic', 'T9', 'Insomnia', 300, `openalex:${id}`), node('topic', 'T10', 'Narcolepsy', null, `openalex:${id}`)] }
+      },
+      async sampleWorks() {
+        return [
+          work('W1', { venue: journal, oa_url: 'https://repo.example/w1.pdf', is_open_access: true, cited_by_count: 5000,
+            topics: [{ id: 'openalex:T8', display_name: 'Sleep' }, { id: 'openalex:T9', display_name: 'Insomnia' }], cites: ['openalex:W2'] }),
+          work('W2', { venue: { ...journal, id: 'openalex:S2', name: 'Open Sleep', is_oa: true }, oa_url: 'https://open.example/w2', is_open_access: true, cited_by_count: 3000,
+            topics: [{ id: 'openalex:T8', display_name: 'Sleep' }, { id: 'openalex:T11', display_name: 'Circadian rhythms' }] }),
+          work('W3', { venue: null, oa_url: null, topics: [{ id: 'openalex:T9', display_name: 'Insomnia' }], cites: ['openalex:W1', 'openalex:W2'] }),
+        ]
+      },
+    }
+    const articles = [
+      { id: 1, title: 'A', tags: ['Sleep', 'Stress'], year: 2024, url: 'https://site.example/a', references: ['10.1000/w1'] },
+      { id: 2, title: 'B', tags: ['sleep', 'Diet'], year: 2023, url: 'https://site.example/b' },
+      { id: 3, title: 'C', tags: ['insomnia'], year: 2022, url: 'https://site.example/c' },
+    ]
+    const bindings = createMemoryBindingStore()
+    const service = createEvidenceService({
+      onsite: createMemoryOnsiteSource(articles), external: ext, bindings, now: () => new Date(AT), log: () => {}, onsiteLabel: 'Site', onsiteLicense: 'CC BY 4.0',
+    })
+    for (const tag of ['sleep', 'insomnia', 'melatonin']) {
+      await service.curate({ tag, topic_id: 'openalex:T8', by: 'editor' })
+    }
+    const sub = await service.getNodeMap('subfield', '2802')
+    const topic = await service.getNodeMap('topic', 'T8')
+    if (!sub.ok || !topic.ok) throw new Error('unavailable')
+    const views = (locale: string) => ({
+      children: presentNodeChildren(sub.data, { locale }),
+      tags: presentNodeChildren(topic.data, { locale }),
+      works: presentWorks(topic.data, { locale }),
+      facets: presentRecordFacets(topic.data, { locale }),
+    })
+    expect(stable({ subfield: { children: sub.data.children, partial: sub.data.children_partial ?? null }, topic: { children: topic.data.children, edges: topic.data.edges }, zh: views('zh'), en: views('en') }))
+      .toMatchSnapshot()
   })
 })

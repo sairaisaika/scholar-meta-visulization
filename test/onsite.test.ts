@@ -4,9 +4,13 @@
  *   ② 方向与点估计矛盾 ⇒ 方向 unclear、orientation 清空；没申报方向时从点估计推；
  *   ③ 链接只收 http(s)（`javascript:` 不许变成可点的链接）；DOI 各种写法归一；
  *   ④ 站内格子：互斥维分母＝有值的记录、多标签维分母＝全部记录；焦点标签不进自己的分布；
- *   ⑤ 共现图：支持度 / Jaccard / lift 按定义算；门槛压掉多少如实回报；少于 30 条印 small_corpus。
+ *   ⑤ 共现图：支持度 / Jaccard / lift 按定义算；门槛压掉多少如实回报；少于 30 条印 small_corpus；
+ *   ⑥ 审阅门槛（0.4.0）：审阅时间归一、没审阅的只标记不丢；门槛只拦站内记录、数出在等的。
  */
-import { intakeArticle, intakeArticles, countOnsite, crossOnsite, buildTagGraph, buildRecordEdges, countOnsiteLayer, normalizeDoi, safeHttpUrl, onsiteDimensionsMatchContract, onsiteValueCount } from '../src/onsite'
+import {
+  intakeArticle, intakeArticles, countOnsite, crossOnsite, buildTagGraph, buildRecordEdges, countOnsiteLayer, normalizeDoi, safeHttpUrl, onsiteDimensionsMatchContract, onsiteValueCount,
+  applyReviewGate, isReviewed,
+} from '../src/onsite'
 import type { EvidenceIntakeIssue, EvidenceRecord } from '../src/types'
 import { ONSITE_DIMENSION_IDS } from '../src/types'
 import { presentOnsiteCounts } from '../src/present'
@@ -332,5 +336,36 @@ describe('记录之间的边', () => {
     expect(buildRecordEdges(r, new Map(), { focusKeys: ['x'], minSharedTags: 2 })).toHaveLength(1)
     expect(buildRecordEdges(r, new Map(), { focusKeys: ['x'], maxSharedTagEdges: 1 })).toEqual([{ from: 'onsite:a', to: 'onsite:b', kind: 'shares_tag' }])
     expect(buildRecordEdges(r, new Map(), { focusKeys: ['x', 'p', 'q'] })).toEqual([])
+  })
+})
+
+describe('审阅门槛（0.4.0）', () => {
+  const meta = { retrieved_at: '2026-10-02T00:00:00.000Z', source_label: 'Site', license: 'CC BY 4.0' }
+  it('审阅时间：ISO 串或 Date 归一成 ISO；认不出的不带；没有就不带这个字段（旧记录形状不变）', () => {
+    expect(intakeArticle({ id: 1, title: 'A', reviewed_at: '2026-09-30T08:00:00+08:00' }, meta).record?.reviewed_at).toBe('2026-09-30T00:00:00.000Z')
+    expect(intakeArticle({ id: 1, title: 'A', reviewed_at: new Date('2026-09-30T00:00:00Z') }, meta).record?.reviewed_at).toBe('2026-09-30T00:00:00.000Z')
+    const bad = intakeArticle({ id: 1, title: 'A', reviewed_at: 'yesterday-ish' }, meta)
+    expect(bad.record && 'reviewed_at' in bad.record).toBe(false)
+    expect(bad.issues).toEqual([]) // 门槛没开：审阅时间不影响入库
+    expect('reviewed_at' in intakeArticle({ id: 1, title: 'A' }, meta).record!).toBe(false)
+  })
+  it('开了门槛：没审阅的照出记录，只加一条 awaiting_review（只做标记）；审阅过的没有这条', () => {
+    const r = intakeArticle({ id: 1, title: 'A', tags: ['x'] }, { ...meta, requireReview: true })
+    expect(r.record?.id).toBe('onsite:1')
+    expect(r.issues).toEqual([{ code: 'awaiting_review', field: 'reviewed_at', action: 'flagged' }])
+    expect(intakeArticle({ id: 1, title: 'A', reviewed_at: 'not a time' }, { ...meta, requireReview: true }).issues.map((i) => i.code)).toEqual(['awaiting_review'])
+    expect(intakeArticle({ id: 1, title: 'A', reviewed_at: '2026-09-30' }, { ...meta, requireReview: true }).issues).toEqual([])
+  })
+  it('applyReviewGate：站内只留审阅过的、数出在等的；外部记录不受影响；接入方自己映射的记录也认', () => {
+    const { records } = intakeArticles([
+      { id: 1, title: 'A', reviewed_at: '2026-09-30' }, { id: 2, title: 'B' }, { id: 3, title: 'C' },
+    ], meta)
+    const ext = { ...records[0], id: 'openalex:W1', source: 'openalex' as const, reviewed_at: undefined }
+    const hostMapped = { ...records[1], id: 'onsite:9', reviewed_at: '2026-10-01T00:00:00Z' }
+    const garbage = { ...records[2], id: 'onsite:10', reviewed_at: 'n/a' }
+    const g = applyReviewGate([...records, ext, hostMapped, garbage])
+    expect(g.records.map((r) => r.id)).toEqual(['onsite:1', 'openalex:W1', 'onsite:9'])
+    expect(g.pending).toBe(3)
+    expect(isReviewed({ reviewed_at: null })).toBe(false)
   })
 })

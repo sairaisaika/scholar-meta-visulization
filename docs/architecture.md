@@ -36,17 +36,21 @@
 |---|---|---|---|---|---|
 | `evidence_map` | 读者 | `EvidenceMapData` | `service.getTagMap` | `presentEvidenceMap` | `GET /map?tag=` |
 | `node_map` | 读者 | `EvidenceMapData` | `service.getNodeMap` | `presentEvidenceMap` | `GET /map?level=&id=` |
+| `node_children` | 读者 | `EvidenceTopic` | `service.getNodeMap`（外部树经 `ExternalEvidenceSource.children`；主题往里是编辑绑到它的站内标签） | `presentNodeChildren` | 随 `/map?level=&id=` |
+| `work_details` | 读者 | `EvidenceRecord` | `createOpenAlexSource`（示例作品带 `venue`、`oa_url`、`topics`、`cites`） | `presentWorks` | 随 `/map` |
+| `record_facets` | 读者 | `EvidenceTopicRef` | `service.getNodeMap` / `getTagMap`（记录上的主题、标签、来源） | `presentRecordFacets` | 随 `/map` |
 | `evidence_view` | 读者 | `EvidenceViewDecision` | `pickEvidenceView` | `presentView` | 随 `/map` |
 | `pooling` | 读者 | `EvidencePooling` | `poolEvidence` | `presentView` | 随 `/map` |
 | `pooling_sensitivity` | 读者 | `EvidencePoolingSensitivity` | `poolEvidence` | `presentView` | 随 `/map` |
 | `risk_of_bias` | 读者 | `EvidenceRiskOfBias` | `checkRiskOfBias`（入库时由 `intakeArticle` 调） | `presentRiskOfBias` | 随 `/map`（在记录上） |
 | `certainty` | 读者 | `EvidenceCertainty` | `checkCertainty`（服务层经 `CertaintySource` 取来后调） | `presentCertainty` | 随 `/map` |
 | `tag_binding` | 读者 | `EvidenceTagBinding` | `resolveTagBinding` | `presentBinding` | 随 `/map` |
-| `record_edges` | 读者 | `EvidenceEdge` | `buildRecordEdges` | `presentEvidenceMap` | 随 `/map` |
+| `record_edges` | 读者 | `EvidenceEdge` | `buildRecordEdges`（站内申报的参考文献 + 外部作品的 `cites`） | `presentEvidenceMap`、`presentWorks` | 随 `/map` |
 | `external_counts` | 读者 | `EvidenceCountsData` | `fetchEvidenceCounts` | `presentCounts` | `GET /counts` |
 | `chart_availability` | 读者 | `EvidenceChartAvailability` | `chartAvailability` | `presentChartMenu` | 随 `/counts`、`/tags/counts` |
 | `onsite_counts` | 读者 | `EvidenceOnsiteCounts` | `countOnsiteLayer` | `presentOnsiteCounts` | `GET /tags/counts` |
 | `tag_graph` | 读者 | `EvidenceTagGraph` | `buildTagGraph` | `presentTagGraph` | `GET /tags/graph` |
+| `review_gate` | 读者 | `EvidenceMapData`（`onsite_pending`；站内层与共现图的 `pending`） | `applyReviewGate`（服务层按设置 `onsite.reviewGate` 调） | `presentEvidenceMap`、`presentOnsiteCounts`、`presentTagGraph` | 随 `/map`、`/tags/counts`、`/tags/graph` |
 | `article_intake` | 作者 | `EvidenceIntakeIssue` | `intakeArticle` | `presentIntakeIssues` | —（宿主的文章编辑器里调） |
 | `binding_suggestions` | 编辑 | `EvidenceBindingSuggestion` | `service.suggestBindings` | `presentBindingSuggestions` | —（宿主的后台路由，要鉴权） |
 | `binding_queue` | 编辑 | `EvidenceBindingQueueItem` | `service.bindingQueue` | `presentBindingQueue` | —（同上） |

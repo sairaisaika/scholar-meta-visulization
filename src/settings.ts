@@ -27,6 +27,7 @@ const DEFS: Record<EvidenceSettingKey, Omit<EvidenceSettingDef, 'key'>> = {
   'cache.countsDays': { group: 'cache', type: 'integer', min: 0, max: 365, default: 7, unit: 'days', since: V, apply: 'live', scope: 'server' },
   'onsite.label': { group: 'onsite', type: 'string', maxLength: 100, default: 'On-site articles', unit: null, since: V, apply: 'live', scope: 'public' },
   'onsite.license': { group: 'onsite', type: 'string', maxLength: 100, default: 'unspecified', unit: null, since: V, apply: 'live', scope: 'public' },
+  'onsite.reviewGate': { group: 'onsite', type: 'enum', options: ['off', 'reviewed_only'], default: 'off', unit: null, since: '0.4.0', apply: 'live', scope: 'server' },
   'graph.minSupport': { group: 'graph', type: 'integer', min: 1, max: 50, default: 2, unit: 'items', since: V, apply: 'live', scope: 'public' },
   'graph.maxNodes': { group: 'graph', type: 'integer', min: 1, max: 200, default: 60, unit: 'items', since: V, apply: 'live', scope: 'public' },
   'http.cacheMaxAge': { group: 'http', type: 'integer', min: 0, max: 86_400, default: 300, unit: 'seconds', since: V, apply: 'live', scope: 'server' },
