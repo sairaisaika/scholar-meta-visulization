@@ -17,6 +17,13 @@ A research-evidence visualization engine for platforms that publish academic art
 
 ---
 
+## Live demo
+
+**[Open the demo →](https://sairaisaika.github.io/scholar-meta-visulization/)**　Nothing to install — the engine runs in your browser. Pick a set of studies to see which rung of the evidence ladder
+it reaches and why not a higher one; change the shape of the counts to see which charts can be drawn and what the others are missing. The data is fictional and the page makes no network requests.
+
+[![Demo: a forest plot of six fictional trials with a risk-of-bias column, above it the pooled estimate, a sensitivity analysis without the high-risk study, and a certainty-of-evidence rating](.github/images/demo-en.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
+
 ## What it does
 
 A reader opens a tag and sees related research from your own articles and from an external index (OpenAlex). **The data decides which chart is honest**; charts that cannot be drawn say what is missing, and every number carries its denominator, interval and source.
