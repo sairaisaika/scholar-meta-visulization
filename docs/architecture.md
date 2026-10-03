@@ -46,6 +46,8 @@
 | `certainty` | 读者 | `EvidenceCertainty` | `checkCertainty`（服务层经 `CertaintySource` 取来后调） | `presentCertainty` | 随 `/map` |
 | `tag_binding` | 读者 | `EvidenceTagBinding` | `resolveTagBinding` | `presentBinding` | 随 `/map` |
 | `record_edges` | 读者 | `EvidenceEdge` | `buildRecordEdges`（站内申报的参考文献 + 外部作品的 `cites`） | `presentEvidenceMap`、`presentWorks` | 随 `/map` |
+| `citation_purpose` | 读者 | `EvidenceCitationPurpose` | `intakeArticle` 验形（参考文献申报的用途，认 CiTO 名称）→ `buildRecordEdges` 带到引用边上 | `presentCitations`、`presentArticleContext` | 随 `/map`（在引用边上） |
+| `article_context` | 读者 | `EvidenceMapData` | `service.getTagMap` / `getNodeMap`（记录 + 引用边） | `presentArticleContext` | 随 `/map` |
 | `external_counts` | 读者 | `EvidenceCountsData` | `fetchEvidenceCounts` | `presentCounts` | `GET /counts` |
 | `chart_availability` | 读者 | `EvidenceChartAvailability` | `chartAvailability` | `presentChartMenu` | 随 `/counts`、`/tags/counts` |
 | `onsite_counts` | 读者 | `EvidenceOnsiteCounts` | `countOnsiteLayer` | `presentOnsiteCounts` | `GET /tags/counts` |

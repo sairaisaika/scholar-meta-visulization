@@ -166,6 +166,35 @@ describe('入库验形', () => {
     const r = ok({ references: ['10.1000/AB', { doi: 'https://doi.org/10.1000/ab' }, { doi: null }, 'junk', '10.1/too-short-prefix', 'doi:10.1234/c'] })
     expect(r.references).toEqual(['10.1000/ab', '10.1234/c'])
   })
+  it('参考文献的引用用途（0.5.0）：我们的名字与 CiTO 名称都认、按词表顺序去重；认不出的只清掉那几个；标注人认不出整条不转述', () => {
+    const r = ok({ references: [
+      { doi: '10.1000/a', functions: ['cito:usesMethodIn', 'Confirms', 'uses-method', 'guesswork'] },
+      { doi: '10.1000/b', functions: 'http://purl.org/spar/cito/disputes', declared_by: 'editor' },
+      { doi: '10.1000/c', functions: ['extends'], declared_by: 'robot' },
+      { doi: '10.1000/d', functions: [] },
+      { doi: '10.1000/A', functions: ['replicates', ' '] }, // 同一条写了两次、同一个人标的：合起来
+      { doi: '10.1000/b', functions: ['confirms'], declared_by: 'author' }, // 不同的人标的：留先写的那份
+      '10.1000/e',
+    ] })
+    expect(r.references).toEqual(['10.1000/a', '10.1000/b', '10.1000/c', '10.1000/d', '10.1000/e'])
+    expect([...r.purposes!.entries()]).toEqual([
+      ['10.1000/a', { functions: ['uses_method', 'replicates', 'confirms'], declared_by: 'author' }],
+      ['10.1000/b', { functions: ['disputes'], declared_by: 'editor' }],
+    ])
+    expect(r.issues).toEqual([{ code: 'unknown_citation_function', field: 'references', action: 'field_cleared' }])
+    expect(r.record).not.toBeNull()
+    // CiTO 里意思落在同一档的名字（supports ≈ confirms，citesAsDataSource ≈ uses_data）；原型链上的名字不认
+    expect([...ok({ references: [{ doi: '10.1000/a', functions: ['cito:supports', 'citesAsDataSource', 'obtains background from'] }] }).purposes!.values()])
+      .toEqual([{ functions: ['background', 'uses_data', 'confirms'], declared_by: 'author' }])
+    expect(ok({ references: [{ doi: '10.1000/a', functions: ['constructor', '__proto__'] }] }).purposes!.size).toBe(0)
+    expect(ok({ references: [{ doi: '10.1000/a', functions: 42 }] }).issues.map((i) => i.code)).toEqual(['unknown_citation_function'])
+    expect(ok({ references: [{ doi: '10.1000/a', functions: ['background'], declared_by: 'machine' }] }).issues).toEqual([])
+    // 批量：用途按记录 id 归好，只放申报过的
+    const batch = intakeArticles([
+      { id: 1, title: 'A', references: [{ doi: '10.1000/x', functions: ['extends'] }] }, { id: 2, title: 'B', references: ['10.1000/x'] },
+    ], { retrieved_at: at })
+    expect([...batch.purposes.entries()].map(([id, m]) => [id, [...m.keys()]])).toEqual([['onsite:1', ['10.1000/x']]])
+  })
   it('批量：只列有问题的文章', () => {
     const out = intakeArticles([{ id: 1, title: 'A' }, { id: 2, title: 'B', year: 'x' }, { title: 'no id' }], { retrieved_at: at })
     expect(out.records.map((r) => r.id)).toEqual(['onsite:1', 'onsite:2'])
@@ -327,6 +356,22 @@ describe('记录之间的边', () => {
       { from: 'onsite:a', to: 'openalex:W1', kind: 'cites' },
       { from: 'onsite:a', to: 'onsite:b', kind: 'shares_tag' },
     ])
+  })
+  it('引用边带上申报的用途（0.5.0）：只给申报过的那几条；外部作品自带的引用不带用途（外部源不给，引擎也不猜）', () => {
+    const a = rec2('a', {})
+    const b = rec2('b', { doi: 'https://doi.org/10.1000/b' })
+    const w: EvidenceRecord = { ...rec2('w', {}), id: 'openalex:W1', source: 'openalex', doi: 'https://doi.org/10.1000/w1', cites: ['onsite:b'] }
+    const refs = new Map([['onsite:a', ['10.1000/b', '10.1000/w1']]])
+    const purposes = new Map([['onsite:a', new Map([['10.1000/w1', { functions: ['uses_method' as const], declared_by: 'author' as const }]])]])
+    const edges = buildRecordEdges([a, b, w], refs, { purposes })
+    expect(edges).toEqual([
+      { from: 'onsite:a', to: 'onsite:b', kind: 'cites' },
+      { from: 'onsite:a', to: 'openalex:W1', kind: 'cites', purpose: { functions: ['uses_method'], declared_by: 'author' } },
+      { from: 'openalex:W1', to: 'onsite:b', kind: 'cites' },
+    ])
+    // 边上的用途是拷贝：改了不影响入库结果
+    edges[1].purpose!.functions.push('disputes')
+    expect(purposes.get('onsite:a')!.get('10.1000/w1')!.functions).toEqual(['uses_method'])
   })
   it('同标签边：焦点标签不算；门槛与上限；按共有标签数从多到少', () => {
     const r = [

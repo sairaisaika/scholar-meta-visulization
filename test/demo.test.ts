@@ -6,7 +6,7 @@ import { pickEvidenceView, poolEvidence } from '../src/ladder'
 import { chartAvailabilityFor } from '../src/charts'
 import { intakeArticle } from '../src/onsite'
 import { OPEN_PATH, TREE, createDemoExplorer, demoArticles, demoExternal, pathTo } from '../demo/src/explore-data'
-import { presentNodeChildren, presentWorks } from '../src/present'
+import { presentArticleContext, presentCitations, presentNodeChildren, presentWorks } from '../src/present'
 
 describe('演示场景', () => {
   it.each(SCENARIOS.map((s) => [s.id, s] as const))('%s：阶梯的级别、降级原因、能否汇总都与声称的一致', (_id, s) => {
@@ -89,7 +89,20 @@ describe('演示的下钻（0.4.0）', () => {
     const ids = new Set(on.data.records.map((r) => r.id))
     expect(on.data.edges?.filter((e) => e.kind === 'cites').every((e) => ids.has(e.from) && ids.has(e.to))).toBe(true)
     expect(presentWorks(on.data).some((w) => w.links_text !== null)).toBe(true)
-    // 大类的示例里有全部 9 篇（每篇的主主题都在树上）
-    expect((await demoExternal.sampleWorks('domain', '91', 25))?.length).toBe(9)
+    // 大类的示例里有全部 10 篇（每篇的主主题都在树上）
+    expect((await demoExternal.sampleWorks('domain', '91', 25))?.length).toBe(10)
+  })
+  it('引用为什么引（0.5.0）：站内文章写明的用途随边下发（作者、编辑、机器三种都有）；外部示例之间的引用没有用途；每篇都说得出它是什么研究', async () => {
+    const svc = createDemoExplorer('zh', () => false)
+    const r = await svc.getNodeMap('topic', 'T9101011')
+    if (!r.ok) throw new Error('unavailable')
+    const cit = presentCitations(r.data, { locale: 'zh' })
+    expect(cit.legend.map((x) => x.function)).toEqual(['background', 'uses_method', 'extends', 'confirms'])
+    expect(['author', 'editor', 'machine'].every((by) => cit.links.some((l) => l.declared_by === by))).toBe(true)
+    expect(cit.undeclared).toBeGreaterThan(0)
+    expect(cit.links.filter((l) => l.from.startsWith('openalex:')).every((l) => l.declared_by === null)).toBe(true)
+    // 被站内文章拿去往前推、结果一致的那篇：一句话说得出推进了什么
+    expect(presentArticleContext(r.data, 'openalex:W9001', { locale: 'zh' })?.advances_text).toContain('在它的基础上往前推进')
+    expect(presentWorks(r.data, { locale: 'zh' }).every((w) => w.kind_text !== null && w.kind_hint !== null)).toBe(true)
   })
 })

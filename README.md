@@ -20,12 +20,12 @@
 ## 在线演示
 
 **[打开演示页 →](https://sairaisaika.github.io/scholar-meta-visulization/)**　不用装任何东西，引擎直接在浏览器里跑：换一组研究，看它能画到证据阶梯的哪一级、为什么不是更高一级；
-从大类一路点到文章，看每一层往里有什么、文章发在哪本期刊、能不能免费读、互相怎么引用，再拨一下「只计入审阅过的文章」；
+从大类一路点到文章，看每一层往里有什么、文章发在哪本期刊、能不能免费读、是什么样的研究、互相怎么引用、**为什么引**（拿去用了方法、往前推进，还是结果一致或不一致），再拨一下「只计入审阅过的文章」；
 拨一拨格子的形状，看哪些图能画、画不了的差什么。数据是虚构的，页面不连网。
 
 [![演示页：六项虚构试验的森林图，右侧一栏是偏倚风险；上方是汇总估计、去掉高风险研究后的敏感性分析与证据确定性评级](.github/images/demo-zh.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
 
-[![演示页的下钻：大类 › 领域 › 子领域 › 主题的面包屑，左边是往里一层的站内标签与篇数，右边是文章清单——期刊、能不能免费读、还挂着的主题与标签、互相引用；审阅门槛开着，提示还有 2 篇在等审阅](.github/images/explore-zh.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
+[![演示页的下钻：大类 › 领域 › 子领域 › 主题的面包屑，左边是往里一层的站内标签与篇数，右边是文章清单——是什么研究、期刊、能不能免费读、还挂着的主题与标签；展开的一篇写着它是什么研究、能回答什么，这里谁引用了它、为什么引、推进了什么](.github/images/explore-zh.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
 
 ## 它做什么
 
@@ -83,7 +83,7 @@ flowchart LR
 
 ```bash
 # 编译好的安装包，挂在每个 GitHub release 上（npm、yarn 同样用这个链接）
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.4.0/scholar-meta-0.4.0.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.5.0/scholar-meta-0.5.0.tgz
 ```
 
 各版本见 [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases)，改动见 [CHANGELOG](CHANGELOG.md)。

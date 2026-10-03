@@ -100,6 +100,16 @@ export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
     producer: main('onsite', 'buildRecordEdges'), consumer: main('present', 'presentEvidenceMap'),
   },
   {
+    id: 'citation_purpose', audience: 'reader', route: 'map', payload: 'EvidenceCitationPurpose',
+    answers: '一条引用为什么引（用了方法、往前推进、结果一致或不一致……）、是谁标的、推进了什么；没申报的明说没申报，引擎不猜',
+    producer: main('onsite', 'buildRecordEdges'), consumer: main('present', 'presentCitations'),
+  },
+  {
+    id: 'article_context', audience: 'reader', route: 'map', payload: 'EvidenceMapData',
+    answers: '一篇文章在这批里的位置：它是什么样的研究、这种研究能回答什么；它引用了谁、谁引用了它、各自拿它做了什么',
+    producer: svc('getTagMap'), consumer: main('present', 'presentArticleContext'),
+  },
+  {
     id: 'external_counts', audience: 'reader', route: 'counts', payload: 'EvidenceCountsData',
     answers: '这个主题的全量文献按年份、机构、国家、语言、开放获取……怎么分布（分母各自声明）',
     producer: { entry: 'scholar-meta/openalex', module: 'openalex-counts', export: 'fetchEvidenceCounts' }, consumer: main('present', 'presentCounts'),

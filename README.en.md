@@ -20,12 +20,12 @@ A research-evidence visualization engine for platforms that publish academic art
 ## Live demo
 
 **[Open the demo →](https://sairaisaika.github.io/scholar-meta-visulization/)**　Nothing to install — the engine runs in your browser. Pick a set of studies to see which rung of the evidence ladder
-it reaches and why not a higher one; drill down from a domain to the articles to see what each level contains, where the articles were published, whether they are free to read and how they cite each other, and flip the "reviewed articles only" gate;
+it reaches and why not a higher one; drill down from a domain to the articles to see what each level contains, where the articles were published, whether they are free to read, what kind of study each one is, how they cite each other and **why** (using a method, building on it, agreeing or disagreeing), and flip the "reviewed articles only" gate;
 change the shape of the counts to see which charts can be drawn and what the others are missing. The data is fictional and the page makes no network requests.
 
 [![Demo: a forest plot of six fictional trials with a risk-of-bias column, above it the pooled estimate, a sensitivity analysis without the high-risk study, and a certainty-of-evidence rating](.github/images/demo-en.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
 
-[![Demo drill-down: breadcrumbs domain › field › subfield › topic; on the left the on-site tags one level in with their counts, on the right the article list with journal, free-to-read status, other topics and tags, and citations between them; the review gate is on and says 2 articles are waiting for review](.github/images/explore-en.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
+[![Demo drill-down: breadcrumbs domain › field › subfield › topic; on the left the on-site tags one level in with their counts, on the right the article list with the kind of study, journal, free-to-read status, other topics and tags; one article is expanded to say what kind of study it is and what it can answer, which works here cite it, why, and what that advances](.github/images/explore-en.png)](https://sairaisaika.github.io/scholar-meta-visulization/)
 
 ## What it does
 
@@ -83,7 +83,7 @@ Method and references: [docs/tags.md](docs/tags.md) (Chinese).
 
 ```bash
 # Prebuilt package attached to every GitHub release (works the same with npm and yarn)
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.4.0/scholar-meta-0.4.0.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.5.0/scholar-meta-0.5.0.tgz
 ```
 
 All versions are on [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases); changes are in the [CHANGELOG](CHANGELOG.md).

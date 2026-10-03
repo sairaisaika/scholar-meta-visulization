@@ -28,7 +28,7 @@
  * 契约版本：本文件最近一次变化随的那个包版本。接入方拷贝本文件时据此核对（CHANGELOG 里必须有这一版的一节，
  * 破坏性改动写在那一节的「破坏性」下）。改本文件时把它改成将要发布的版本号（见 CONTRIBUTING.md 第三节）。
  */
-export const EVIDENCE_CONTRACT_VERSION = '0.4.0'
+export const EVIDENCE_CONTRACT_VERSION = '0.5.0'
 
 /** 文献来源。站内文章与站外文献在本层**同形**——这正是「加一个源 = 加一行」的前提。`onsite` = 宿主自己的文章（任何站点）。 */
 export type EvidenceSourceId =
@@ -249,12 +249,38 @@ export interface EvidenceTopic {
  * 记录之间的边（2026-09-28 加法）。`from` / `to` 都是 `EvidenceRecord.id`（`<source>:<external_id>` 形）。
  * · `cites`：from 引用了 to。两个来源：站内文章申报的参考文献 DOI 对上了同一批里的记录；外部记录的 `cites`（0.4.0 起，外部源给的引用列表与同一批求交）；
  * · `shares_tag`：两条记录挂同一个站内标签——是共现，不是引用、不是合作。
- * 边只表达「有关系」，不表达支持 / 反对：证据方向仍只看 `EvidenceRecord.direction`。
+ * 边本身只表达「有关系」。引用**为什么**引，只看申报过的 `purpose`（0.5.0）；证据方向仍只看 `EvidenceRecord.direction`。
  */
 export interface EvidenceEdge {
   from: string
   to: string
   kind: 'cites' | 'shares_tag'
+  /** 这条引用为什么引（0.5.0 加法；只有 `cites` 边、且有人申报过才有）。没有 ⇒ 不知道为什么引，**不要猜** */
+  purpose?: EvidenceCitationPurpose
+}
+
+// ── 引用的用途（0.5.0 加法）────────────────────────────────────────────────────────
+/**
+ * 一条引用「为什么引」——普通读者要分得清：它只是被提到，还是被拿来用、被往前推、被重复、被证实或被反驳。
+ * 词表取 CiTO（Citation Typing Ontology）里最常用的几项，名字简化：
+ *   background ≈ cito:obtainsBackgroundFrom · uses_method ≈ cito:usesMethodIn · uses_data ≈ cito:usesDataFrom ·
+ *   extends ≈ cito:extends · confirms ≈ cito:confirms · disputes ≈ cito:disputes · reviews ≈ cito:reviews ·
+ *   replicates（CiTO 没有单独一项：用相同或相近的方法再做一次，看结果能不能再现）。
+ * 引擎**不从文字里猜**用途：只转述申报的，并写明是谁申报的（`declared_by`）。
+ */
+export const EVIDENCE_CITATION_FUNCTIONS = [
+  'background', 'uses_method', 'uses_data', 'extends', 'replicates', 'confirms', 'disputes', 'reviews',
+] as const
+export type EvidenceCitationFunction = (typeof EVIDENCE_CITATION_FUNCTIONS)[number]
+
+/** 谁说的：作者在参考文献里申报 · 编辑标注 · 机器判读（外部的引用意图分类器之类；读者看得到是机器判的） */
+export const EVIDENCE_CITATION_DECLARERS = ['author', 'editor', 'machine'] as const
+export type EvidenceCitationDeclarer = (typeof EVIDENCE_CITATION_DECLARERS)[number]
+
+export interface EvidenceCitationPurpose {
+  /** 一条引用可以有几种用途（比如「重复了它的研究，结果不一致」＝ replicates + disputes），按词表顺序、去重 */
+  functions: EvidenceCitationFunction[]
+  declared_by: EvidenceCitationDeclarer
 }
 
 /**
@@ -992,6 +1018,7 @@ export const EVIDENCE_INTAKE_ISSUES = [
   'ci_without_estimate',                                      // 只清空置信区间（0.3.0 加法：没有点估计的区间核不了）
   'unknown_rob_tool', 'rob_judgement_invalid', 'rob_source_missing', // 偏倚风险整个清空（0.3.0 加法）
   'awaiting_review',                                          // 只做标记：接入方开了审阅门槛、这篇还没审阅——照常发表，暂不计入标签与研究图谱（0.4.0 加法）
+  'unknown_citation_function',                                // 只清掉认不出的那几个引用用途，这条参考文献照收（0.5.0 加法）
   'n_invalid', 'p_invalid',
   'direction_conflicts_effect',                               // 方向改为 unclear、orientation 清空
   'claim_conflicts_ci', 'p_conflicts_ci',                     // 只做标记

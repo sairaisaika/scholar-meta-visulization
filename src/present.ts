@@ -19,7 +19,9 @@ import type {
   EvidenceEffectMetric, EvidenceOnsiteCounts, EvidencePooling, EvidenceProvenance, EvidenceTagBinding, EvidenceTagGraph, EvidenceViewDecision,
   EvidenceViewKind, OnsiteDimensionId, EvidenceCertainty, EvidenceCertaintyLevel, EvidenceRecord, EvidenceRiskOfBias,
   EvidenceScaleLevel, EvidenceVenue,
+  EvidenceCitationDeclarer, EvidenceCitationFunction, EvidenceCitationPurpose, EvidenceEdge, EvidenceStudyDesign,
 } from './types'
+import { EVIDENCE_CITATION_DECLARERS, EVIDENCE_CITATION_FUNCTIONS, EVIDENCE_STUDY_DESIGNS } from './types'
 import { groupTags, normalizeTag } from './tags'
 import { robBand, summarizeRiskOfBias } from './appraisal'
 import type { EvidenceRobBand } from './appraisal'
@@ -647,6 +649,12 @@ export interface WorkRowView {
   /** 外部源给的全库被引数（只做排序参考，**不是**效应） */
   citations_text: string | null
   risk_of_bias: RiskOfBiasView
+  /** 短名：「随机对照试验」「综述」「预印本」（0.5.0；列表里当小标签用）；都不知道为 null */
+  kind_label: string | null
+  /** 「研究设计：随机对照试验」「文献类型：综述」（0.5.0）；都不知道为 null */
+  kind_text: string | null
+  /** 这种设计 / 形态能回答什么、不能回答什么（白话；0.5.0）；没有说明为 null */
+  kind_hint: string | null
 }
 
 /**
@@ -701,8 +709,232 @@ export function presentWorks(map: EvidenceMapData, opts: PresentOptions = {}): W
       links_text: links.length > 0 ? links.join(c.m.text.parts_sep) : null,
       citations_text: onsite || r.cited_by_count === null ? null : formatMessage(c.m.text.work_citations, { n: c.int(r.cited_by_count) }),
       risk_of_bias: presentRiskOfBias(r.risk_of_bias, opts),
+      ...kindOf(r, c),
     }
   })
+}
+
+/** 研究设计优先（站内申报的，更具体）；没有就用出版物形态。外部源的研究设计恒为 null（见 `EvidenceRecord.study_type`） */
+type KindView = { kind_label: string | null; kind_text: string | null; kind_hint: string | null }
+function kindOf(r: EvidenceRecord, c: Ctx): KindView {
+  const design = (EVIDENCE_STUDY_DESIGNS as readonly string[]).includes(r.study_type ?? '') ? r.study_type as EvidenceStudyDesign : null
+  if (design) {
+    const label = c.m.studyDesign[design]
+    return { kind_label: label, kind_text: formatMessage(c.m.text.ctx_design, { design: label }), kind_hint: c.m.studyDesignMeaning[design] }
+  }
+  const type = typeof r.publication_type === 'string' && r.publication_type.trim() ? r.publication_type.trim().toLowerCase() : null
+  if (!type) return { kind_label: null, kind_text: null, kind_hint: null }
+  const label = c.m.bucket.publication_type?.[type] ?? r.publication_type!.trim()
+  const hint = Object.prototype.hasOwnProperty.call(c.m.publicationTypeMeaning, type) ? c.m.publicationTypeMeaning[type] : null
+  return { kind_label: label, kind_text: formatMessage(c.m.text.ctx_type, { type: label }), kind_hint: hint }
+}
+
+// ── 引用为什么引、一篇文章在这批里的位置（0.5.0）──────────────────────────────────────
+
+/**
+ * 线上来的用途再验一遍形（读口只验骨架）：认不出的用途丢掉；标注人认不出或一个用途都不剩 ⇒ 当作没申报。
+ * 引擎**只转述申报的用途**，不从标题、摘要或引用位置猜。
+ */
+function purposeOf(e: EvidenceEdge): EvidenceCitationPurpose | null {
+  const p = e.purpose as unknown
+  if (!p || typeof p !== 'object') return null
+  const { functions, declared_by } = p as { functions?: unknown; declared_by?: unknown }
+  if (!Array.isArray(functions) || !(EVIDENCE_CITATION_DECLARERS as readonly unknown[]).includes(declared_by)) return null
+  const got = new Set<unknown>(functions)
+  const list = EVIDENCE_CITATION_FUNCTIONS.filter((f) => got.has(f))
+  return list.length > 0 ? { functions: list, declared_by: declared_by as EvidenceCitationDeclarer } : null
+}
+
+export interface CitationLinkView {
+  /** 施引的与被引的记录 id */
+  from: string
+  to: string
+  from_title: string
+  to_title: string
+  /** 申报的用途（按词表顺序）；没申报为空数组——**不要替作者猜** */
+  functions: EvidenceCitationFunction[]
+  /** 用途的短名（「用了方法」「结果一致」） */
+  labels: string[]
+  declared_by: EvidenceCitationDeclarer | null
+  /** 「作者标注」「机器判读，未经人工核对」；没申报为 null */
+  declared_text: string | null
+  /** 整句：「《A》引用《B》：用了它的方法或工具（作者标注）」；读屏与悬停提示直接用 */
+  text: string
+}
+
+export interface CitationLegendRowView {
+  function: EvidenceCitationFunction
+  label: string
+  /** 这条引用推进了什么（给普通读者的一句白话） */
+  meaning: string
+  /** 几条引用用到它（一条引用可以有几种用途） */
+  count: number
+  count_text: string
+}
+
+export interface CitationsView {
+  /** 这批里的引用边，顺序同 `map.edges` */
+  links: CitationLinkView[]
+  /** 这批里出现过的用途（按词表顺序；没出现的不列） */
+  legend: CitationLegendRowView[]
+  /** 没说明为什么引的引用边数 */
+  undeclared: number
+  /** 「3 条引用没有说明为什么引用（引擎不替作者猜）」；都申报了或没有引用为 null */
+  undeclared_text: string | null
+  /** 「其中 1 条的用途是机器判读的，未经人工核对」；没有为 null */
+  machine_text: string | null
+}
+
+function linkView(e: EvidenceEdge, titles: ReadonlyMap<string, string>, c: Ctx): CitationLinkView {
+  const p = purposeOf(e)
+  const from = titles.get(e.from) ?? e.from
+  const to = titles.get(e.to) ?? e.to
+  const functions = p?.functions ?? []
+  return {
+    from: e.from,
+    to: e.to,
+    from_title: from,
+    to_title: to,
+    functions,
+    labels: functions.map((f) => c.m.citation.label[f]),
+    declared_by: p?.declared_by ?? null,
+    declared_text: p ? c.m.citation.declarer[p.declared_by] : null,
+    text: p
+      ? formatMessage(c.m.text.link_declared, { from, to, purposes: functions.map((f) => c.m.citation.phrase[f]).join(c.m.text.list_sep), declarer: c.m.citation.declarer[p.declared_by] })
+      : formatMessage(c.m.text.link_undeclared, { from, to }),
+  }
+}
+
+function legendOf(links: readonly CitationLinkView[], c: Ctx): CitationLegendRowView[] {
+  const n = new Map<EvidenceCitationFunction, number>()
+  for (const l of links) for (const f of l.functions) n.set(f, (n.get(f) ?? 0) + 1)
+  return EVIDENCE_CITATION_FUNCTIONS.filter((f) => n.has(f)).map((f) => ({
+    function: f, label: c.m.citation.label[f], meaning: c.m.citation.meaning[f], count: n.get(f)!,
+    count_text: formatMessage(c.m.text.legend_count, { n: c.int(n.get(f)!) }),
+  }))
+}
+
+const undeclaredText = (links: readonly CitationLinkView[], c: Ctx) => {
+  const n = links.filter((l) => l.declared_by === null).length
+  return n > 0 ? formatMessage(c.m.text.links_undeclared, { n: c.int(n) }) : null
+}
+const machineText = (links: readonly CitationLinkView[], c: Ctx) => {
+  const n = links.filter((l) => l.declared_by === 'machine').length
+  return n > 0 ? formatMessage(c.m.text.links_machine, { n: c.int(n) }) : null
+}
+
+/**
+ * 这批作品之间的引用：每条一句「A 引用 B：为什么（谁标的）」，加上图例——这批里用到的每种用途推进了什么。
+ * 只有 `cites` 边；同标签边是共现，不在这里。用途只转述申报的，没申报的明说没申报。
+ */
+export function presentCitations(map: EvidenceMapData, opts: PresentOptions = {}): CitationsView {
+  const c = context(opts)
+  const titles = new Map(map.records.map((r) => [r.id, r.title]))
+  const links = (map.edges ?? []).filter((e) => e.kind === 'cites').map((e) => linkView(e, titles, c))
+  return {
+    links,
+    legend: legendOf(links, c),
+    undeclared: links.filter((l) => l.declared_by === null).length,
+    undeclared_text: undeclaredText(links, c),
+    machine_text: machineText(links, c),
+  }
+}
+
+export interface ArticleContextView {
+  id: string
+  title: string
+  /** 短名：「随机对照试验」「综述」；都不知道为 null */
+  kind_label: string | null
+  /** 「研究设计：随机对照试验」「文献类型：综述」；都不知道为 null */
+  kind_text: string | null
+  /** 这种设计 / 形态能回答什么、不能回答什么；没有说明为 null */
+  kind_hint: string | null
+  /** 「它还涉及：A、#b」（别的主题与站内标签，不含焦点）；没有为 null */
+  topics_text: string | null
+  /** 外部作品：「被引 13,850 次，在这里列出的 30 篇外部作品里排第 1」；站内文章、不知道、或这批只有它一篇时为 null */
+  rank_text: string | null
+  cites_title: string
+  cited_by_title: string
+  /** 它引用的（这批里的；它拿这些做了什么）。写明了用途的在前 */
+  cites: CitationLinkView[]
+  /** 引用它的（这批里的；它们拿它做了什么）。写明了用途的在前 */
+  cited_by: CitationLinkView[]
+  /** 「这里引用它的 3 篇里：2 篇在它的基础上往前推进、1 篇结果与它不一致或对它提出质疑。」；没有申报过用途的为 null */
+  advances_text: string | null
+  /** 这篇的引用里用到的用途的白话（只列用到的） */
+  legend: CitationLegendRowView[]
+  /** 没有引用关系 / 没说明为什么引 / 机器判读 / 一篇兼有几种用途 / 只看这一批 / 被引次数的意思 */
+  notes: string[]
+}
+
+/**
+ * 一篇文章在这批里的位置——给普通读者的一张卡片：它是什么样的研究、这种研究能回答什么；
+ * 它引用了这里的谁、拿它们做了什么；这里谁引用了它、拿它做了什么（推进了方法、结论、可信度还是讨论）。
+ * 只看同一次下发里的作品与引用（`notes` 里明说）；记录不在这批里 ⇒ null。
+ */
+export function presentArticleContext(map: EvidenceMapData, recordId: string, opts: PresentOptions = {}): ArticleContextView | null {
+  const r = map.records.find((x) => x.id === recordId)
+  if (!r) return null
+  const c = context(opts)
+  const titles = new Map(map.records.map((x) => [x.id, x.title]))
+  const edges = (map.edges ?? []).filter((e) => e.kind === 'cites')
+  // 写明了用途的排在前面（其余保持下发的顺序）：没说明的多时，有内容的那几条不被埋掉
+  const declaredFirst = (list: CitationLinkView[]) => list.sort((a, b) => Number(b.declared_by !== null) - Number(a.declared_by !== null))
+  const cites = declaredFirst(edges.filter((e) => e.from === r.id).map((e) => linkView(e, titles, c)))
+  const citedBy = declaredFirst(edges.filter((e) => e.to === r.id).map((e) => linkView(e, titles, c)))
+
+  const inbound = new Map<EvidenceCitationFunction, number>()
+  for (const l of citedBy) for (const f of l.functions) inbound.set(f, (inbound.get(f) ?? 0) + 1)
+  // 一篇可以兼有几种用途：各项加起来多于申报过的篇数时说一句
+  const overlap = [...inbound.values()].reduce((x, y) => x + y, 0) > citedBy.filter((l) => l.functions.length > 0).length
+  const parts = EVIDENCE_CITATION_FUNCTIONS.filter((f) => inbound.has(f))
+    .map((f) => formatMessage(c.m.text.ctx_advances_part, { n: c.int(inbound.get(f)!), phrase: c.m.citation.phrase[f] }))
+
+  const focus = focusOf(map)
+  // 标签：同一个键留第一次出现的写法（与作品清单一致），不列焦点
+  const tagSeen = new Set<string>()
+  const tags: string[] = []
+  for (const raw of r.tags ?? []) {
+    const k = normalizeTag(raw)
+    if (!k || focus.tagKeys.has(k) || tagSeen.has(k)) continue
+    tagSeen.add(k)
+    tags.push(`#${raw.trim()}`)
+  }
+  const also = [...(r.topics ?? []).filter((t) => !focus.topics.has(t.id)).map((t) => t.display_name), ...tags]
+
+  let rank_text: string | null = null
+  if (r.source !== 'onsite' && r.cited_by_count !== null) {
+    const counted = map.records.filter((x) => x.source !== 'onsite' && x.cited_by_count !== null)
+    if (counted.length > 1) {
+      const rank = 1 + counted.filter((x) => (x.cited_by_count as number) > (r.cited_by_count as number)).length
+      rank_text = formatMessage(c.m.text.ctx_rank, { n: c.int(r.cited_by_count), k: c.int(counted.length), rank: c.int(rank) })
+    }
+  }
+
+  const all = [...cites, ...citedBy]
+  const notes = [
+    all.length === 0 ? c.m.text.ctx_none : null,
+    undeclaredText(all, c),
+    machineText(all, c),
+    overlap ? c.m.text.ctx_overlap : null,
+    c.m.text.ctx_scope_note,
+    rank_text ? c.m.text.ctx_citations_note : null,
+  ].filter((x): x is string => x !== null)
+
+  return {
+    id: r.id,
+    title: r.title,
+    ...kindOf(r, c),
+    topics_text: also.length > 0 ? formatMessage(c.m.text.ctx_topics, { list: also.join(c.m.text.list_sep) }) : null,
+    rank_text,
+    cites_title: c.m.text.ctx_cites_title,
+    cited_by_title: c.m.text.ctx_cited_by_title,
+    cites,
+    cited_by: citedBy,
+    advances_text: parts.length > 0 ? formatMessage(c.m.text.ctx_advances, { total: c.int(citedBy.length), parts: parts.join(c.m.text.list_sep) }) : null,
+    legend: legendOf(all, c),
+    notes,
+  }
 }
 
 export interface FacetRowView {

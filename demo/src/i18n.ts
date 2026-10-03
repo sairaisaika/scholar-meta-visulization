@@ -60,6 +60,8 @@ export interface DemoText {
     title: string; lead: string; gate: string; gateHelp: string; crumbs: string; works: string; linksHint: string
     facetTopics: string; facetTags: string; facetVenues: string; locked: string; loading: string; unavailable: string
     none: string; fake: string; fakeLink: string
+    /** 引用为什么引、一篇文章的位置（0.5.0） */
+    ctxOpen: string; citeTitle: string; citeLead: string; undeclaredChip: string; meaningTitle: string
   }
   menuTitle: string
   menuLead: string
@@ -134,7 +136,7 @@ export const TEXT: Record<Locale, DemoText> = {
     appraisalNote: '偏倚风险与证据确定性都是演示用的虚构评定。引擎不评，只核对接入方传进来的评定、写明是谁评的，并据此另给一个去掉高风险研究的敏感性分析。',
     explore: {
       title: '下钻：从大类一路点到文章',
-      lead: '每一层列出往里一层：大类 → 领域 → 子领域 → 主题，主题再往里是编辑绑到它的站内标签。条长只用来比大小——一篇作品可以同时在几个子节点下，所以不给占比。点到最里层，看这里有哪些文章、发在哪本期刊、能不能免费读、还挂着哪些别的主题与标签、互相怎么引用。',
+      lead: '每一层列出往里一层：大类 → 领域 → 子领域 → 主题，主题再往里是编辑绑到它的站内标签。条长只用来比大小——一篇作品可以同时在几个子节点下，所以不给占比。点到最里层，看这里有哪些文章、是什么样的研究、发在哪本期刊、能不能免费读、还挂着哪些别的主题与标签、互相怎么引用、为什么引。',
       gate: '审阅门槛：只计入审阅过的站内文章',
       gateHelp: '比如「至少有一条认证专家的评论」——谁算专家、什么算审阅由站点定，引擎只看站点标的审阅时间。没审阅的文章照常发表，只是暂不计入标签与图谱，并写明还有几篇在等。',
       crumbs: '位置',
@@ -148,6 +150,11 @@ export const TEXT: Record<Locale, DemoText> = {
       unavailable: '暂时取不到，稍后再试。',
       none: '没有',
       fake: '这一节的分类、篇数、文章、期刊与链接都是虚构的。跑的是引擎真正的服务层，外部文献库换成了内存里的一棵树，页面不连网。',
+      ctxOpen: '它是什么研究、和这里的文章怎么联系',
+      citeTitle: '这批作品之间的引用：为什么引',
+      citeLead: '只转述作者或编辑写明的用途（也可以接机器判读，会标明）。外部文献库不提供用途，没写明的就写「没说明」，引擎不猜。',
+      undeclaredChip: '没说明为什么引',
+      meaningTitle: '这些用途各推进了什么',
       fakeLink: '演示用的虚构链接',
     },
     menuTitle: '图种菜单',
@@ -226,7 +233,7 @@ export const TEXT: Record<Locale, DemoText> = {
     appraisalNote: 'The risk-of-bias judgements and the certainty rating are fictional. The engine does not assess either: it checks what the host passes in, says who assessed it, and adds a sensitivity analysis without the high-risk studies.',
     explore: {
       title: 'Drill down: from a domain to the articles',
-      lead: 'Each level lists the next one in: domain → field → subfield → topic, and inside a topic the on-site tags an editor bound to it. Bar length only compares sizes: a work can sit under several children, so no shares are given. At the innermost level, see which articles are there, where they were published, whether they are free to read, which other topics and tags they carry and how they cite each other.',
+      lead: 'Each level lists the next one in: domain → field → subfield → topic, and inside a topic the on-site tags an editor bound to it. Bar length only compares sizes: a work can sit under several children, so no shares are given. At the innermost level, see which articles are there, what kind of study each is, where they were published, whether they are free to read, which other topics and tags they carry, how they cite each other and why.',
       gate: 'Review gate: count reviewed on-site articles only',
       gateHelp: 'For example “at least one comment from a verified expert”: the site decides who counts as an expert and what counts as a review; the engine only reads the review time the site sets. Unreviewed articles stay published but are not counted yet, and the page says how many are waiting.',
       crumbs: 'Location',
@@ -240,6 +247,11 @@ export const TEXT: Record<Locale, DemoText> = {
       unavailable: 'Not available right now; try again later.',
       none: 'None',
       fake: 'The taxonomy, counts, articles, journals and links in this section are fictional. It runs the engine’s real service layer with the external index replaced by an in-memory tree; the page makes no network requests.',
+      ctxOpen: 'What kind of study it is, and how it links to the others here',
+      citeTitle: 'Citations in this batch: why they cite',
+      citeLead: 'Only purposes an author or editor stated are shown (a machine classifier can be plugged in and is labelled as such). The external index gives no purposes; unstated ones are shown as unstated, and the engine does not guess.',
+      undeclaredChip: 'No reason given',
+      meaningTitle: 'What each purpose advances',
       fakeLink: 'a fictional demo link',
     },
     menuTitle: 'The chart menu',

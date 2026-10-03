@@ -1,9 +1,12 @@
 /**
  * 演示页的下钻区块：从大类一路点到文章。数据走引擎真正的服务层（explore-data.ts 的内存外部源，不连网），
- * 文字一律来自引擎的视图模型（presentEvidenceMap / presentNodeChildren / presentWorks / presentRecordFacets），这里只管摆放与导航。
+ * 文字一律来自引擎的视图模型（presentEvidenceMap / presentNodeChildren / presentWorks / presentRecordFacets /
+ * presentCitations / presentArticleContext），这里只管摆放与导航。
  */
-import { normalizeTag, presentEvidenceMap, presentNodeChildren, presentRecordFacets, presentWorks } from '../../src/index'
-import type { CaveatView, FacetView, WorkRowView } from '../../src/index'
+import {
+  normalizeTag, presentArticleContext, presentCitations, presentEvidenceMap, presentNodeChildren, presentRecordFacets, presentWorks,
+} from '../../src/index'
+import type { ArticleContextView, CaveatView, CitationLinkView, CitationsView, FacetView, WorkRowView } from '../../src/index'
 import type { EvidenceService, ExternalLevel } from '../../src/service'
 import type { EvidenceMapData } from '../../src/types'
 import { OPEN_PATH, START, TREE, createDemoExplorer, pathTo } from './explore-data'
@@ -20,6 +23,8 @@ export function createExplorer(initial: Locale, rerender: () => void) {
     data: null as EvidenceMapData | null,
     failed: false,
     seq: 0,
+    /** 展开了「它在这里的位置」的作品（重画时保持展开） */
+    open: new Set<string>(),
   }
   let service: EvidenceService = createDemoExplorer(st.locale, () => st.gate)
 
@@ -68,6 +73,7 @@ export function createExplorer(initial: Locale, rerender: () => void) {
     const kids = presentNodeChildren(map, opts)
     const works = presentWorks(map, opts)
     const facets = presentRecordFacets(map, { ...opts, limit: 6 })
+    const citations = presentCitations(map, opts)
 
     const nodeHead = h('div', { class: 'node-head' }, [
       h('h3', {}, [map.level === 'tag' ? `#${v.title}` : v.title]),
@@ -117,6 +123,7 @@ export function createExplorer(initial: Locale, rerender: () => void) {
       ...v.counts_text.map((c) => h('p', { class: 'fine' }, [c])),
       related.size ? h('p', { class: 'fine' }, [e.linksHint]) : null,
       works.length ? list : h('p', { class: 'notice' }, [e.none]),
+      citeLegend(citations, e),
     ])
 
     // click 回 null ＝ 这一行点不进去（演示树里没有的主题、期刊），只印文字
@@ -167,21 +174,71 @@ export function createExplorer(initial: Locale, rerender: () => void) {
       ]
       const li = h('li', { class: `work ${w.layer}`, 'data-id': w.id, tabindex: '0' }, [
         h('p', { class: 'work-title' }, [w.title]),
-        h('p', { class: 'work-meta' }, [[w.year_text, w.authors_text].filter(Boolean).join(' · ')]),
+        h('p', { class: 'work-meta' }, [
+          w.kind_label ? h('span', { class: 'kind' }, [w.kind_label]) : null,
+          [w.year_text, w.authors_text].filter(Boolean).join(' · '),
+        ]),
         w.venue_text ? h('p', { class: 'work-venue' }, [w.venue_text]) : null,
         h('p', { class: 'work-access' }, [
           h('span', { class: `pill ${access}`, title: w.read_url ? `${w.read_url}（${ex.fakeLink}）` : null }, [w.access_text]),
           w.citations_text ? h('span', { class: 'work-cited' }, [w.citations_text]) : null,
         ]),
         chips.length ? h('p', { class: 'chips' }, chips) : null,
-        w.links_text ? h('p', { class: 'work-links' }, [w.links_text]) : null,
       ])
+      const ctx = presentArticleContext(map, w.id, opts)
+      if (ctx) li.append(contextCard(ctx, w, ex))
       li.addEventListener('pointerenter', () => hl(w.id))
       li.addEventListener('pointerleave', () => hl(null))
       li.addEventListener('focusin', () => hl(w.id))
       li.addEventListener('focusout', () => hl(null))
       return li
     }
+  }
+
+  /** 一篇的位置：它是什么研究、能回答什么；这里谁引用了它、拿它做了什么；它引用了谁、拿它们做了什么 */
+  function contextCard(ctx: ArticleContextView, w: WorkRowView, ex: DemoText['explore']) {
+    const links = (title: string, list: readonly CitationLinkView[], other: (l: CitationLinkView) => string) => list.length === 0 ? null
+      : h('div', { class: 'ctx-links' }, [
+        h('p', { class: 'ctx-h' }, [title]),
+        h('ul', {}, list.map((l) => h('li', { title: l.text }, [
+          h('span', { class: 'ctx-other' }, [other(l)]),
+          h('span', { class: 'purposes' }, l.labels.length > 0
+            ? l.labels.map((lab) => h('span', { class: 'purpose' }, [lab]))
+            : [h('span', { class: 'purpose none' }, [ex.undeclaredChip])]),
+          l.declared_text ? h('span', { class: 'declared' }, [l.declared_text]) : null,
+        ]))),
+      ])
+    const d = h('details', { class: 'ctx', open: st.open.has(w.id) }, [
+      h('summary', { 'data-focus': `x-ctx-${w.id}` }, [ex.ctxOpen, w.links_text ? h('span', { class: 'work-links' }, [` · ${w.links_text}`]) : null]),
+      h('div', { class: 'ctx-card' }, [
+        ctx.kind_text ? h('p', { class: 'ctx-kind' }, [ctx.kind_text]) : null,
+        ctx.kind_hint ? h('p', {}, [ctx.kind_hint]) : null,
+        ctx.rank_text ? h('p', { class: 'fine' }, [ctx.rank_text]) : null,
+        ctx.advances_text ? h('p', { class: 'ctx-adv' }, [ctx.advances_text]) : null,
+        links(ctx.cited_by_title, ctx.cited_by, (l) => l.from_title),
+        links(ctx.cites_title, ctx.cites, (l) => l.to_title),
+        ctx.legend.length > 0 ? h('dl', { class: 'meanings' }, ctx.legend.flatMap((r) => [h('dt', {}, [r.label]), h('dd', {}, [r.meaning])])) : null,
+        h('ul', { class: 'fine ctx-notes' }, ctx.notes.map((n) => h('li', {}, [n]))),
+      ]),
+    ])
+    d.addEventListener('toggle', () => { if (d.open) st.open.add(w.id); else st.open.delete(w.id) })
+    return d
+  }
+
+  /** 这批里的引用用途：每种几条、没说明的几条；各推进了什么折在里面 */
+  function citeLegend(c: CitationsView, ex: DemoText['explore']) {
+    if (c.links.length === 0) return null
+    return h('div', { class: 'cite-legend' }, [
+      h('p', { class: 'ctx-h' }, [ex.citeTitle]),
+      c.legend.length > 0 ? h('p', { class: 'purposes' }, c.legend.map((r) => h('span', { class: 'purpose' }, [r.label, h('span', { class: 'count' }, [r.count_text])]))) : null,
+      c.undeclared_text ? h('p', { class: 'fine' }, [c.undeclared_text]) : null,
+      c.machine_text ? h('p', { class: 'fine' }, [c.machine_text]) : null,
+      h('p', { class: 'fine' }, [ex.citeLead]),
+      c.legend.length > 0 ? h('details', { class: 'ctx' }, [
+        h('summary', {}, [ex.meaningTitle]),
+        h('dl', { class: 'meanings' }, c.legend.flatMap((r) => [h('dt', {}, [r.label]), h('dd', {}, [r.meaning])])),
+      ]) : null,
+    ])
   }
 
   return {

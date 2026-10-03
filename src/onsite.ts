@@ -14,11 +14,15 @@
  * 布局建议用关联强度而不是 Jaccard / 余弦（van Eck & Waltman 2009, *JASIST* 60(8):1635–1651）。
  */
 import type {
+  EvidenceCitationFunction, EvidenceCitationPurpose,
   EvidenceCaveat, EvidenceChartAvailability, EvidenceCountProvenance, EvidenceCountSeries, EvidenceDenominatorKind,
   EvidenceDirection, EvidenceEdge, EvidenceEffect, EvidenceIntakeIssue, EvidenceOnsiteCounts, EvidenceRecord,
   EvidenceSampleGate, EvidenceSelfReportedClaim, EvidenceStudyDesign, EvidenceTagEdge, EvidenceTagGraph, EvidenceTagNode, OnsiteDimensionId,
 } from './types'
-import { EVIDENCE_DIRECTIONS, EVIDENCE_SELF_REPORTED_CLAIMS, EVIDENCE_STUDY_DESIGNS, ONSITE_DIMENSION_IDS } from './types'
+import {
+  EVIDENCE_CITATION_DECLARERS, EVIDENCE_CITATION_FUNCTIONS, EVIDENCE_DIRECTIONS, EVIDENCE_SELF_REPORTED_CLAIMS, EVIDENCE_STUDY_DESIGNS,
+  ONSITE_DIMENSION_IDS,
+} from './types'
 import { EFFECT_METRICS, directionFromEffect, intervalExcludesNull, isEffectMetric } from './effects'
 import { groupTags, normalizeTag, recordTagKeys, TAG_MAX_LENGTH } from './tags'
 import { chartAvailabilityFor, chartShapeOf, type ChartShape } from './charts'
@@ -68,8 +72,12 @@ export interface OnsiteArticle {
   /** 作者申报的效应方向：favours / against / unclear / not_applicable */
   direction?: string | null
   effect?: OnsiteArticleEffect | null
-  /** 参考文献（DOI 字符串或 `{ doi }`）；用来按引用关系给标签推荐主题（见 service 的 suggestBindings） */
-  references?: ReadonlyArray<string | { doi?: string | null }> | null
+  /**
+   * 参考文献（DOI 字符串或 `{ doi }`）；用来按引用关系给标签推荐主题（见 service 的 suggestBindings），
+   * 并连出「引用」边。对象形式可以带这条引用**为什么引**（0.5.0）：`functions` 取 `EVIDENCE_CITATION_FUNCTIONS`
+   * 或对应的 CiTO 名称（如 `cito:usesMethodIn`），`declared_by` 取 author（缺省）/ editor / machine。
+   */
+  references?: ReadonlyArray<string | OnsiteReference> | null
   /**
    * 偏倚风险（0.3.0）：`{ tool: 'rob2' | 'robins_i' | 'other', overall, source }`，由编辑或外部综述评，**不由作者自评**；
    * `source` 写清楚是谁评的（必填）。见 appraisal.ts。
@@ -82,6 +90,15 @@ export interface OnsiteArticle {
   reviewed_at?: string | Date | null
   is_public?: boolean | null
   is_retracted?: boolean | null
+}
+
+/** 一条参考文献的对象形式（0.5.0 起可以带引用用途）。 */
+export interface OnsiteReference {
+  doi?: string | null
+  /** 为什么引：一个或几个用途（字符串或字符串数组）；认不出的忽略并标 `unknown_citation_function` */
+  functions?: unknown
+  /** 谁标的：author（缺省）/ editor / machine；写了但认不出 ⇒ 这一条的用途整个忽略（不知道是谁说的就不转述） */
+  declared_by?: unknown
 }
 
 export interface OnsiteIntakeOptions {
@@ -104,6 +121,8 @@ export interface IntakeResult {
   issues: EvidenceIntakeIssue[]
   /** 归一化后的参考文献 DOI（小写、不带前缀），去重 */
   references: string[]
+  /** 申报过用途的参考文献：归一化 DOI → 用途（0.5.0；没有申报的不在里面） */
+  purposes?: Map<string, EvidenceCitationPurpose>
 }
 
 export const ONSITE_DEFAULT_LABEL = 'On-site articles'
@@ -131,6 +150,45 @@ const inVocab = <T extends string>(vocab: readonly T[], x: unknown): T | null =>
   if (typeof x !== 'string') return null
   const v = x.trim().toLowerCase()
   return (vocab as readonly string[]).includes(v) ? (v as T) : null
+}
+
+/**
+ * 引用用途的别名：CiTO（Peroni & Shotton 2012）里意思落在同一档的属性名 → 我们的用途。
+ * 只收这张表与 `EVIDENCE_CITATION_FUNCTIONS` 本身；`cito:` 前缀、完整 IRI、大小写、连字符都不计较。
+ */
+const CITO_ALIASES: Readonly<Record<string, EvidenceCitationFunction>> = {
+  obtainsbackgroundfrom: 'background', citesforinformation: 'background', citesasrelated: 'background',
+  usesmethodin: 'uses_method',
+  usesdatafrom: 'uses_data', citesasdatasource: 'uses_data',
+  confirms: 'confirms', supports: 'confirms',
+  disputes: 'disputes', refutes: 'disputes', disagreeswith: 'disputes',
+}
+const MAX_FUNCTIONS_PER_REFERENCE = 16
+
+function citationFunction(x: unknown): EvidenceCitationFunction | null {
+  if (typeof x !== 'string' || x.length > 120) return null
+  const v = x.trim().toLowerCase().replace(/^(https?:\/\/purl\.org\/spar\/cito\/|cito:)/, '')
+  const own = v.replace(/[\s-]+/g, '_')
+  if ((EVIDENCE_CITATION_FUNCTIONS as readonly string[]).includes(own)) return own as EvidenceCitationFunction
+  return Object.prototype.hasOwnProperty.call(CITO_ALIASES, v.replace(/[\s_-]+/g, '')) ? CITO_ALIASES[v.replace(/[\s_-]+/g, '')] : null
+}
+
+/** 一条参考文献的用途：认得出的按词表顺序去重；`bad` ＝ 有认不出的用途或标注人。 */
+function citationPurpose(ref: OnsiteReference): { value: EvidenceCitationPurpose | null; bad: boolean } {
+  const listed = typeof ref.functions === 'string' ? [ref.functions] : Array.isArray(ref.functions) ? ref.functions.slice(0, MAX_FUNCTIONS_PER_REFERENCE) : []
+  const raw = listed.filter((f) => present(f))
+  if (raw.length === 0) return { value: null, bad: present(ref.functions) && typeof ref.functions !== 'string' && !Array.isArray(ref.functions) }
+  const declared_by = present(ref.declared_by) ? inVocab(EVIDENCE_CITATION_DECLARERS, ref.declared_by) : 'author'
+  if (!declared_by) return { value: null, bad: true }
+  const got = new Set<EvidenceCitationFunction>()
+  let bad = Array.isArray(ref.functions) && ref.functions.length > MAX_FUNCTIONS_PER_REFERENCE
+  for (const f of raw) {
+    const fn = citationFunction(f)
+    if (fn) got.add(fn)
+    else bad = true
+  }
+  const functions = EVIDENCE_CITATION_FUNCTIONS.filter((f) => got.has(f))
+  return { value: functions.length > 0 ? { functions, declared_by } : null, bad }
 }
 
 // ── 入库验形 ──────────────────────────────────────────────────────────────────
@@ -191,7 +249,7 @@ function intakeEffect(raw: unknown, issues: EvidenceIntakeIssue[]): EvidenceEffe
 export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}): IntakeResult {
   const issues: EvidenceIntakeIssue[] = []
   const dropped = (code: EvidenceIntakeIssue['code'], field: string): IntakeResult =>
-    ({ record: null, issues: [...issues, { code, field, action: 'record_dropped' }], references: [] })
+    ({ record: null, issues: [...issues, { code, field, action: 'record_dropped' }], references: [], purposes: new Map() })
   if (!article || typeof article !== 'object') return dropped('missing_id', 'id')
   const a = article as Record<string, unknown>
 
@@ -301,11 +359,26 @@ export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}):
 
   const references: string[] = []
   const refSeen = new Set<string>()
+  const purposes = new Map<string, EvidenceCitationPurpose>()
+  let badPurpose = false
   for (const ref of Array.isArray(a.references) ? a.references : []) {
-    const d = normalizeDoi(typeof ref === 'string' ? ref : ref && typeof ref === 'object' ? (ref as { doi?: unknown }).doi : null)
+    const obj = ref && typeof ref === 'object' ? (ref as OnsiteReference) : null
+    const d = normalizeDoi(typeof ref === 'string' ? ref : obj ? obj.doi : null)
     if (d && !refSeen.has(d)) { refSeen.add(d); references.push(d) }
+    if (d && obj && (present(obj.functions) || present(obj.declared_by))) {
+      const p = citationPurpose(obj)
+      if (p.bad) badPurpose = true
+      // 同一条参考文献写了两次：同一个人标的用途合起来；不同的人标的，留先写的那份
+      const cur = purposes.get(d)
+      if (p.value && !cur) purposes.set(d, p.value)
+      else if (p.value && cur && cur.declared_by === p.value.declared_by) {
+        const all = new Set([...cur.functions, ...p.value.functions])
+        cur.functions = EVIDENCE_CITATION_FUNCTIONS.filter((f) => all.has(f))
+      }
+    }
     if (references.length >= 500) break
   }
+  if (badPurpose) issues.push({ code: 'unknown_citation_function', field: 'references', action: 'field_cleared' })
 
   const record: EvidenceRecord = {
     id: `onsite:${idRaw}`,
@@ -334,7 +407,7 @@ export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}):
     ...(rob.value ? { risk_of_bias: rob.value } : {}),
     ...(reviewed_at ? { reviewed_at } : {}),
   }
-  return { record, issues, references }
+  return { record, issues, references, purposes }
 }
 
 /** ISO 串或 Date → ISO 串；认不出的为 null。 */
@@ -367,19 +440,21 @@ export function intakeArticles(articles: readonly unknown[], opts: OnsiteIntakeO
   const retrieved_at = opts.retrieved_at ?? new Date().toISOString()
   const records: EvidenceRecord[] = []
   const references = new Map<string, string[]>()
+  const purposes = new Map<string, Map<string, EvidenceCitationPurpose>>()
   const issues: Array<{ article_id: string | null; issues: EvidenceIntakeIssue[] }> = []
   for (const a of articles) {
     const r = intakeArticle(a, { ...opts, retrieved_at })
     if (r.record) {
       records.push(r.record)
       if (r.references.length > 0) references.set(r.record.id, r.references)
+      if (r.purposes && r.purposes.size > 0) purposes.set(r.record.id, r.purposes)
     }
     if (r.issues.length > 0) {
       const id = a && typeof a === 'object' ? (a as { id?: unknown }).id : null
       issues.push({ article_id: typeof id === 'string' || typeof id === 'number' ? String(id) : null, issues: r.issues })
     }
   }
-  return { records, references, issues }
+  return { records, references, purposes, issues }
 }
 
 // ── 站内维度注册表 ─────────────────────────────────────────────────────────────
@@ -577,6 +652,8 @@ export interface RecordEdgeOptions {
   minSharedTags?: number
   /** 同标签边最多几条（按共有标签数从多到少取）；引用边不设上限。缺省 200 */
   maxSharedTagEdges?: number
+  /** 申报过的引用用途：记录 id → 归一化 DOI → 用途（`intakeArticles` 的 `purposes`；0.5.0）。连上的引用边带上它 */
+  purposes?: ReadonlyMap<string, ReadonlyMap<string, EvidenceCitationPurpose>>
 }
 
 /**
@@ -585,6 +662,7 @@ export interface RecordEdgeOptions {
  *     外部记录自带的 `cites`（0.4.0 起，外部源的引用列表）指向这批里的记录时也连；
  *   · `shares_tag`：两篇站内文章除焦点标签外还共有标签——是**共现**，不是引用、不是合作（图注 `cooccurrence_not_citation`）。
  * `references` 是 intake 给出的「记录 id → 归一化 DOI 列表」。边按确定的次序输出，同一对只出一条。
+ * 引用边的 `purpose` 只来自申报（`opts.purposes`）：外部源给的引用列表不带用途，引擎也不从文字里猜。
  */
 export function buildRecordEdges(
   records: readonly EvidenceRecord[], references: ReadonlyMap<string, readonly string[]>, opts: RecordEdgeOptions = {},
@@ -600,14 +678,15 @@ export function buildRecordEdges(
   const edges: EvidenceEdge[] = []
   const seen = new Set<string>()
   const ids = new Set(records.map((r) => r.id))
-  const cite = (from: string, to: string) => {
+  const cite = (from: string, to: string, purpose?: EvidenceCitationPurpose) => {
     const id = `${from}\u0000${to}\u0000cites`
     if (to === from || seen.has(id)) return
     seen.add(id)
-    edges.push({ from, to, kind: 'cites' })
+    edges.push(purpose ? { from, to, kind: 'cites', purpose: { functions: [...purpose.functions], declared_by: purpose.declared_by } } : { from, to, kind: 'cites' })
   }
   for (const r of records) {
-    for (const d of references.get(r.id) ?? []) for (const to of byDoi.get(d) ?? []) cite(r.id, to)
+    const declared = opts.purposes?.get(r.id)
+    for (const d of references.get(r.id) ?? []) for (const to of byDoi.get(d) ?? []) cite(r.id, to, declared?.get(d))
     for (const to of r.cites ?? []) if (ids.has(to)) cite(r.id, to)
   }
   const focus = new Set(opts.focusKeys ?? [])

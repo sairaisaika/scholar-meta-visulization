@@ -277,6 +277,29 @@ button.chip:hover { border-color: var(--series-1); }
 .facet .count { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .linkish { border: 0; background: none; padding: 0; color: var(--series-1); cursor: pointer; text-align: left; font-size: inherit; }
 .linkish:hover { text-decoration: underline; }
+/* 引用为什么引、一篇文章的位置（0.5.0）：用途只靠文字区分，不靠颜色（色觉友好）；没说明的用虚线框 */
+.work-meta .kind { display: inline-block; font-size: 12px; line-height: 1.5; border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; margin-right: 8px; color: var(--text-primary); background: var(--surface); }
+.ctx { margin-top: 6px; font-size: 13px; }
+.ctx > summary { cursor: pointer; color: var(--series-1); }
+.ctx > summary .work-links { color: var(--text-secondary); }
+.ctx-card { margin-top: 6px; padding: 6px 0 4px 12px; border-left: 3px solid var(--grid); display: grid; gap: 8px; }
+.ctx-card p, .cite-legend p { margin: 0; }
+.ctx-kind, .ctx-adv, .ctx-h { font-weight: 600; }
+.ctx-h { font-size: 13px; margin: 0 0 2px; }
+.ctx-links ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ctx-links li { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.ctx-other { overflow-wrap: anywhere; }
+.purposes { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.purpose { font-size: 12px; line-height: 1.6; border: 1px solid var(--text-secondary); border-radius: 4px; padding: 0 6px; color: var(--text-primary); background: var(--surface); }
+.purpose.none { border-style: dashed; color: var(--text-secondary); }
+.purpose .count { margin-left: 6px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.declared { font-size: 12px; color: var(--text-secondary); }
+.meanings { margin: 4px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px; }
+.meanings dt { font-weight: 600; }
+.meanings dd { margin: 0; color: var(--text-secondary); }
+.ctx-notes { margin: 0; padding-left: 18px; }
+.cite-legend { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--grid); display: grid; gap: 6px; }
+
 .caveats { margin: 16px 0 4px; padding-left: 18px; }
 .caveats li + li { margin-top: 2px; }
 
@@ -290,4 +313,6 @@ footer { margin-top: 8px; }
   .explore-grid { grid-template-columns: 1fr; }
   .explore .gate-help { margin-left: 0; }
   .facts div { grid-template-columns: 1fr; gap: 0; }
+  .meanings { grid-template-columns: 1fr; gap: 0; }
+  .meanings dd { margin-bottom: 6px; }
 }

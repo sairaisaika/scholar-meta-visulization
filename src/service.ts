@@ -21,7 +21,7 @@
  *   · 宿主缓存抛错只记日志、照常取数；日志里只有键的种类，不含读者信息。
  */
 import type {
-  EvidenceCaveat, EvidenceSettings,
+  EvidenceCaveat, EvidenceCitationPurpose, EvidenceSettings,
   EvidenceBindingQueueItem, EvidenceBindingSuggestion, EvidenceCountScope, EvidenceCountsData, EvidenceMapData, EvidenceOnsiteCounts, EvidenceProvenance,
   EvidenceRecord, EvidenceTagBinding, EvidenceTagGraph, EvidenceTopic, EvidenceWorkTag, EvidenceCertainty, EvidenceScaleLevel,
 } from './types'
@@ -276,7 +276,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       if (applyWorkTags(records, ledger.decisions, { mode: ledger.mode }).stats.model_decided > 0) tagCaveats.push('model_decided_tags')
       if (ledger.disputed) tagCaveats.push('disputed_tags_excluded')
     }
-    return { records, references: out.references, tagCaveats, pending }
+    return { records, references: out.references, purposes: out.purposes, tagCaveats, pending }
   }
   /** 开了审阅门槛才下发「还有几篇在等」 */
   const pendingField = <K extends string>(key: K, pending: number | undefined) =>
@@ -362,7 +362,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       const c = await cfg()
       const key = normalizeTag(tag)
       if (!key) return fail('invalid_input')
-      const { records: onsite, references, pending } = await onsiteRecords(c, [key])
+      const { records: onsite, references, purposes, pending } = await onsiteRecords(c, [key])
       const label = groupTags(onsite).find((g) => g.key === key)?.label ?? tag.trim()
       const curated = await safeBinding(key)
       const humanDecided = !!curated && curated.tag_key === key && (curated.kind === 'curated' || curated.kind === 'rejected')
@@ -402,7 +402,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         onsite_only: external.length === 0,
         external_match,
         binding,
-        edges: buildRecordEdges(records, references, { focusKeys: [key] }),
+        edges: buildRecordEdges(records, references, { focusKeys: [key], purposes }),
         ...(certainty !== undefined ? { certainty } : {}),
         ...pendingField('onsite_pending', pending),
       })
@@ -420,6 +420,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       const topicId = `${ext.id}:${externalId}`
       let onsite: EvidenceRecord[] = []
       let references: ReadonlyMap<string, readonly string[]> = new Map()
+      let purposes: ReadonlyMap<string, ReadonlyMap<string, EvidenceCitationPurpose>> = new Map()
       let keys: string[] = []
       let pending: number | undefined
       // 往里一层：上级三级问外部树；主题往里是编辑绑到它的站内标签（篇数＝带这个标签的站内文章，与图谱同一批）
@@ -428,7 +429,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       if (level === 'topic') {
         const bound = await curatedKeysForTopic(topicId)
         keys = bound ?? []
-        if (keys.length > 0) ({ records: onsite, references, pending } = await onsiteRecords(c, keys))
+        if (keys.length > 0) ({ records: onsite, references, purposes, pending } = await onsiteRecords(c, keys))
         else if (c.reviewGate === 'reviewed_only') pending = 0
         if (store) {
           const groups = new Map(groupTags(onsite).map((g) => [g.key, g]))
@@ -451,7 +452,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
         onsite_only: !s,
         external_match: s ? 'matched' : 'unavailable',
         binding: null,
-        edges: buildRecordEdges(records, references, { focusKeys: keys }),
+        edges: buildRecordEdges(records, references, { focusKeys: keys, purposes }),
         ...(certainty !== undefined ? { certainty } : {}),
         ...(children !== undefined ? { children } : {}),
         ...(childrenPartial ? { children_partial: true } : {}),

@@ -14,6 +14,7 @@ import type {
   EvidenceStudyDesign, EvidenceViewKind, OnsiteDimensionId,
   EvidenceChangeRequestStatus, EvidenceContributionIssueCode, EvidenceLedgerRefusal, EvidencePluginSecretKey, EvidenceTrustTier,
   EvidenceWorkTagState, EvidenceRobTool, EvidenceRobJudgement, EvidenceCertaintyLevel, EvidenceCertaintyDowngrade, EvidenceCertaintyUpgrade,
+  EvidenceCitationDeclarer, EvidenceCitationFunction,
 } from './types'
 import type { ShareReliability } from './stats'
 import type { EvidenceRobBand } from './appraisal'
@@ -89,6 +90,24 @@ export interface EvidenceMessageTemplates {
   facet_more: string
   /** 审阅门槛：还有几篇在等（0.4.0） */
   onsite_pending: string
+  /** 引用为什么引、一篇文章在这批里的位置（0.5.0） */
+  link_declared: string
+  link_undeclared: string
+  links_undeclared: string
+  links_machine: string
+  legend_count: string
+  ctx_design: string
+  ctx_type: string
+  ctx_topics: string
+  ctx_rank: string
+  ctx_cites_title: string
+  ctx_cited_by_title: string
+  ctx_advances: string
+  ctx_advances_part: string
+  ctx_overlap: string
+  ctx_none: string
+  ctx_scope_note: string
+  ctx_citations_note: string
 }
 
 export interface EvidenceMessageCatalog {
@@ -137,6 +156,20 @@ export interface EvidenceMessageCatalog {
   }
   /** 作品发表来源的类型（外部源的原文是开放词表：这里没有的回落到原文；0.4.0） */
   venueType: Record<string, string>
+  /**
+   * 引用的用途（0.5.0）：`label` 短名；`phrase` 用在整句「A 引用 B：…」里（主语是施引的那篇，「它」指被引的那篇）；
+   * `meaning` 给普通读者的一句白话——这条引用推进了什么；`declarer` 是谁标的。
+   */
+  citation: {
+    label: Record<EvidenceCitationFunction, string>
+    phrase: Record<EvidenceCitationFunction, string>
+    meaning: Record<EvidenceCitationFunction, string>
+    declarer: Record<EvidenceCitationDeclarer, string>
+  }
+  /** 研究设计的白话：它能回答什么、不能回答什么（0.5.0） */
+  studyDesignMeaning: Record<EvidenceStudyDesign, string>
+  /** 出版物形态的白话（外部源的原文是开放词表：这里没有的不给说明；0.5.0） */
+  publicationTypeMeaning: Record<string, string>
   text: EvidenceMessageTemplates
 }
 
@@ -153,6 +186,38 @@ const PUBLICATION_TYPES_EN: Record<string, string> = {
   dataset: 'Dataset', editorial: 'Editorial', letter: 'Letter', erratum: 'Erratum', paratext: 'Paratext', report: 'Report', other: 'Other',
   'peer-review': 'Peer review', standard: 'Standard', 'reference-entry': 'Reference entry', 'supplementary-materials': 'Supplementary materials',
   commentary: 'Commentary',
+}
+
+// 出版物形态的白话：只写常见的几种，外部源的新形态没有说明（不猜）
+const PUBLICATION_TYPE_MEANINGS_ZH: Record<string, string> = {
+  article: '正式发表的文章。文献库不记录它用的是什么研究设计（试验、调查还是访谈），要看原文的方法部分。',
+  review: '综述：把已有研究汇总起来看，不是新做的研究；适合先了解全貌。',
+  preprint: '预印本：还没有经过同行评审，正式发表前结论可能改动。',
+  'book-chapter': '书中的一章：篇幅长、讨论面广，评审方式因出版社而异。',
+  book: '专著：篇幅长、讨论面广，评审方式因出版社而异。',
+  dissertation: '学位论文：博士或硕士研究的完整报告，通常没有经过期刊的同行评审。',
+  dataset: '数据集：研究数据本身，别的研究可以拿去再用。',
+  editorial: '社论：期刊编辑的观点文章，不是研究。',
+  letter: '通信：简短的评论或短报告，常常是回应别的文章。',
+  erratum: '勘误：更正已发表文章里的错误。',
+  report: '报告：机构或项目发布的文件，通常不经过期刊的同行评审。',
+  'peer-review': '同行评议意见：审稿人对一篇稿件的评审意见。',
+  commentary: '评论：对别的研究或话题的看法，不是新的研究。',
+}
+const PUBLICATION_TYPE_MEANINGS_EN: Record<string, string> = {
+  article: 'A formally published article. The index does not record its study design (trial, survey, interviews…); see its methods section.',
+  review: 'A review: it pulls together existing research rather than reporting a new study, so it is a good way to see the overall picture.',
+  preprint: 'A preprint: not yet peer reviewed, and its findings may change before formal publication.',
+  'book-chapter': 'A book chapter: longer and broader; how it was reviewed depends on the publisher.',
+  book: 'A book: longer and broader; how it was reviewed depends on the publisher.',
+  dissertation: 'A dissertation: the full report of a doctoral or master’s project, usually not peer reviewed by a journal.',
+  dataset: 'A dataset: the research data itself, which other studies can reuse.',
+  editorial: 'An editorial: an opinion piece by the journal’s editors, not a study.',
+  letter: 'A letter: a short comment or brief report, often responding to another article.',
+  erratum: 'An erratum: a correction to a published article.',
+  report: 'A report issued by an organisation or project, usually not peer reviewed by a journal.',
+  'peer-review': 'A peer-review report: a reviewer’s comments on a manuscript.',
+  commentary: 'A commentary: a view on other research or a topic, not a new study.',
 }
 
 const zh: EvidenceMessageCatalog = {
@@ -277,6 +342,7 @@ const zh: EvidenceMessageCatalog = {
     rob_judgement_invalid: '偏倚风险的总体判断不是这种工具的档位，已忽略。',
     rob_source_missing: '偏倚风险没写是谁评的，已忽略（读者要能看到这个判断从哪来）。',
     awaiting_review: '这篇文章还没有通过审阅，审阅之后才计入标签与研究图谱。',
+    unknown_citation_function: '有的参考文献标的引用用途认不出（用途只收 background、uses_method、uses_data、extends、replicates、confirms、disputes、reviews 或对应的 CiTO 名称；标注人只收 author、editor、machine），这几个用途已忽略，参考文献照收。',
   },
   studyDesign: {
     rct: '随机对照试验', non_randomised_controlled: '非随机对照研究', cohort: '队列研究', case_control: '病例对照研究',
@@ -404,6 +470,42 @@ const zh: EvidenceMessageCatalog = {
     journal: '期刊', repository: '知识库 / 预印本库', conference: '会议', 'ebook platform': '电子书平台', 'book series': '丛书',
     metadata: '元数据库', other: '其他',
   },
+  citation: {
+    label: {
+      background: '背景', uses_method: '用了方法', uses_data: '用了数据', extends: '往前推进',
+      replicates: '重复验证', confirms: '结果一致', disputes: '结果不一致', reviews: '综述',
+    },
+    phrase: {
+      background: '把它当作背景', uses_method: '用了它的方法或工具', uses_data: '用了它的数据', extends: '在它的基础上往前推进',
+      replicates: '重复了它的研究', confirms: '结果与它一致', disputes: '结果与它不一致或对它提出质疑', reviews: '把它纳入综述',
+    },
+    meaning: {
+      background: '交代背景：说明这个问题以前有人研究过。这是最常见的引用，本身不推进结论，也不说明两篇的结论一致不一致。',
+      uses_method: '推进的是方法：它提出或检验过的方法、量表或工具，被后来的研究拿去实际使用了。',
+      uses_data: '推进的是数据的再利用：同一批数据被拿去回答新的问题。',
+      extends: '推进的是结论本身：在它的发现上再往前走一步——换一群人、加一个条件，或者回答它留下的问题。',
+      replicates: '推进的是可靠性：用相同或相近的方法再做一遍，看结果能不能再现（再现了没有，看是否同时标了「结果一致 / 不一致」）。',
+      confirms: '推进的是可信度：又一项研究得到了一致的结果，结论多了一份独立的支持（各自做得好不好仍要另看）。',
+      disputes: '推进的是讨论：得到了不一致的结果或提出了质疑。这是科学的正常部分，不等于它错了，但说明这个问题还没有定论。',
+      reviews: '推进的是整理：把它和同类研究放在一起汇总评价，读综述能看到它在整片研究里的位置。',
+    },
+    declarer: { author: '作者标注', editor: '编辑标注', machine: '机器判读，未经人工核对' },
+  },
+  studyDesignMeaning: {
+    rct: '把参与者随机分到干预组和对照组再比较。这是检验「某个干预有没有效果」最直接的办法；样本小、时间短的试验结论仍可能不稳。',
+    non_randomised_controlled: '有对照组，但不是随机分组。能比较做与不做的差别，可两组本来就可能不一样，因果结论要打折扣。',
+    cohort: '跟踪一群人一段时间，看谁后来出现了什么结果。适合研究风险因素和长期结果；看到的是关联，不一定是因果。',
+    case_control: '拿有某种结果的人和没有的人，回头比较他们过去的经历。适合研究少见的情况；容易受回忆偏差影响，只能看关联。',
+    cross_sectional: '在同一个时间点调查一群人。能描述现状、发现哪些因素一起出现；分不清谁先谁后，回答不了因果。',
+    case_series: '描述几位到几十位病人的情况。能提出新问题、记录少见现象；没有对照组，说明不了效果。',
+    qualitative: '通过访谈、观察等了解人的经历和看法。回答「为什么」「是什么感受」；不用来估计效果有多大。',
+    mixed_methods: '同时用数字和访谈等方法，既看结果也看经历；结论强不强，看各部分各自做得怎样。',
+    systematic_review: '按事先定好的规则检索、筛选并评价一个问题的全部相关研究。比任何单项研究更能看清全貌；质量取决于纳入的研究。',
+    meta_analysis: '把多项研究的数字合起来算一个总体效果，比单项研究更精确；研究之间差别很大时，合起来的数字要谨慎看。',
+    narrative_review: '作者对一个领域的概述，适合入门；没有固定的检索与筛选规则，可能只挑了一部分研究。',
+    other: '其他设计：它能回答什么，要看原文的方法部分。',
+  },
+  publicationTypeMeaning: PUBLICATION_TYPE_MEANINGS_ZH,
   text: {
     footnote: '来源：{source}（{license}），取数于 {date}',
     query: '查询：{query}',
@@ -467,6 +569,23 @@ const zh: EvidenceMessageCatalog = {
     facet_onsite: '在 {n} 篇站内文章里',
     facet_more: '另有 {n} 个',
     onsite_pending: '另有 {n} 篇站内文章在等审阅，审阅之后才计入。',
+    link_declared: '《{from}》引用《{to}》：{purposes}（{declarer}）',
+    link_undeclared: '《{from}》引用《{to}》，没有说明为什么引用。',
+    links_undeclared: '{n} 条引用没有说明为什么引用（引擎不替作者猜）。',
+    links_machine: '有 {n} 条引用的用途是机器判读的，未经人工核对。',
+    legend_count: '{n} 条',
+    ctx_design: '研究设计：{design}',
+    ctx_type: '文献类型：{type}',
+    ctx_topics: '它还涉及：{list}',
+    ctx_rank: '被引 {n} 次，在这里列出的 {k} 篇外部作品里排第 {rank}',
+    ctx_cites_title: '它引用的（它拿这些做了什么）',
+    ctx_cited_by_title: '引用它的（它们拿它做了什么）',
+    ctx_advances: '这里引用它的 {total} 篇里：{parts}。',
+    ctx_overlap: '一篇可以兼有几种用途，所以各项加起来会多于篇数。',
+    ctx_advances_part: '{n} 篇{phrase}',
+    ctx_none: '这一批里没有和它有引用关系的作品。',
+    ctx_scope_note: '只看这一批里的引用：不在这里的文章引用了它、或被它引用，都没有算进来。',
+    ctx_citations_note: '被引次数衡量的是关注度，不是研究质量；它随时间累积，发表早的天然多。',
   },
 }
 
@@ -592,6 +711,7 @@ const en: EvidenceMessageCatalog = {
     rob_judgement_invalid: 'The overall risk-of-bias judgement is not one of this tool’s levels; it was ignored.',
     rob_source_missing: 'The risk-of-bias judgement does not say who made it, so it was ignored (readers need to see where it comes from).',
     awaiting_review: 'This article has not been reviewed yet; it will count towards tags and the evidence map once it has.',
+    unknown_citation_function: 'Some citation purposes on the references were not recognised (purposes: background, uses_method, uses_data, extends, replicates, confirms, disputes, reviews or the matching CiTO names; marked by: author, editor, machine). Those purposes were ignored; the references were kept.',
   },
   studyDesign: {
     rct: 'Randomised controlled trial', non_randomised_controlled: 'Non-randomised controlled study', cohort: 'Cohort study',
@@ -720,6 +840,43 @@ const en: EvidenceMessageCatalog = {
     journal: 'journal', repository: 'repository', conference: 'conference', 'ebook platform': 'e-book platform', 'book series': 'book series',
     metadata: 'metadata', other: 'other',
   },
+  citation: {
+    label: {
+      background: 'Background', uses_method: 'Uses method', uses_data: 'Uses data', extends: 'Builds on',
+      replicates: 'Replicates', confirms: 'Agrees', disputes: 'Disagrees', reviews: 'Reviews',
+    },
+    phrase: {
+      background: 'cites it as background', uses_method: 'uses its method or tool', uses_data: 'uses its data', extends: 'builds on it',
+      replicates: 'repeats its study', confirms: 'finds results consistent with it', disputes: 'finds different results or questions it',
+      reviews: 'includes it in a review',
+    },
+    meaning: {
+      background: 'Sets the scene: shows the question has been studied before. The most common kind of citation; it does not move the findings forward and says nothing about whether the two agree.',
+      uses_method: 'Advances the methods: a method, scale or tool it introduced or tested is being put to work in later research.',
+      uses_data: 'Advances data reuse: the same data are used to answer a new question.',
+      extends: 'Advances the findings themselves: takes them a step further, to a new group of people, an extra condition, or a question it left open.',
+      replicates: 'Advances reliability: repeats it with the same or a similar method to see whether the result holds (whether it did is marked as agrees or disagrees).',
+      confirms: 'Advances confidence: another study found consistent results, one more independent line of support (how well each was done still matters).',
+      disputes: 'Advances the debate: found different results or questioned its conclusions. A normal part of science; it does not mean it was wrong, but the question is not settled.',
+      reviews: 'Advances the overview: weighs it together with similar studies, so a review shows where it sits among the rest.',
+    },
+    declarer: { author: 'marked by the author', editor: 'marked by an editor', machine: 'machine-classified, not checked by a person' },
+  },
+  studyDesignMeaning: {
+    rct: 'Participants are randomly split into a group that gets the intervention and one that does not. The most direct test of whether an intervention works; small or short trials can still mislead.',
+    non_randomised_controlled: 'Has a comparison group, but people were not randomly assigned. It can compare outcomes, but the groups may have differed from the start, so cause and effect is less certain.',
+    cohort: 'Follows a group of people over time to see who develops what. Good for risk factors and long-term outcomes; it shows associations, not necessarily cause and effect.',
+    case_control: 'Compares people with an outcome to people without it, looking back at their past. Useful for rare conditions; prone to recall bias and shows associations only.',
+    cross_sectional: 'A snapshot of a group at one point in time. It describes how common things are and what goes together; it cannot tell what came first, so not cause and effect.',
+    case_series: 'Describes a handful of patients. Good for raising new questions and recording rare events; with no comparison group it cannot show that something works.',
+    qualitative: 'Uses interviews or observation to understand people’s experiences and views. It answers “why” and “what is it like”; it is not designed to measure how big an effect is.',
+    mixed_methods: 'Combines numbers with interviews or observation, looking at both outcomes and experiences; how strong it is depends on each part.',
+    systematic_review: 'Searches for, selects and appraises all the studies on a question by rules set in advance. It shows the bigger picture better than any single study; it is only as good as the studies it includes.',
+    meta_analysis: 'Combines the numbers from several studies into one overall estimate, more precise than any single study; when the studies differ a lot, the pooled number needs care.',
+    narrative_review: 'An expert’s overview of a field, a good way in; without set search rules it may cover only some of the studies.',
+    other: 'Another design: see its methods section for what it can answer.',
+  },
+  publicationTypeMeaning: PUBLICATION_TYPE_MEANINGS_EN,
   text: {
     footnote: 'Source: {source} ({license}), retrieved {date}',
     query: 'Query: {query}',
@@ -783,6 +940,23 @@ const en: EvidenceMessageCatalog = {
     facet_onsite: 'Counted in on-site articles ({n})',
     facet_more: '{n} more',
     onsite_pending: 'On-site articles waiting for review, not counted yet: {n}',
+    link_declared: '“{from}” cites “{to}”: {purposes} ({declarer})',
+    link_undeclared: '“{from}” cites “{to}”; no reason was given.',
+    links_undeclared: 'Citations with no stated reason: {n} (the engine does not guess).',
+    links_machine: 'Citations whose purpose was machine-classified, not checked by a person: {n}.',
+    legend_count: '{n}',
+    ctx_design: 'Study design: {design}',
+    ctx_type: 'Type: {type}',
+    ctx_topics: 'Also about: {list}',
+    ctx_rank: 'Citations: {n}; rank {rank} of the {k} external works listed here',
+    ctx_cites_title: 'What it cites, and how it uses them',
+    ctx_cited_by_title: 'What cites it, and what they do with it',
+    ctx_advances: 'Works here that cite it: {total}. What they do with it: {parts}.',
+    ctx_overlap: 'One work can do several of these, so the counts can add up to more than the number of works.',
+    ctx_advances_part: '{phrase} ({n})',
+    ctx_none: 'No work in this batch cites it or is cited by it.',
+    ctx_scope_note: 'Only citations within this batch are shown; links to works not listed here are not counted.',
+    ctx_citations_note: 'Citation counts measure attention, not quality, and build up over time, so older works naturally have more.',
   },
 }
 

@@ -3,9 +3,45 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
-## 未发布
+## 0.5.0（2026-10-03）
+
+只有加法，没有破坏性改动：引用**为什么**引（只转述申报的用途、写明是谁标的），以及给普通读者的「一篇文章在这批里的位置」。
+升级步骤见接入指南第 8 节「从 0.4 到 0.5」。
+
+### 新增（契约，加法）
+- `EvidenceEdge.purpose?: EvidenceCitationPurpose`（`{ functions, declared_by }`）：只有 `cites` 边、且有人申报过才有；没有 ⇒ 不知道为什么引，不要猜。
+- `EVIDENCE_CITATION_FUNCTIONS`（background · uses_method · uses_data · extends · replicates · confirms · disputes · reviews，取自 CiTO 最常用的几项）与 `EvidenceCitationFunction`；
+  `EVIDENCE_CITATION_DECLARERS`（author · editor · machine）与 `EvidenceCitationDeclarer`。
+- 入库问题 `unknown_citation_function`：只清掉认不出的用途（或认不出标注人的那条参考文献的用途），参考文献照收。
+- `EVIDENCE_CONTRACT_VERSION = '0.5.0'`。
+
+### 新增（代码）
+- 入库：`OnsiteArticle.references` 的对象形式可以带 `functions`（我们的名字或对应的 CiTO 名称，带不带 `cito:` 前缀、完整 IRI 都认）与 `declared_by`（缺省 author）；
+  `IntakeResult.purposes`（DOI → 用途）、`intakeArticles(...).purposes`（记录 id → DOI → 用途）。同一条参考文献写了两次、同一个人标的用途合起来。
+- `buildRecordEdges(records, references, { purposes })`：连上的引用边带上申报的用途（拷贝）；外部源给的引用不带。服务层的标签图谱与主题图谱把站内文章申报的用途一路带到边上。
+- 展示：`presentCitations(map)`——每条引用一句「《A》引用《B》：用了它的方法或工具（作者标注）」、这批里用到的用途的图例（短名、几条、推进了什么的白话）、没说明的与机器判读的各几条；
+  `presentArticleContext(map, recordId)`——一篇文章的卡片：它是什么研究、这种研究能回答什么（站内申报的研究设计优先，其次出版物形态），它引用了谁、谁引用了它（写明用途的在前）、
+  一句「这里引用它的 n 篇里：…」、用到的用途的白话、注意事项（没说明的几条、机器判读的几条、一篇兼有几种用途、只看这一批、被引次数衡量的是关注度）；被引次数只在这批外部作品里排名。
+  线上来的用途在展示端再验一遍形，认不出的当作没申报。
+- `presentWorks` 每行多 `kind_label` / `kind_text` / `kind_hint`。
+- 词典：`citation`（`label` / `phrase` / `meaning` / `declarer`）、`studyDesignMeaning`（十二种研究设计各能回答什么、不能回答什么）、`publicationTypeMeaning`（常见出版物形态的白话）三节，
+  以及引用与文章位置的模板（中英）。
+- 功能登记：`citation_purpose`（`buildRecordEdges` → `presentCitations`）、`article_context`（`service.getTagMap` → `presentArticleContext`）。
+
+### 公开接口
+- 主入口新增导出：`EVIDENCE_CITATION_FUNCTIONS`、`EVIDENCE_CITATION_DECLARERS`、`presentCitations`、`presentArticleContext`。没有删除。
+
+### 行为变化
+- `presentWorks` 的每一行多了 `kind_label` / `kind_text` / `kind_hint` 三个字段（外部作品按出版物形态，比如「文献类型：论文」与一句白话）；其余输出不变。
+- 站内文章在参考文献里申报了用途时，`getTagMap` / `getNodeMap` 下发的引用边多一个 `purpose` 字段；没申报时边的形状与 0.4.0 相同。
+- 行为快照多一组：申报的用途随边下发、没申报的明说、设计与形态的白话（`test/regression.test.ts`）。
+
+### 演示
+- 下钻一节：每篇文章可以展开「它是什么研究、和这里的文章怎么联系」；作品清单下面是这批引用的用途图例（几条、没说明的几条、各推进了什么）。
+  用途只靠文字区分、没说明的用虚线框，不靠颜色。演示数据里的站内文章申报了研究设计和参考文献的用途（作者、编辑、机器三种都有），多了一篇综述与一篇预印本。
 
 ### 文档
+- 接入指南：第 1 节参考文献一行、第 4 节「引用为什么引、一篇文章的位置」、第 8 节「从 0.4 到 0.5」；架构文档功能表多两行。
 - README「额度、隐私与已知限制」：子领域 / 领域 / 大类实体、按 DOI 批量查、往里一层与作品细节都已由 `live` 工作流对真实 API 核过（2026-10-02 全部通过），去掉「尚未实测」；写明期刊只在示例里数。
 
 ## 0.4.0（2026-10-02）

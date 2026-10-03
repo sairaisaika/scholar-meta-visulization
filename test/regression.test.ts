@@ -1,7 +1,7 @@
 /**
  * 行为回归快照：固定输入走一遍主要入口，把输出钉进快照（`test/__snapshots__/regression.test.ts.snap`）。
  * ─────────────────────────────────────────────────────────────────────────────
- * 别的测试各钉一条规则；这里钉的是「整体行为」——判据、文案、数字格式、验形、绑定、站内层、共现图、服务端到端、下钻。
+ * 别的测试各钉一条规则；这里钉的是「整体行为」——判据、文案、数字格式、验形、绑定、站内层、共现图、服务端到端、下钻、引用为什么引与文章的位置。
  * 接入方升级时最怕的是「接口没变、结果悄悄变了」：这份快照一变，CI 当场红，改动的人必须
  *   ① 确认是有意的改动，`pnpm jest -u test/regression.test.ts` 更新快照并检查差异；
  *   ② 在 CHANGELOG 这一版里写明行为变了什么（CONTRIBUTING 第三节）。
@@ -13,7 +13,9 @@ import { chartAvailabilityFor, type ChartShape } from '../src/charts'
 import { intakeArticle } from '../src/onsite'
 import { buildTagGraph, countOnsiteLayer } from '../src/onsite'
 import { normalizeTag, pickMachineCandidate, resolveTagBinding } from '../src/tags'
-import { presentEvidenceMap, presentNodeChildren, presentRecordFacets, presentRiskOfBiasSummary, presentView, presentWorks } from '../src/present'
+import {
+  presentArticleContext, presentCitations, presentEvidenceMap, presentNodeChildren, presentRecordFacets, presentRiskOfBiasSummary, presentView, presentWorks,
+} from '../src/present'
 import { poolRandomEffects, wilsonInterval } from '../src/stats'
 import { createEvidenceService } from '../src/service'
 import { createMemoryBindingStore, createMemoryCertaintySource, createMemoryOnsiteSource } from '../src/ports'
@@ -229,5 +231,48 @@ describe('行为回归快照', () => {
     })
     expect(stable({ subfield: { children: sub.data.children, partial: sub.data.children_partial ?? null }, topic: { children: topic.data.children, edges: topic.data.edges }, zh: views('zh'), en: views('en') }))
       .toMatchSnapshot()
+  })
+
+  it('服务端到端：引用为什么引与一篇文章的位置（0.5.0）——申报的用途随边下发、没申报的明说、设计与形态的白话', async () => {
+    const work = (id: string, over: Partial<EvidenceRecord>): EvidenceRecord => ({
+      id: `openalex:${id}`, source: 'openalex', external_id: id, title: `Work ${id}`, year: 2015, authors: ['A. Author'],
+      doi: `https://doi.org/10.1000/${id.toLowerCase()}`, url: `https://doi.org/10.1000/${id.toLowerCase()}`, topic_ids: [], study_type: null, publication_type: 'article',
+      self_reported_claim: null, direction: null, effect: null, cited_by_count: 1000, is_retracted: false, is_open_access: false,
+      provenance: { source_label: 'OpenAlex', license: 'CC0 1.0', retrieved_at: AT }, ...over,
+    })
+    const topic: EvidenceTopic = { id: 'openalex:T8', source: 'openalex', external_id: 'T8', level: 'topic', display_name: 'Sleep', description: null, parent_id: null, works_count: 900 }
+    const ext: ExternalEvidenceSource = {
+      id: 'openalex',
+      async suggestTopics() { return [] },
+      async nodeBundle() { return { node: topic, ancestors: [], siblings: [] } },
+      async sampleWorks() {
+        return [
+          work('W1', { cited_by_count: 5000 }),
+          work('W2', { publication_type: 'review', cited_by_count: 800, cites: ['openalex:W1'] }),
+          work('W3', { publication_type: 'preprint', cited_by_count: null }),
+        ]
+      },
+    }
+    const articles = [
+      { id: 1, title: 'A', tags: ['sleep'], study_design: 'rct', doi: '10.1000/site.a', references: [
+        { doi: '10.1000/w1', functions: ['cito:extends', 'confirms'] }, { doi: '10.1000/w3', functions: ['uses_data'], declared_by: 'editor' }, '10.1000/w2',
+      ] },
+      { id: 2, title: 'B', tags: ['sleep'], study_design: 'qualitative', references: [
+        { doi: '10.1000/site.a', functions: ['disputes'], declared_by: 'machine' }, { doi: '10.1000/w1', functions: ['nonsense'] },
+      ] },
+    ]
+    const bindings = createMemoryBindingStore()
+    const service = createEvidenceService({
+      onsite: createMemoryOnsiteSource(articles), external: ext, bindings, now: () => new Date(AT), log: () => {}, onsiteLabel: 'Site', onsiteLicense: 'CC BY 4.0',
+    })
+    await service.curate({ tag: 'sleep', topic_id: 'openalex:T8', by: 'editor' })
+    const map = await service.getTagMap('sleep')
+    if (!map.ok) throw new Error('unavailable')
+    const views = (locale: string) => ({
+      citations: presentCitations(map.data, { locale }),
+      contexts: ['onsite:1', 'openalex:W1', 'openalex:W3'].map((id) => presentArticleContext(map.data, id, { locale })),
+      kinds: presentWorks(map.data, { locale }).map((w) => [w.id, w.kind_text]),
+    })
+    expect(stable({ edges: map.data.edges, zh: views('zh'), en: views('en') })).toMatchSnapshot()
   })
 })

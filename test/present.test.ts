@@ -8,7 +8,8 @@
  *   ⑥ 共现图：节点面积 ∝ 计数、边强度用 lift、线宽用计数；折叠数写进图注；
  *   ⑦ 下钻（0.4.0）：往里一层只给相对长度不给占比、三种「没有」分开说；作品清单的期刊 / 免费链接 / 别的主题与标签 / 同批引用；
  *      「还挂着什么」只在这批里数、不列焦点自己；
- *   ⑧ 审阅门槛（0.4.0）：有在等审阅的才说一句，没有或没开门槛时什么都不说。
+ *   ⑧ 审阅门槛（0.4.0）：有在等审阅的才说一句，没有或没开门槛时什么都不说；
+ *   ⑦ 里还有 0.5.0 的引用为什么引（只转述申报的、没申报的明说）与一篇文章的位置（是什么研究、推进了什么、只看这一批）。
  */
 import {
   EVIDENCE_MESSAGES, getMessages, mergeMessages, formatMessage, placeholders, BINDING_BADGES,
@@ -17,14 +18,14 @@ import type { EvidenceMessageCatalog } from '../src/messages'
 import {
   presentSeries, presentChartMenu, presentView, presentBinding, presentEvidenceMap, presentTagGraph, presentIntakeIssues,
   presentBindingSuggestions, presentCounts, formatProvenance, effectDecimals, presentNodeChildren, presentWorks, presentRecordFacets,
-  presentOnsiteCounts,
+  presentOnsiteCounts, presentCitations, presentArticleContext,
 } from '../src/present'
 import {
   EVIDENCE_CAVEATS, EVIDENCE_CHART_BLOCKERS, EVIDENCE_CHART_KINDS, EVIDENCE_DOWNGRADE_REASONS, EVIDENCE_EXTERNAL_MATCHES,
   EVIDENCE_INTAKE_ISSUES, EVIDENCE_POOLING_REASONS, EVIDENCE_STUDY_DESIGNS, EVIDENCE_DIMENSION_IDS, ONSITE_DIMENSION_IDS,
-  EVIDENCE_DENOMINATOR_KINDS, EVIDENCE_EFFECT_METRICS,
+  EVIDENCE_DENOMINATOR_KINDS, EVIDENCE_EFFECT_METRICS, EVIDENCE_CITATION_FUNCTIONS, EVIDENCE_CITATION_DECLARERS,
 } from '../src/types'
-import type { EvidenceCountSeries, EvidenceMapData, EvidenceRecord, EvidenceTopic } from '../src/types'
+import type { EvidenceCitationPurpose, EvidenceCountSeries, EvidenceMapData, EvidenceRecord, EvidenceTopic } from '../src/types'
 import { chartAvailability } from '../src/charts'
 import { buildTagGraph, countOnsiteLayer, intakeArticle } from '../src/onsite'
 import { SHARE_RELIABILITIES } from '../src/stats'
@@ -39,13 +40,21 @@ describe('词典', () => {
     ['downgrade', EVIDENCE_DOWNGRADE_REASONS], ['pooling', EVIDENCE_POOLING_REASONS], ['external', EVIDENCE_EXTERNAL_MATCHES],
     ['intake', EVIDENCE_INTAKE_ISSUES], ['studyDesign', EVIDENCE_STUDY_DESIGNS], ['binding', BINDING_BADGES],
     ['dimension', [...EVIDENCE_DIMENSION_IDS, ...ONSITE_DIMENSION_IDS]], ['denominator', EVIDENCE_DENOMINATOR_KINDS],
-    ['metric', EVIDENCE_EFFECT_METRICS], ['reliability', SHARE_RELIABILITIES],
+    ['metric', EVIDENCE_EFFECT_METRICS], ['reliability', SHARE_RELIABILITIES], ['studyDesignMeaning', EVIDENCE_STUDY_DESIGNS],
   ]
   it.each(Object.keys(EVIDENCE_MESSAGES))('%s：每个契约键都有非空的一句', (locale) => {
     const cat = EVIDENCE_MESSAGES[locale as 'zh' | 'en'] as unknown as Record<string, Record<string, string>>
     for (const [section, keys] of sections) {
       for (const k of keys) expect([section, k, (cat[section][k] ?? '').trim().length > 0]).toEqual([section, k, true])
     }
+  })
+  it.each(Object.keys(EVIDENCE_MESSAGES))('%s：引用用途的四节每个键都有一句（0.5.0）', (locale) => {
+    const { citation } = EVIDENCE_MESSAGES[locale as 'zh' | 'en']
+    for (const part of ['label', 'phrase', 'meaning'] as const) {
+      for (const f of EVIDENCE_CITATION_FUNCTIONS) expect([part, f, citation[part][f]?.trim().length > 0]).toEqual([part, f, true])
+    }
+    for (const d of EVIDENCE_CITATION_DECLARERS) expect([d, citation.declarer[d]?.trim().length > 0]).toEqual([d, true])
+    expect(Object.keys(EVIDENCE_MESSAGES.zh.publicationTypeMeaning).sort()).toEqual(Object.keys(EVIDENCE_MESSAGES.en.publicationTypeMeaning).sort())
   })
   it('中英两份模板的占位符集合相同（逐节逐键）', () => {
     const zh = EVIDENCE_MESSAGES.zh as unknown as Record<string, Record<string, unknown>>
@@ -360,6 +369,75 @@ describe('⑦ 下钻（0.4.0）', () => {
     expect([topicMap.topics.rows, topicMap.topics.base_text, topicMap.venues.base_text]).toEqual([[], null, null])
     expect(topicMap.tags.base_text).toBe('Counted in on-site articles (2)')
     expect(topicMap.caveats.map((c) => c.key)).toEqual(['multi_label'])
+  })
+
+  // 0.5.0：一篇站内文章（申报了设计）引用两篇外部作品；外部作品之间有一条机器判读的、一条没说明的
+  const purposeMap = () => base({
+    records: [
+      intakeArticle({ id: 'a', title: 'Mine', study_design: 'rct', tags: ['Sleep'] }, { retrieved_at: at, source_label: 'Site', license: 'CC BY 4.0' }).record!,
+      work('W1', { publication_type: 'review' }), work('W2', { publication_type: 'preprint', cited_by_count: 50 }), work('W3', { publication_type: 'mystery', cited_by_count: null }),
+    ],
+    edges: [
+      { from: 'onsite:a', to: 'openalex:W1', kind: 'cites', purpose: { functions: ['uses_method', 'confirms'], declared_by: 'author' } },
+      { from: 'openalex:W2', to: 'openalex:W1', kind: 'cites', purpose: { functions: ['disputes'], declared_by: 'machine' } },
+      { from: 'openalex:W3', to: 'openalex:W1', kind: 'cites' },
+      // 线上来的坏用途（读口只验骨架）：认不出 ⇒ 当作没申报
+      { from: 'onsite:a', to: 'openalex:W2', kind: 'cites', purpose: { functions: ['made_up'], declared_by: 'author' } as unknown as EvidenceCitationPurpose },
+      { from: 'onsite:a', to: 'openalex:W3', kind: 'shares_tag' },
+    ],
+  })
+
+  it('引用为什么引（0.5.0）：一条一句、谁标的；图例只列用到的；没申报的明说；坏用途当作没申报', () => {
+    const v = presentCitations(purposeMap(), { locale: 'zh' })
+    expect(v.links.map((l) => l.text)).toEqual([
+      '《Mine》引用《Work W1》：用了它的方法或工具、结果与它一致（作者标注）',
+      '《Work W2》引用《Work W1》：结果与它不一致或对它提出质疑（机器判读，未经人工核对）',
+      '《Work W3》引用《Work W1》，没有说明为什么引用。',
+      '《Mine》引用《Work W2》，没有说明为什么引用。',
+    ])
+    expect(v.links[0]).toMatchObject({ functions: ['uses_method', 'confirms'], labels: ['用了方法', '结果一致'], declared_by: 'author', declared_text: '作者标注' })
+    expect(v.links[3]).toMatchObject({ functions: [], labels: [], declared_by: null, declared_text: null })
+    expect(v.legend.map((r) => [r.function, r.label, r.count_text])).toEqual([['uses_method', '用了方法', '1 条'], ['confirms', '结果一致', '1 条'], ['disputes', '结果不一致', '1 条']])
+    expect(v.legend[0].meaning).toBe(EVIDENCE_MESSAGES.zh.citation.meaning.uses_method)
+    expect([v.undeclared, v.undeclared_text, v.machine_text]).toEqual([2, '2 条引用没有说明为什么引用（引擎不替作者猜）。', '有 1 条引用的用途是机器判读的，未经人工核对。'])
+    expect(presentCitations(purposeMap(), { locale: 'en' }).links[0].text)
+      .toBe('“Mine” cites “Work W1”: uses its method or tool, finds results consistent with it (marked by the author)')
+    expect(presentCitations(base({}))).toEqual({ links: [], legend: [], undeclared: 0, undeclared_text: null, machine_text: null })
+  })
+
+  it('一篇文章的位置（0.5.0）：是什么研究、能回答什么；引用了谁、谁引用了它、推进了什么；只看这一批', () => {
+    const m = purposeMap()
+    const w1 = presentArticleContext(m, 'openalex:W1', { locale: 'zh' })!
+    expect([w1.kind_text, w1.kind_hint]).toEqual(['文献类型：综述', EVIDENCE_MESSAGES.zh.publicationTypeMeaning.review])
+    expect([w1.cites, w1.cited_by.map((l) => l.from)]).toEqual([[], ['onsite:a', 'openalex:W2', 'openalex:W3']])
+    expect(w1.advances_text).toBe('这里引用它的 3 篇里：1 篇用了它的方法或工具、1 篇结果与它一致、1 篇结果与它不一致或对它提出质疑。')
+    expect(w1.rank_text).toBe('被引 1,234 次，在这里列出的 2 篇外部作品里排第 1')
+    expect(w1.notes).toEqual([
+      '1 条引用没有说明为什么引用（引擎不替作者猜）。', '有 1 条引用的用途是机器判读的，未经人工核对。',
+      EVIDENCE_MESSAGES.zh.text.ctx_overlap, // 「用了方法」「结果一致」是同一篇
+      EVIDENCE_MESSAGES.zh.text.ctx_scope_note, EVIDENCE_MESSAGES.zh.text.ctx_citations_note,
+    ])
+    expect(w1.legend.map((r) => r.function)).toEqual(['uses_method', 'confirms', 'disputes'])
+    const mine = presentArticleContext(m, 'onsite:a', { locale: 'zh' })!
+    expect([mine.kind_text, mine.kind_hint, mine.rank_text, mine.advances_text, mine.topics_text])
+      .toEqual(['研究设计：随机对照试验', EVIDENCE_MESSAGES.zh.studyDesignMeaning.rct, null, null, '它还涉及：#Sleep'])
+    expect(mine.cites.map((l) => [l.to, l.labels])).toEqual([['openalex:W1', ['用了方法', '结果一致']], ['openalex:W2', []]])
+    expect([mine.cites_title, mine.cited_by_title]).toEqual([EVIDENCE_MESSAGES.zh.text.ctx_cites_title, EVIDENCE_MESSAGES.zh.text.ctx_cited_by_title])
+    expect(presentArticleContext(m, 'openalex:W1', { locale: 'en' })!.advances_text)
+      .toBe('Works here that cite it: 3. What they do with it: uses its method or tool (1), finds results consistent with it (1), finds different results or questions it (1).')
+    // 没有说明的形态不给说明；文献库没给被引数的不排名；不在这批里 ⇒ null
+    const w3 = presentArticleContext(m, 'openalex:W3', { locale: 'en' })!
+    expect([w3.kind_text, w3.kind_hint, w3.rank_text]).toEqual(['Type: mystery', null, null])
+    expect(presentArticleContext(m, 'openalex:none')).toBeNull()
+    // 写明了用途的排在前面
+    const reordered = presentArticleContext({ ...m, edges: [...m.edges!].reverse() }, 'openalex:W1', { locale: 'zh' })!
+    expect(reordered.cited_by.map((l) => l.from)).toEqual(['openalex:W2', 'onsite:a', 'openalex:W3'])
+    const lonely = presentArticleContext(base({ records: [work('W9')] }), 'openalex:W9', { locale: 'en' })!
+    expect(lonely.notes).toEqual([EVIDENCE_MESSAGES.en.text.ctx_none, EVIDENCE_MESSAGES.en.text.ctx_scope_note])
+    // 作品清单上也有这两句：列表里就能看到它是什么研究
+    expect(presentWorks(m, { locale: 'zh' }).map((w) => w.kind_text)).toEqual(['研究设计：随机对照试验', '文献类型：综述', '文献类型：预印本', '文献类型：mystery'])
+    expect(presentWorks(m, { locale: 'en' }).map((w) => w.kind_label)).toEqual(['Randomised controlled trial', 'Review', 'Preprint', 'mystery'])
+    expect(presentWorks(base({ records: [work('W8')] }))[0]).toMatchObject({ kind_label: null, kind_text: null, kind_hint: null })
   })
 })
 

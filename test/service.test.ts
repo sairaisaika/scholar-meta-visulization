@@ -354,6 +354,21 @@ describe('图谱里的边', () => {
   })
 })
 
+describe('引用为什么引（0.5.0）', () => {
+  it('站内文章在参考文献里申报的用途随引用边下发；没申报的那条照常连，不带用途', async () => {
+    const withRefs = [
+      { id: 1, title: 'A', tags: ['adhd'], references: [{ doi: '10.1000/w1', functions: ['cito:usesMethodIn', 'confirms'] }, '10.1000/w2'] },
+    ]
+    const ext = fakeExternal({ async sampleWorks() { return [{ ...work('W1'), doi: 'https://doi.org/10.1000/W1' }, { ...work('W2'), doi: 'https://doi.org/10.1000/W2' }] } })
+    const service = createEvidenceService({ onsite: createMemoryOnsiteSource(withRefs), external: ext.src, log: () => {} })
+    const r = await service.getTagMap('adhd')
+    expect(r.ok && r.data.edges).toEqual([
+      { from: 'onsite:1', to: 'openalex:W1', kind: 'cites', purpose: { functions: ['uses_method', 'confirms'], declared_by: 'author' } },
+      { from: 'onsite:1', to: 'openalex:W2', kind: 'cites' },
+    ])
+  })
+})
+
 describe('往里一层（0.4.0 下钻）', () => {
   const kid = (level: ExternalLevel, id: string, n: number | null, parent: string) => ({ ...topic(level, id, `${level} ${id}`, parent), works_count: n })
   it('上级三级问外部树并缓存；没取全的照用、标 partial、不写长缓存；没问成 ⇒ null（不是「往里没有」）', async () => {

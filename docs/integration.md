@@ -33,7 +33,7 @@
 | `claim` | 作者自报结果类型 | significant / non_significant / mixed / not_applicable；只当标注，不进合成 |
 | `direction` | 效应方向 | favours / against / unclear / not_applicable；与点估计矛盾会被改为 unclear |
 | `effect` | 效应量：`metric` `value` `ci_low` `ci_high` `n` `p_value` `higher_is_better` | 见 `EVIDENCE_INTAKE_ISSUES`：区间要含点估计、比值 > 0、p 在 (0, 1] …；`value` 可以不填——只有精确 p 与样本量（加上 `direction`）也收，能到信天翁图那一级 |
-| `references` | 参考文献 DOI 列表 | 用来按引用给标签推荐主题 |
+| `references` | 参考文献：DOI 字符串，或 `{ doi, functions?, declared_by? }`（0.5.0 起可以写明为什么引，见第 4 节） | DOI 归一去重，最多 500 条；用来连「引用」边、按引用给标签推荐主题。用途认不出的只清掉那几个（`unknown_citation_function`），参考文献照收 |
 | `reviewed_at` | 审阅时间（ISO 串或 Date；0.4.0） | 认不出的不带；只有开了审阅门槛才看它，见本节最后 |
 | `is_public` · `is_retracted` | | `false` / `true` 的整篇不收 |
 
@@ -243,6 +243,39 @@ if (r.ok) {
 - 成本：往里一层上级三级各 1 credit（同父超过 200 个时每多一页再 1），缓存同缩放包；主题往里的站内标签不出网。示例作品多取了几列，仍是 1 credit。
 - 「这个节点的论文都发在哪些期刊」的全量分布暂不提供：外部源的分组只回前 200 个来源，按引擎的分母规则会算错；`presentRecordFacets` 的期刊一栏只在示例里数，并如实写明。
 
+### 引用为什么引、一篇文章的位置（0.5.0）
+
+「有一条线」对普通读者没有意义；他们想知道的是**这条引用推进了什么**——拿去用了它的方法？在它的基础上往前走？得到了一致或不一致的结果？
+引擎**只转述申报过的用途**，不从标题、摘要或引用位置猜；没申报的明说没申报。
+
+1. **申报**：作者在参考文献里写明用途（编辑也可以补；接了引用意图分类器的，标 `machine`，读者看得到是机器判的）。
+   ```ts
+   references: [
+     { doi: '10.1234/abcd', functions: ['uses_method', 'confirms'] },              // declared_by 缺省 author
+     { doi: '10.5678/efgh', functions: ['cito:extends'], declared_by: 'editor' },  // CiTO 名称也认
+     '10.9999/plain',                                                             // 只有 DOI ＝ 没说明为什么引
+   ]
+   ```
+   用途取 `EVIDENCE_CITATION_FUNCTIONS`：background · uses_method · uses_data · extends · replicates · confirms · disputes · reviews，
+   是 CiTO（Peroni & Shotton 2012，*J Web Semant* 17:33–43，doi:10.1016/j.websem.2012.08.001）里最常用的几项的简化。
+   也认对应的 CiTO 名称（带不带 `cito:` 前缀、完整 IRI 都行）：obtainsBackgroundFrom / citesForInformation / citesAsRelated → background；
+   usesMethodIn → uses_method；usesDataFrom / citesAsDataSource → uses_data；supports → confirms；refutes / disagreesWith → disputes；
+   extends、confirms、disputes、reviews 同名。别的 CiTO 名称（critiques、qualifies 之类意思不落在这八档里的）不收。
+2. **下发**：服务层把用途带到 `map.edges` 里那条 `cites` 边上（`purpose: { functions, declared_by }`）。外部源给的引用列表没有用途，边上也就没有。
+   不用服务门面的接入方：`intakeArticles(...)` 的 `purposes` 交给 `buildRecordEdges(records, references, { purposes })`。
+3. **展示**：
+   ```ts
+   import { presentCitations, presentArticleContext } from 'scholar-meta'
+   const c = presentCitations(map, { locale })               // 每条一句「《A》引用《B》：用了它的方法或工具（作者标注）」+ 这批里用到的用途的图例与白话
+   const card = presentArticleContext(map, recordId, { locale })
+   // card.kind_text / kind_hint：它是什么研究、这种研究能回答什么（站内申报的研究设计优先，其次出版物形态）
+   // card.advances_text：「这里引用它的 3 篇里：2 篇在它的基础上往前推进、1 篇结果与它不一致或对它提出质疑。」
+   // card.cited_by / cites：每条带用途短名、谁标的；card.legend：用到的用途各推进了什么；card.notes：没说明的几条、机器判读的几条、只看这一批、被引次数的意思
+   ```
+   作品清单（`presentWorks`）每行也多了 `kind_label` / `kind_text` / `kind_hint`，列表里就能看出是综述、预印本还是随机对照试验。
+- 用途只靠文字区分，不要只用颜色（色觉友好）；「结果不一致」不是「错了」，词典里的白话已经这么说，别改成红色警告。
+- 卡片只看同一次下发里的作品与引用：这批以外的引用不算（`notes` 里有一句）。被引次数排名只在这批外部作品里排，并说明它衡量的是关注度、随时间累积。
+
 视图模型里已经算好了：百分比（只用声明的分母）、Wilson 区间、`reliability`（分母 < 30 时 `share` 为 null，只画计数）、
 `sum_exceeds_denominator`（为 true 时禁止饼图与 100% 堆叠）、`provisional`（画虚线）、图注与出处。组件只管排版。
 
@@ -348,6 +381,15 @@ export const openalex = createOpenAlexClient({ apiKey: () => process.env.OPENALE
   账本里不放邮箱、真名。这样账号注销时删掉对照表即可，审计链不用改写。
 
 ## 8. 升级
+
+### 从 0.4 到 0.5
+
+- 只有加法：引用边可以带 `purpose`（`EvidenceCitationPurpose`；新常量 `EVIDENCE_CITATION_FUNCTIONS`、`EVIDENCE_CITATION_DECLARERS`）、
+  入库问题 `unknown_citation_function`、`OnsiteArticle.references` 的对象形式可以带 `functions` / `declared_by`、
+  `IntakeResult.purposes`、`intakeArticles(...).purposes`、`buildRecordEdges` 的选项 `purposes`。
+- 新的视图模型：`presentCitations`、`presentArticleContext`；`presentWorks` 每行多 `kind_label` / `kind_text` / `kind_hint`。
+- 自己写词典的：多了 `citation`（`label` / `phrase` / `meaning` / `declarer`）、`studyDesignMeaning`、`publicationTypeMeaning` 三节和一组 `text` 模板——类型会指出哪些没写。
+- 想让读者看到「为什么引」：在参考文献编辑器里让作者（或编辑）给每条参考文献选用途，存下来，映射到 `references` 的对象形式。不填也照常用，只是每条引用都显示「没说明」。
 
 ### 从 0.3 到 0.4
 
