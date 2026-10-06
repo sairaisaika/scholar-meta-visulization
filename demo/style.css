@@ -277,6 +277,26 @@ button.chip:hover { border-color: var(--series-1); }
 .facet .count { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .linkish { border: 0; background: none; padding: 0; color: var(--series-1); cursor: pointer; text-align: left; font-size: inherit; }
 .linkish:hover { text-decoration: underline; }
+/* 这一页的数据从哪来、怎么变成图 */
+.how h3 { margin: 20px 0 8px; }
+.how .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.how .steps li { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--page); }
+.how .steps p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+.how .sources { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.how .source { border-top: 2px solid var(--grid); padding-top: 8px; min-width: 0; }
+.how .source h4 { font-size: 15px; margin: 0; }
+.how .source p { margin: 6px 0 0; font-size: 14px; }
+.how .source .code { color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
+.how .label { display: inline-block; font-size: 12px; line-height: 1.5; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; margin-right: 6px; }
+.how .try { margin-top: 20px; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--page); max-width: 760px; }
+.how .try h3 { margin: 0 0 8px; }
+.how .try-in { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+.how .try-in input { font: inherit; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-primary); width: 16em; max-width: 100%; }
+.how .try-out p { margin: 6px 0 0; font-size: 14px; }
+.how .try-key { font-weight: 600; }
+.how .try .fine { margin: 10px 0 0; }
+.explore .binding-note { margin: -8px 0 12px; max-width: 760px; }
+
 /* 引用为什么引、一篇文章的位置（0.5.0）：用途只靠文字区分，不靠颜色（色觉友好）；没说明的用虚线框 */
 .work-meta .kind { display: inline-block; font-size: 12px; line-height: 1.5; border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; margin-right: 8px; color: var(--text-primary); background: var(--surface); }
 .ctx { margin-top: 6px; font-size: 13px; }
@@ -314,5 +334,6 @@ footer { margin-top: 8px; }
   .explore .gate-help { margin-left: 0; }
   .facts div { grid-template-columns: 1fr; gap: 0; }
   .meanings { grid-template-columns: 1fr; gap: 0; }
+  .how .steps, .how .sources { grid-template-columns: 1fr; }
   .meanings dd { margin-bottom: 6px; }
 }

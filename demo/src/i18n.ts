@@ -16,6 +16,26 @@ export interface DemoText {
   intro: string
   fictional: string
   source: string
+  /** 这一页怎么来的：数据从哪来、怎么打标签、怎么出数据、怎么出图；三块各用什么数据；试一个标签 */
+  how: {
+    title: string
+    lead: string
+    steps: Array<{ name: string; text: string }>
+    sourcesTitle: string
+    sources: Array<{ section: string; href: string; data: string; code: string }>
+    dataLabel: string
+    codeLabel: string
+    tryTitle: string
+    tryLabel: string
+    tryHelp: string
+    tryKey: (key: string) => string
+    tryInvalid: string
+    tryCount: (n: number) => string
+    tryNone: string
+    tryBound: (topic: string) => string
+    tryUnbound: string
+    tryOpen: string
+  }
   ladderTitle: string
   ladderLead: string
   scenarios: Record<ScenarioId, ScenarioText>
@@ -62,6 +82,8 @@ export interface DemoText {
     none: string; fake: string; fakeLink: string
     /** 引用为什么引、一篇文章的位置（0.5.0） */
     ctxOpen: string; citeTitle: string; citeLead: string; undeclaredChip: string; meaningTitle: string
+    /** 为什么主题下面是这几个标签：编辑配的 */
+    bindingNote: (tags: readonly string[], topic: string) => string
   }
   menuTitle: string
   menuLead: string
@@ -85,8 +107,36 @@ export const TEXT: Record<Locale, DemoText> = {
     intro: '这一页在浏览器里直接跑引擎的判据。换一组研究，看它能画到证据阶梯的哪一级、为什么不是更高一级；从大类一路点到文章，看每一层往里有什么、文章发在哪、能不能免费读、互相怎么引用；换一种格子的形状，看哪些图能画、画不了的差在哪。',
     fictional: '所有研究都是虚构的样例，只为演示判据。页面不连网。',
     source: '源码与文档',
+    how: {
+      title: '这一页的数据从哪来、怎么变成图',
+      lead: '页面不连网，所有名字、数字、期刊和链接都是编的；但页面上的每个数、每张图、每句话都由引擎真正的代码算出来，和安装包是同一份源码。整条链分四步：',
+      steps: [
+        { name: '① 数据从哪来', text: '站内文章（作者写的标签、研究设计、效应量、参考文献）、外部文献库（主题树与示例论文）、编辑的决定（标签配哪个主题）。' },
+        { name: '② 怎么打标签', text: '作者随手写的标签先归一（大小写、全半角、# 号都不计较），再由编辑配到外部主题；机器按名字配的会标明「未经确认」。' },
+        { name: '③ 怎么出数据', text: '站内文章先逐篇验形，再按配好的主题去问外部文献库，然后连引用边、按维度计数；比例只用声明的分母，不到 30 篇只给篇数。' },
+        { name: '④ 怎么出图', text: '看每项研究带了哪些字段，选能诚实画的最高一级（证据阶梯）；计数按格子的形状判哪些图能画（图种菜单）。' },
+      ],
+      sourcesTitle: '这一页三块各用什么数据',
+      sources: [
+        { section: '证据阶梯', href: '#ladder-h', data: '6 组编好的研究记录，每组带的字段不同（有没有区间、精确 p、样本量、方向……）；点「表格」能看到每一项。', code: 'pickEvidenceView 判图，poolEvidence 汇总，presentView 出文字' },
+        { section: '下钻', href: '#explore-h', data: '一棵编的分类树、10 篇编的外部论文（代替外部文献库）、6 篇编的站内文章；编辑把其中 3 个标签配到了一个主题。', code: '真正的服务层 createEvidenceService，只把外部文献库换成内存里的这棵树' },
+        { section: '图种菜单', href: '#menu-h', data: '没有研究数据，只有你拨的「格子形状」。真实站点里，形状来自外部文献库的分组计数或站内文章的计数。', code: 'chartAvailabilityFor 判 14 种图，presentChartMenu 出文字' },
+      ],
+      dataLabel: '数据',
+      codeLabel: '代码',
+      tryTitle: '试一试：一个标签怎么归一、配到哪个主题',
+      tryLabel: '输入一个标签',
+      tryHelp: '写法不同的（#CBT-I、cbt-i、ＣＢＴ－Ｉ）归成同一个键；不翻译、不合并同义词，「焦虑」和「anxiety」是两个标签。',
+      tryKey: (key) => `标签键：${key}`,
+      tryInvalid: '空的或太长，不算标签。',
+      tryCount: (n) => `演示里有 ${n} 篇站内文章带它`,
+      tryNone: '演示里没有站内文章带它',
+      tryBound: (topic) => `编辑已把它配到外部主题「${topic}」`,
+      tryUnbound: '还没有编辑给它配主题。真实站点会让机器按名字去外部文献库找候选，并标明「未经确认」；演示不连网，不查。',
+      tryOpen: '在下钻里打开这个标签',
+    },
     ladderTitle: '证据阶梯',
-    ladderLead: '同一套判据，按手上的字段从上往下找：第一级能满足的就是能诚实画到的最高一级。',
+    ladderLead: '同一套判据，按手上的字段从上往下找：第一级能满足的就是能诚实画到的最高一级。只看每项研究带了哪些字段（点「表格」能看到），不看结论显著不显著。',
     scenarios: {
       pooled: { name: '6 项随机对照试验，都有效应量与置信区间', about: '效应量度量相同、结局方向相同、设计相同，而且至少 5 项：可以画汇总菱形。其中一项偏倚风险高，另给去掉它之后的结果。' },
       mixed: { name: '同样的数，但设计混杂', about: '其中两项换成队列研究。森林图照画，但随机与非随机不合并，不画菱形。' },
@@ -155,10 +205,11 @@ export const TEXT: Record<Locale, DemoText> = {
       citeLead: '只转述作者或编辑写明的用途（也可以接机器判读，会标明）。外部文献库不提供用途，没写明的就写「没说明」，引擎不猜。',
       undeclaredChip: '没说明为什么引',
       meaningTitle: '这些用途各推进了什么',
+      bindingNote: (tags, topic) => `为什么这个主题下面是这几个标签：编辑把站内标签${tags.map((x) => `「${x}」`).join('')}配到了主题「${topic}」。其余标签没有编辑配主题，演示里只在站内数。`,
       fakeLink: '演示用的虚构链接',
     },
     menuTitle: '图种菜单',
-    menuLead: '判据只看格子的形状：互斥吗、有几个桶、是不是年份、有没有交叉表或重叠计数。画不了的图不藏起来，灰着并写明差什么。',
+    menuLead: '这里没有研究数据，只有格子的形状。判据只看形状：互斥吗、有几个桶、是不是年份、有没有交叉表或重叠计数。画不了的图不藏起来，灰着并写明差什么。',
     presets: {
       design: '研究设计分布',
       year: '发表年份',
@@ -182,8 +233,36 @@ export const TEXT: Record<Locale, DemoText> = {
     intro: 'This page runs the engine’s rules in your browser. Pick a set of studies to see which rung of the evidence ladder it reaches and why not higher; drill down from a domain to the articles to see what each level contains, where the articles were published, whether they are free to read and how they cite each other; change the shape of a set of counts to see which charts can be drawn and what the others are missing.',
     fictional: 'All studies are fictional examples made up to show the rules. The page makes no network requests.',
     source: 'Source and docs',
+    how: {
+      title: 'Where this page’s data comes from, and how it becomes a chart',
+      lead: 'The page makes no network requests, and every name, number, journal and link is made up; but every number, chart and sentence on it is computed by the engine’s real code, the same source as the installable package. The pipeline has four steps:',
+      steps: [
+        { name: '① Where the data comes from', text: 'On-site articles (authors’ tags, study design, effect sizes, references), an external index (the topic tree and example works) and editors’ decisions (which topic a tag maps to).' },
+        { name: '② How tagging works', text: 'Free-text tags are normalised first (case, full-width characters and # do not matter), then an editor binds them to an external topic; a machine match by name is marked “not confirmed”.' },
+        { name: '③ How the numbers are made', text: 'Each on-site article is validated, the bound topic is looked up in the external index, then citations are linked and counts made by dimension; proportions use only the declared denominator, and below 30 only counts are shown.' },
+        { name: '④ How the chart is chosen', text: 'Look at which fields each study carries and pick the strongest honest chart (the evidence ladder); for counts, their shape decides which charts can be drawn (the chart menu).' },
+      ],
+      sourcesTitle: 'What data each section of this page uses',
+      sources: [
+        { section: 'Evidence ladder', href: '#ladder-h', data: 'Six made-up sets of study records, each carrying different fields (with or without intervals, exact p, sample size, direction…); open “Table” to see every study.', code: 'pickEvidenceView chooses the chart, poolEvidence pools, presentView writes the text' },
+        { section: 'Drill-down', href: '#explore-h', data: 'A made-up taxonomy, 10 made-up external works (standing in for the external index) and 6 made-up on-site articles; an editor has bound 3 of the tags to one topic.', code: 'The real service layer createEvidenceService, with only the external index swapped for this in-memory tree' },
+        { section: 'Chart menu', href: '#menu-h', data: 'No study data, only the “shape of the counts” you set. On a real site the shape comes from the external index’s grouped counts or from counting on-site articles.', code: 'chartAvailabilityFor judges 14 charts, presentChartMenu writes the text' },
+      ],
+      dataLabel: 'Data',
+      codeLabel: 'Code',
+      tryTitle: 'Try it: how a tag is normalised and which topic it maps to',
+      tryLabel: 'Type a tag',
+      tryHelp: 'Different spellings (#CBT-I, cbt-i, ＣＢＴ－Ｉ) become the same key; no translation and no merging of synonyms, so “anxiety” and “焦虑” stay two tags.',
+      tryKey: (key) => `Tag key: ${key}`,
+      tryInvalid: 'Empty or too long: not a tag.',
+      tryCount: (n) => `On-site articles in the demo with this tag: ${n}`,
+      tryNone: 'No on-site article in the demo has this tag',
+      tryBound: (topic) => `An editor has bound it to the external topic “${topic}”`,
+      tryUnbound: 'No editor has bound it to a topic yet. On a real site a machine would look up candidates by name in the external index and mark the match “not confirmed”; the demo is offline and does not look.',
+      tryOpen: 'Open this tag in the drill-down',
+    },
     ladderTitle: 'The evidence ladder',
-    ladderLead: 'One rule set, read top-down against the fields you have: the first rung your data satisfies is the highest you can honestly draw.',
+    ladderLead: 'One rule set, read top-down against the fields you have: the first rung your data satisfies is the highest you can honestly draw. Only which fields each study carries matters (open “Table” to see them), never whether its result was significant.',
     scenarios: {
       pooled: { name: '6 randomised trials with effect sizes and CIs', about: 'Same metric, same outcome direction, same design and at least 5 studies: a pooled diamond is allowed. One study is at high risk of bias, so the result without it is shown too.' },
       mixed: { name: 'Same numbers, mixed designs', about: 'Two of the studies are cohort studies. The forest plot still draws, but randomised and non-randomised studies are not pooled.' },
@@ -252,10 +331,11 @@ export const TEXT: Record<Locale, DemoText> = {
       citeLead: 'Only purposes an author or editor stated are shown (a machine classifier can be plugged in and is labelled as such). The external index gives no purposes; unstated ones are shown as unstated, and the engine does not guess.',
       undeclaredChip: 'No reason given',
       meaningTitle: 'What each purpose advances',
+      bindingNote: (tags, topic) => `Why these tags sit under this topic: an editor bound the on-site tags ${tags.map((x) => `“${x}”`).join(', ')} to the topic “${topic}”. No editor has bound the other tags, so the demo counts them on site only.`,
       fakeLink: 'a fictional demo link',
     },
     menuTitle: 'The chart menu',
-    menuLead: 'The rules only look at the shape of the counts: are buckets exclusive, how many there are, is it years, is there a cross-table or overlap counts. Charts that cannot be drawn are not hidden; they are greyed out with what is missing.',
+    menuLead: 'There is no study data here, only the shape of the counts. The rules only look at that shape: are buckets exclusive, how many there are, is it years, is there a cross-table or overlap counts. Charts that cannot be drawn are not hidden; they are greyed out with what is missing.',
     presets: {
       design: 'Study design breakdown',
       year: 'Publication year',

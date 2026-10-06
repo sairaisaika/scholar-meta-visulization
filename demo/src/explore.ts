@@ -9,7 +9,7 @@ import {
 import type { ArticleContextView, CaveatView, CitationLinkView, CitationsView, FacetView, WorkRowView } from '../../src/index'
 import type { EvidenceService, ExternalLevel } from '../../src/service'
 import type { EvidenceMapData } from '../../src/types'
-import { OPEN_PATH, START, TREE, createDemoExplorer, pathTo } from './explore-data'
+import { BOUND, BOUND_TOPIC, OPEN_PATH, START, TREE, createDemoExplorer, pathTo } from './explore-data'
 import type { DemoText, Locale } from './i18n'
 import { h } from './dom'
 
@@ -37,7 +37,7 @@ export function createExplorer(initial: Locale, rerender: () => void) {
     st.failed = !r.ok
     rerender()
   }
-  const go = (path: Step[]) => { st.path = path; void load() }
+  const go = (path: Step[]) => { st.path = path; return load() }
   // 面包屑永远是从大类到这个节点的整条路径（从作品的主题直接跳过去也一样）
   const openNode = (_level: ExternalLevel, id: string) => go(pathTo(id).map((x) => ({ kind: 'node', level: TREE[x].level, id: x })))
   const openTag = (label: string) => {
@@ -62,6 +62,7 @@ export function createExplorer(initial: Locale, rerender: () => void) {
     }))
 
     const head = [h('h2', { id: 'explore-h' }, [e.title]), h('p', { class: 'lead' }, [e.lead]),
+      h('p', { class: 'fine binding-note' }, [e.bindingNote(BOUND[st.locale], TREE[BOUND_TOPIC].name)]),
       h('label', { class: 'ctl gate' }, [gate, e.gate]), h('p', { class: 'fine gate-help' }, [e.gateHelp]), crumbs]
     if (!st.data) {
       return h('section', { class: 'block explore', 'aria-labelledby': 'explore-h' }, [...head, h('p', { class: 'notice' }, [st.failed ? e.unavailable : e.loading])])
@@ -244,6 +245,16 @@ export function createExplorer(initial: Locale, rerender: () => void) {
   return {
     section,
     load,
+    /** 从别处（「试一个标签」）直接打开一个标签：配了主题的从那个主题往里点，没配的挂在大类下面；取到数据、重画完才 resolve */
+    showTag(label: string): Promise<void> {
+      const key = normalizeTag(label)
+      if (!key) return Promise.resolve()
+      const bound = BOUND[st.locale].some((t) => normalizeTag(t) === key)
+      const nodes: Step[] = bound
+        ? pathTo(BOUND_TOPIC).map((x) => ({ kind: 'node', level: TREE[x].level, id: x }))
+        : [{ kind: 'node', level: START.level, id: START.id }]
+      return go([...nodes, { kind: 'tag', key, label }])
+    },
     setLocale(locale: Locale) {
       if (locale === st.locale) return
       st.locale = locale

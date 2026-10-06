@@ -1,5 +1,6 @@
 /**
- * 演示页入口：上半页是证据阶梯（换一组研究，看能画到哪一级、为什么不是更高），下半页是图种菜单（换格子的形状，看哪些图能画）。
+ * 演示页入口：先说这一页的数据从哪来、怎么变成图（how.ts），然后是证据阶梯（换一组研究，看能画到哪一级、为什么不是更高）、
+ * 下钻（从大类点到文章），最后是图种菜单（换格子的形状，看哪些图能画）。
  * 判据与文案全部来自引擎本身（与 npm 包 / release 安装包是同一份源码），这里只管摆放与画图。页面不发任何网络请求。
  */
 import {
@@ -13,6 +14,7 @@ import { TEXT, type Locale, type PresetId } from './i18n'
 import { ROB_GLYPH, albatrossChart, estimatesChart, forestChart, gapChart, harvestChart, recordsTable, type ChartCtx } from './charts'
 import { formatter, h } from './dom'
 import { createExplorer } from './explore'
+import { howSection } from './how'
 
 type Gate = 'unset' | 'pass' | 'fail'
 interface MenuState {
@@ -61,10 +63,18 @@ function render() {
   const m = getMessages(state.locale)
   const ctx: ChartCtx = { t, m, num: formatter(state.locale === 'zh' ? 'zh-CN' : 'en', 2), width: figureWidth }
   const scenario = SCENARIOS.find((x) => x.id === state.scenario)!
-  app.replaceChildren(header(), ladderSection(ctx, scenario), explorer.section(t), menuSection(ctx, scenario), footer(ctx))
+  app.replaceChildren(header(), howSection(t, state.locale, openTag), ladderSection(ctx, scenario), explorer.section(t), menuSection(ctx, scenario), footer(ctx))
   const fw = measure()
   if (fw && Math.abs(fw - figureWidth) > 1) { figureWidth = fw; render(); return }
   if (focusKey) (app.querySelector(`[data-focus="${focusKey}"]`) as HTMLElement | null)?.focus()
+}
+
+/** 「试一个标签」里点「在下钻里打开」：下钻跳到这个标签，重画完再滚到下钻那一节（重画会打断进行中的滚动） */
+function openTag(label: string) {
+  void explorer.showTag(label).then(() => {
+    const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    document.getElementById('explore-h')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  })
 }
 
 let resizeTimer = 0

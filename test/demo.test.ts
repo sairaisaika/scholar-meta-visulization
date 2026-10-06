@@ -5,7 +5,8 @@ import { SCENARIOS } from '../demo/src/fixtures'
 import { pickEvidenceView, poolEvidence } from '../src/ladder'
 import { chartAvailabilityFor } from '../src/charts'
 import { intakeArticle } from '../src/onsite'
-import { OPEN_PATH, TREE, createDemoExplorer, demoArticles, demoExternal, pathTo } from '../demo/src/explore-data'
+import { BOUND, BOUND_TOPIC, OPEN_PATH, TREE, createDemoExplorer, demoArticles, demoExternal, demoTagInfo, pathTo } from '../demo/src/explore-data'
+import { TEXT } from '../demo/src/i18n'
 import { presentArticleContext, presentCitations, presentNodeChildren, presentWorks } from '../src/present'
 
 describe('演示场景', () => {
@@ -104,5 +105,20 @@ describe('演示的下钻（0.4.0）', () => {
     // 被站内文章拿去往前推、结果一致的那篇：一句话说得出推进了什么
     expect(presentArticleContext(r.data, 'openalex:W9001', { locale: 'zh' })?.advances_text).toContain('在它的基础上往前推进')
     expect(presentWorks(r.data, { locale: 'zh' }).every((w) => w.kind_text !== null && w.kind_hint !== null)).toBe(true)
+  })
+  it('「试一个标签」：写法不同归成同一个键，篇数按键数，说得出编辑有没有配主题（与下钻同一份数据）', () => {
+    for (const spelling of ['#CBT-I', 'cbt-i', 'ＣＢＴ－Ｉ', ' CBT I ']) {
+      expect(demoTagInfo('zh', spelling)).toEqual({ key: 'cbt i', label: 'CBT-I', count: 2, boundTopic: TREE[BOUND_TOPIC].name })
+    }
+    expect(demoTagInfo('zh', '褪黑素')).toEqual({ key: '褪黑素', label: '褪黑素', count: 1, boundTopic: null })
+    expect(demoTagInfo('en', 'Insomnia')).toMatchObject({ key: 'insomnia', count: 4, boundTopic: TREE[BOUND_TOPIC].name })
+    expect(demoTagInfo('zh', 'anxiety')).toEqual({ key: 'anxiety', label: null, count: 0, boundTopic: null })
+    expect(demoTagInfo('zh', '   ')).toEqual({ key: null, label: null, count: 0, boundTopic: null })
+    // 说明文字里列的三个标签就是编辑真的配了的那三个，三块的锚点都指向页面上真有的区块
+    for (const locale of ['zh', 'en'] as const) {
+      expect(BOUND[locale].every((tag) => demoTagInfo(locale, tag).boundTopic === TREE[BOUND_TOPIC].name)).toBe(true)
+      expect(TEXT[locale].how.sources.map((x) => x.href)).toEqual(['#ladder-h', '#explore-h', '#menu-h'])
+      expect(TEXT[locale].how.steps).toHaveLength(4)
+    }
   })
 })

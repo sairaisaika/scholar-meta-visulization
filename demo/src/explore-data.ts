@@ -6,7 +6,7 @@
  */
 import { createEvidenceService, createMemoryBindingStore, createMemoryOnsiteSource } from '../../src/service'
 import type { EvidenceService, ExternalEvidenceSource, ExternalLevel } from '../../src/service'
-import { createCuratedBinding } from '../../src/tags'
+import { createCuratedBinding, groupTags, normalizeTag } from '../../src/tags'
 import type { EvidenceRecord, EvidenceTopic, EvidenceTopicRef, EvidenceVenue } from '../../src/types'
 import type { Locale } from './i18n'
 
@@ -145,8 +145,9 @@ const ARTICLES: Article[] = [
     tags: { zh: ['运动', '睡眠卫生'], en: ['exercise', 'sleep hygiene'] } },
 ]
 const doiOf = (id: string) => (id.startsWith('W') ? `10.5555/demo.${id.toLowerCase()}` : `10.5555/demo.site.${id}`)
-/** 编辑绑到主题「Insomnia and Its Treatment」的站内标签 */
-const BOUND: Record<Locale, string[]> = { zh: ['失眠', 'CBT-I', '睡眠卫生'], en: ['insomnia', 'CBT-I', 'sleep hygiene'] }
+/** 编辑把这几个站内标签绑到了这个主题（「Insomnia and Its Treatment」） */
+export const BOUND_TOPIC = 'T9101011'
+export const BOUND: Record<Locale, readonly string[]> = { zh: ['失眠', 'CBT-I', '睡眠卫生'], en: ['insomnia', 'CBT-I', 'sleep hygiene'] }
 
 export const demoArticles = (locale: Locale) => ARTICLES.map((a) => ({
   id: a.id, title: a.title[locale], tags: a.tags[locale], year: a.year, url: `https://example.org/site/${a.id}`, study_design: a.design,
@@ -160,7 +161,7 @@ export const demoArticles = (locale: Locale) => ARTICLES.map((a) => ({
 /** 每种语言一个服务（站内文章的标题与标签随语言）；审阅门槛读页面上的开关，切换后下一次请求就生效 */
 export function createDemoExplorer(locale: Locale, gate: () => boolean): EvidenceService {
   const bindings = createMemoryBindingStore(BOUND[locale].flatMap((tag) => {
-    const b = createCuratedBinding({ tag, topic: { id: 'openalex:T9101011', display_name: TREE.T9101011.name }, by: 'demo editor', at: '2026-10-01T00:00:00Z' })
+    const b = createCuratedBinding({ tag, topic: { id: `openalex:${BOUND_TOPIC}`, display_name: TREE[BOUND_TOPIC].name }, by: 'demo editor', at: '2026-10-01T00:00:00Z' })
     return b ? [b] : []
   }))
   return createEvidenceService({
@@ -173,4 +174,16 @@ export function createDemoExplorer(locale: Locale, gate: () => boolean): Evidenc
     now: () => new Date('2026-10-01T00:00:00Z'),
     log: () => {},
   })
+}
+
+/**
+ * 「试一个标签」：引擎怎么归一（`normalizeTag`）、演示里有几篇站内文章带它（`groupTags`，按归一后的键数）、
+ * 编辑有没有把它配到主题。`label` 是演示文章里用得最多的那种写法（没有文章带它时为 null）。
+ */
+export function demoTagInfo(locale: Locale, text: string): { key: string | null; label: string | null; count: number; boundTopic: string | null } {
+  const key = normalizeTag(text)
+  if (!key) return { key: null, label: null, count: 0, boundTopic: null }
+  const group = groupTags(demoArticles(locale)).find((g) => g.key === key)
+  const bound = BOUND[locale].some((t) => normalizeTag(t) === key)
+  return { key, label: group?.label ?? null, count: group?.count ?? 0, boundTopic: bound ? TREE[BOUND_TOPIC].name : null }
 }
