@@ -2,6 +2,8 @@
 
 # scholar-meta
 
+[Shared SMV / SMT Wiki (Chinese)](docs/wiki/Home.md) · [Implementation status](docs/wiki/Project-status.md). The shared Wiki follows the source implementation; SMT currently has no standalone package or service.
+
 **Draw research evidence only as far as the data truthfully supports.**
 
 A research-evidence visualization engine for platforms that publish academic articles with tags

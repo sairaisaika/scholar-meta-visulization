@@ -196,6 +196,8 @@ const view = map ? presentEvidenceMap(map, { locale: 'zh' }) : null   // null �
 
 ## 文档
 
+**[SMV / SMT 共享 Wiki](docs/wiki/Home.md)**：以当前源码核对的项目状态、快速开始、标签裁决、证据规则、API、设置与排错。SMT 当前没有独立实现，标签能力在本包内；具体关系见[项目状态](docs/wiki/Project-status.md)。
+
 [标签方法](docs/tags.md) · [打标签与账本](docs/tagging.md) · [架构](docs/architecture.md) · [接入指南](docs/integration.md) · [图种](docs/charts.md) · [贡献规则](CONTRIBUTING.md) · [变更记录](CHANGELOG.md)
 
 ## 开发
