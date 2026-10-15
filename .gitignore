@@ -9,3 +9,4 @@ dist/
 .private-terms
 demo/dist/
 demo/.build/
+__pycache__/

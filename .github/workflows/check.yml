@@ -19,6 +19,13 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Wiki routes and navigation acceptance
+        run: |
+          python tools/wiki_route.py --check
+          python -m unittest discover -s tools -p test_wiki_route.py
       # 私有词表放在仓库 secret PRIVATE_TERMS（每行一个正则）；设了就写成仓外的临时文件，并用隐去模式跑：
       # CI 日志是公开的，只印哪一类、几处，不印命中的内容。没设（或来自分叉的 PR 拿不到 secret）就跳过这道闸。
       - name: 私有词表

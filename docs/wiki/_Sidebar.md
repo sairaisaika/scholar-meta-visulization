@@ -1,5 +1,9 @@
 [首页](Home.md)
 
+- [工程入口与任务路由](Engineering-entry.md)
+- [接口影响地图](Interface-map.md)
+- [接口改进计划与演练](Interface-improvement-plan.md)
+
 - [项目与实现状态](Project-status.md)
 - [快速开始](Quick-start.md)
 - [架构与数据契约](Architecture.md)

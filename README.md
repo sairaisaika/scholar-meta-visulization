@@ -198,6 +198,8 @@ const view = map ? presentEvidenceMap(map, { locale: 'zh' }) : null   // null �
 
 **[SMV / SMT 共享 Wiki](docs/wiki/Home.md)**：以当前源码核对的项目状态、快速开始、标签裁决、证据规则、API、设置与排错。SMT 当前没有独立实现，标签能力在本包内；具体关系见[项目状态](docs/wiki/Project-status.md)。
 
+开发定位从[工程入口](docs/wiki/Engineering-entry.md)开始：外部接口、依赖端口、标签与接口规则各有符号、影响面和测试路由；[接口改进演练](docs/wiki/Interface-improvement-plan.md)提供尚未实施的候选计划。
+
 [标签方法](docs/tags.md) · [打标签与账本](docs/tagging.md) · [架构](docs/architecture.md) · [接入指南](docs/integration.md) · [图种](docs/charts.md) · [贡献规则](CONTRIBUTING.md) · [变更记录](CHANGELOG.md)
 
 ## 开发

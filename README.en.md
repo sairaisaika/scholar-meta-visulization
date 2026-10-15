@@ -4,6 +4,8 @@
 
 [Shared SMV / SMT Wiki (Chinese)](docs/wiki/Home.md) · [Implementation status](docs/wiki/Project-status.md). The shared Wiki follows the source implementation; SMT currently has no standalone package or service.
 
+[Engineering routes](docs/wiki/Engineering-entry.md) map interface changes to current symbols, impact and focused checks. The [interface improvement exercise](docs/wiki/Interface-improvement-plan.md) is a proposal, not a shipped API change.
+
 **Draw research evidence only as far as the data truthfully supports.**
 
 A research-evidence visualization engine for platforms that publish academic articles with tags

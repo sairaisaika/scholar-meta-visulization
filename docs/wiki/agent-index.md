@@ -1,0 +1,26 @@
+# Scholar Meta SMV / SMT: agent quick routes
+
+从问题找功能，再打开当前符号和对应局部图。无需通读全站；源码/当前实证优先于过期叙述。
+Query → current symbol → local explanation/diagram → narrow check → evidence boundary.
+Queries recompute source positions. Navigation aid, not completion proof or workflow lock.
+
+`python tools/wiki_route.py "外部源端口"` · `--list` · `--check` · `--build`
+
+| Route / question | Current source | Explanation / plan |
+| --- | --- | --- |
+| **external-source** — 外部文献源端口 | `src/ports.ts:42` `export interface ExternalEvidenceSource`<br>`src/openalex.ts:608` `export function createOpenAlexSource`<br>`src/openalex-counts.ts:56` `export async function fetchEvidenceCounts`<br>`src/service.ts:168` `export function createEvidenceService` | [external-source](Interface-map.md#external-source)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **external-transport** — 外部请求与预算 | `src/openalex.ts:84` `export interface OpenAlexOptions`<br>`src/openalex.ts:510` `export function createOpenAlexClient`<br>`src/openalex.ts:103` `export function isFreeOpenAlexPath` | [external-transport](Interface-map.md#external-transport)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **host-ports** — 宿主依赖与注入 | `src/ports.ts:61` `export interface OnsiteArticleSource`<br>`src/ports.ts:81` `export interface TagBindingStore`<br>`src/ports.ts:99` `export interface EvidenceCache`<br>`src/ports.ts:76` `export interface WorkTagSource`<br>`src/ports.ts:94` `export interface CertaintySource`<br>`src/service.ts:74` `export interface EvidenceServiceOptions` | [host-ports](Interface-map.md#host-ports)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **public-api** — 服务 HTTP 与客户端 | `src/service.ts:128` `export interface EvidenceService {`<br>`src/service.ts:72` `export type ServiceResult<`<br>`src/service.ts:62` `export type ServiceError =`<br>`src/http.ts:60` `export function createEvidenceHandler`<br>`src/http.ts:25` `export const EVIDENCE_ROUTES =`<br>`src/client.ts:25` `export function createEvidenceClient`<br>`src/client.ts:10` `export const EVIDENCE_CLIENT_ROUTES =` | [public-api](Interface-map.md#public-api)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **tag-normalization** — 标签归一与主题绑定 | `src/tags.ts:45` `export function normalizeTag`<br>`src/tags.ts:176` `export function resolveTagBinding`<br>`src/tags.ts:211` `export function createCuratedBinding`<br>`src/tags.ts:159` `export const MACHINE_BINDING_POLICIES` | [tag-normalization](Interface-map.md#tag-normalization)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **tagger-contribution** — 模型标签接口与贡献包 | `src/tagging.ts:38` `export interface EvidenceTagger {`<br>`src/tagging.ts:94` `export async function runTagger`<br>`src/tagging.ts:159` `export function validateTagContribution`<br>`src/tagging.ts:131` `export function buildTagContribution`<br>`src/tagging.ts:113` `export function normalizeWorkId` | [tagger-contribution](Interface-map.md#tagger-contribution)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **ledger-policy** — 标签裁决与审核规则 | `src/ledger.ts:30` `export interface LedgerPolicy`<br>`src/ledger.ts:49` `export function resolveWorkTags`<br>`src/ledger.ts:88` `export function checkAssertion`<br>`src/ledger.ts:132` `export function decideChangeRequest`<br>`src/ledger.ts:232` `export interface TagLedgerStore`<br>`src/ledger.ts:271` `export function createTagLedger` | [ledger-policy](Interface-map.md#ledger-policy)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **ledger-integration** — 账本应用与标签召回 | `src/ledger.ts:188` `export function applyWorkTags`<br>`src/ports.ts:76` `export interface WorkTagSource`<br>`src/service.ts:168` `export function createEvidenceService`<br>`src/onsite.ts:428` `export function applyReviewGate`<br>`src/service.ts:255` `async function onsiteRecords(` | [ledger-integration](Interface-map.md#ledger-integration)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **settings-contract** — 设置接口与默认值 | `src/settings.ts:49` `export const EVIDENCE_SETTINGS:`<br>`src/settings.ts:84` `export function validateSettings`<br>`src/settings.ts:112` `export function createLiveSettings`<br>`src/settings.ts:44` `export function ledgerPolicyFromSettings`<br>`src/settings.ts:161` `export function settingsReader`<br>`src/manifest.ts:18` `export function buildPluginManifest` | [settings-contract](Interface-map.md#settings-contract)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+| **compatibility** — 契约与包导出兼容 | `src/types.ts:31` `export const EVIDENCE_CONTRACT_VERSION`<br>`src/features.ts:41` `export const EVIDENCE_FEATURES` | [compatibility](Interface-map.md#compatibility)<br>[docs/wiki/Interface-improvement-plan.md](Interface-improvement-plan.md) |
+
+## Evidence and checks
+
+Query responses include only the selected routes: aliases, current locations, tests, checks and scope boundary.
+Acceptance/PROJECT carry volatile progress. Planned features have no invented source location.
+Regenerate with `--build` after structural changes. `--check` reports stale snapshots without locking work.

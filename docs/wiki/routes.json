@@ -1,0 +1,466 @@
+{
+  "schema_version": 1,
+  "project": "Scholar Meta SMV / SMT",
+  "routes": [
+    {
+      "id": "external-source",
+      "title": "外部文献源端口",
+      "aliases": [
+        "外部源端口",
+        "文献源",
+        "换数据源",
+        "新增数据源",
+        "ExternalEvidenceSource"
+      ],
+      "sources": [
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface ExternalEvidenceSource"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function createOpenAlexSource"
+        },
+        {
+          "path": "src/openalex-counts.ts",
+          "needle": "export async function fetchEvidenceCounts"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export function createEvidenceService"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#external-source",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/service.test.ts",
+        "test/openalex.test.ts",
+        "test/openalex-counts.test.ts",
+        "test/integration.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/service.test.ts test/openalex.test.ts test/openalex-counts.test.ts test/integration.test.ts"
+      ],
+      "boundary": "null failure is not an empty result; optional capabilities must degrade; mock tests do not verify a live provider."
+    },
+    {
+      "id": "external-transport",
+      "title": "外部请求与预算",
+      "aliases": [
+        "外部请求",
+        "超时",
+        "重试",
+        "限流",
+        "预算",
+        "OpenAlexOptions"
+      ],
+      "sources": [
+        {
+          "path": "src/openalex.ts",
+          "needle": "export interface OpenAlexOptions"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function createOpenAlexClient"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function isFreeOpenAlexPath"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#external-transport",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/openalex.test.ts",
+        "test/openalex-counts.test.ts",
+        "test/settings.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/openalex.test.ts test/openalex-counts.test.ts test/settings.test.ts"
+      ],
+      "boundary": "Budget is per instance per UTC day; no implemented global budget or cancellation port is implied."
+    },
+    {
+      "id": "host-ports",
+      "title": "宿主依赖与注入",
+      "aliases": [
+        "依赖接口",
+        "依赖注入",
+        "宿主端口",
+        "缓存接口",
+        "数据库接口"
+      ],
+      "sources": [
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface OnsiteArticleSource"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface TagBindingStore"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface EvidenceCache"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface WorkTagSource"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface CertaintySource"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export interface EvidenceServiceOptions"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#host-ports",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/ports.test.ts",
+        "test/service.test.ts",
+        "test/sync.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/ports.test.ts test/service.test.ts test/sync.test.ts"
+      ],
+      "boundary": "Host persistence, authorization and transactions are not supplied by in-memory adapters."
+    },
+    {
+      "id": "public-api",
+      "title": "服务 HTTP 与客户端",
+      "aliases": [
+        "外部接口",
+        "公共接口",
+        "HTTP 错误",
+        "HTTP",
+        "SDK",
+        "客户端错误",
+        "读口"
+      ],
+      "sources": [
+        {
+          "path": "src/service.ts",
+          "needle": "export interface EvidenceService {"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export type ServiceResult<"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export type ServiceError ="
+        },
+        {
+          "path": "src/http.ts",
+          "needle": "export function createEvidenceHandler"
+        },
+        {
+          "path": "src/http.ts",
+          "needle": "export const EVIDENCE_ROUTES ="
+        },
+        {
+          "path": "src/client.ts",
+          "needle": "export function createEvidenceClient"
+        },
+        {
+          "path": "src/client.ts",
+          "needle": "export const EVIDENCE_CLIENT_ROUTES ="
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#public-api",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/http.test.ts",
+        "test/integration.test.ts",
+        "test/features.test.ts",
+        "test/api-surface.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts"
+      ],
+      "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes."
+    },
+    {
+      "id": "tag-normalization",
+      "title": "标签归一与主题绑定",
+      "aliases": [
+        "标签归一",
+        "标签接口",
+        "主题绑定",
+        "同义词",
+        "标签键"
+      ],
+      "sources": [
+        {
+          "path": "src/tags.ts",
+          "needle": "export function normalizeTag"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export function resolveTagBinding"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export function createCuratedBinding"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export const MACHINE_BINDING_POLICIES"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#tag-normalization",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/tags.test.ts",
+        "test/service.test.ts",
+        "test/onsite.test.ts",
+        "test/regression.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/tags.test.ts test/service.test.ts test/onsite.test.ts test/regression.test.ts"
+      ],
+      "boundary": "Normalization is not semantic synonym merging; changing stored keys requires a migration plan."
+    },
+    {
+      "id": "tagger-contribution",
+      "title": "模型标签接口与贡献包",
+      "aliases": [
+        "模型接口",
+        "模型贡献",
+        "交换包",
+        "贡献包",
+        "EvidenceTagger"
+      ],
+      "sources": [
+        {
+          "path": "src/tagging.ts",
+          "needle": "export interface EvidenceTagger {"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export async function runTagger"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function validateTagContribution"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function buildTagContribution"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function normalizeWorkId"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#tagger-contribution",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/tagging.test.ts",
+        "test/sync.test.ts",
+        "test/api-surface.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/tagging.test.ts test/sync.test.ts test/api-surface.test.ts"
+      ],
+      "boundary": "Model suggestions are not resolved tags; contribution validation does not authenticate the sender."
+    },
+    {
+      "id": "ledger-policy",
+      "title": "标签裁决与审核规则",
+      "aliases": [
+        "接口规则",
+        "标签裁决",
+        "审核规则",
+        "信任层级",
+        "修改申请"
+      ],
+      "sources": [
+        {
+          "path": "src/ledger.ts",
+          "needle": "export interface LedgerPolicy"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function resolveWorkTags"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function checkAssertion"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function decideChangeRequest"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export interface TagLedgerStore"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function createTagLedger"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#ledger-policy",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/sync.test.ts",
+        "test/tagging.test.ts",
+        "test/settings.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/sync.test.ts test/tagging.test.ts test/settings.test.ts"
+      ],
+      "boundary": "Policy changes can alter historical effective results; concurrency guarantees require host storage review."
+    },
+    {
+      "id": "ledger-integration",
+      "title": "账本应用与标签召回",
+      "aliases": [
+        "标签漏项",
+        "标签计数",
+        "争议排除",
+        "账本应用",
+        "审阅门槛"
+      ],
+      "sources": [
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function applyWorkTags"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface WorkTagSource"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export function createEvidenceService"
+        },
+        {
+          "path": "src/onsite.ts",
+          "needle": "export function applyReviewGate"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "async function onsiteRecords("
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#ledger-integration",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/sync.test.ts",
+        "test/service.test.ts",
+        "test/onsite.test.ts",
+        "test/integration.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/sync.test.ts test/service.test.ts test/onsite.test.ts test/integration.test.ts"
+      ],
+      "boundary": "Queries must include ledger-added tags; unavailable ledger cannot be treated as an empty ledger."
+    },
+    {
+      "id": "settings-contract",
+      "title": "设置接口与默认值",
+      "aliases": [
+        "配置接口",
+        "默认值",
+        "热更新",
+        "设置接口"
+      ],
+      "sources": [
+        {
+          "path": "src/settings.ts",
+          "needle": "export const EVIDENCE_SETTINGS:"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function validateSettings"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function createLiveSettings"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function ledgerPolicyFromSettings"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function settingsReader"
+        },
+        {
+          "path": "src/manifest.ts",
+          "needle": "export function buildPluginManifest"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#settings-contract",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/settings.test.ts",
+        "test/features.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/settings.test.ts test/features.test.ts"
+      ],
+      "boundary": "Live synchronous reads may use the previous value; registry existence does not prove a host UI is installed."
+    },
+    {
+      "id": "compatibility",
+      "title": "契约与包导出兼容",
+      "aliases": [
+        "兼容性",
+        "包导出",
+        "版本规则",
+        "破坏性变更",
+        "接口兼容",
+        "接口规则"
+      ],
+      "sources": [
+        {
+          "path": "src/types.ts",
+          "needle": "export const EVIDENCE_CONTRACT_VERSION"
+        },
+        {
+          "path": "src/features.ts",
+          "needle": "export const EVIDENCE_FEATURES"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#compatibility",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/api-surface.test.ts",
+        "test/regression.test.ts",
+        "test/features.test.ts",
+        "test/contract-tables.test.ts",
+        "test/release.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/api-surface.test.ts test/regression.test.ts test/features.test.ts test/contract-tables.test.ts test/release.test.ts"
+      ],
+      "boundary": "Export snapshots cover runtime names, not all TypeScript compatibility; proposals are not shipped APIs."
+    }
+  ]
+}

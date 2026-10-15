@@ -1,0 +1,774 @@
+{
+  "schema_version": 1,
+  "project": "Scholar Meta SMV / SMT",
+  "routes": [
+    {
+      "id": "external-source",
+      "title": "外部文献源端口",
+      "aliases": [
+        "外部源端口",
+        "文献源",
+        "换数据源",
+        "新增数据源",
+        "ExternalEvidenceSource"
+      ],
+      "sources": [
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface ExternalEvidenceSource"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function createOpenAlexSource"
+        },
+        {
+          "path": "src/openalex-counts.ts",
+          "needle": "export async function fetchEvidenceCounts"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export function createEvidenceService"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#external-source",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/service.test.ts",
+        "test/openalex.test.ts",
+        "test/openalex-counts.test.ts",
+        "test/integration.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/service.test.ts test/openalex.test.ts test/openalex-counts.test.ts test/integration.test.ts"
+      ],
+      "boundary": "null failure is not an empty result; optional capabilities must degrade; mock tests do not verify a live provider.",
+      "locations": [
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface ExternalEvidenceSource",
+          "line": 42,
+          "sha256": "55007295b03ade2fabcc680f9aa141f3eeb0ce790baa8342594413370d1d8106"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function createOpenAlexSource",
+          "line": 608,
+          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+        },
+        {
+          "path": "src/openalex-counts.ts",
+          "needle": "export async function fetchEvidenceCounts",
+          "line": 56,
+          "sha256": "e39c0dc0cefe7f03cc6ffedf0c039e426215ed721e7976524487d38ad18007d3"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export function createEvidenceService",
+          "line": 168,
+          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+        }
+      ]
+    },
+    {
+      "id": "external-transport",
+      "title": "外部请求与预算",
+      "aliases": [
+        "外部请求",
+        "超时",
+        "重试",
+        "限流",
+        "预算",
+        "OpenAlexOptions"
+      ],
+      "sources": [
+        {
+          "path": "src/openalex.ts",
+          "needle": "export interface OpenAlexOptions"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function createOpenAlexClient"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function isFreeOpenAlexPath"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#external-transport",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/openalex.test.ts",
+        "test/openalex-counts.test.ts",
+        "test/settings.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/openalex.test.ts test/openalex-counts.test.ts test/settings.test.ts"
+      ],
+      "boundary": "Budget is per instance per UTC day; no implemented global budget or cancellation port is implied.",
+      "locations": [
+        {
+          "path": "src/openalex.ts",
+          "needle": "export interface OpenAlexOptions",
+          "line": 84,
+          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function createOpenAlexClient",
+          "line": 510,
+          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+        },
+        {
+          "path": "src/openalex.ts",
+          "needle": "export function isFreeOpenAlexPath",
+          "line": 103,
+          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+        }
+      ]
+    },
+    {
+      "id": "host-ports",
+      "title": "宿主依赖与注入",
+      "aliases": [
+        "依赖接口",
+        "依赖注入",
+        "宿主端口",
+        "缓存接口",
+        "数据库接口"
+      ],
+      "sources": [
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface OnsiteArticleSource"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface TagBindingStore"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface EvidenceCache"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface WorkTagSource"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface CertaintySource"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export interface EvidenceServiceOptions"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#host-ports",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/ports.test.ts",
+        "test/service.test.ts",
+        "test/sync.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/ports.test.ts test/service.test.ts test/sync.test.ts"
+      ],
+      "boundary": "Host persistence, authorization and transactions are not supplied by in-memory adapters.",
+      "locations": [
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface OnsiteArticleSource",
+          "line": 61,
+          "sha256": "55007295b03ade2fabcc680f9aa141f3eeb0ce790baa8342594413370d1d8106"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface TagBindingStore",
+          "line": 81,
+          "sha256": "55007295b03ade2fabcc680f9aa141f3eeb0ce790baa8342594413370d1d8106"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface EvidenceCache",
+          "line": 99,
+          "sha256": "55007295b03ade2fabcc680f9aa141f3eeb0ce790baa8342594413370d1d8106"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface WorkTagSource",
+          "line": 76,
+          "sha256": "55007295b03ade2fabcc680f9aa141f3eeb0ce790baa8342594413370d1d8106"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface CertaintySource",
+          "line": 94,
+          "sha256": "55007295b03ade2fabcc680f9aa141f3eeb0ce790baa8342594413370d1d8106"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export interface EvidenceServiceOptions",
+          "line": 74,
+          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+        }
+      ]
+    },
+    {
+      "id": "public-api",
+      "title": "服务 HTTP 与客户端",
+      "aliases": [
+        "外部接口",
+        "公共接口",
+        "HTTP 错误",
+        "HTTP",
+        "SDK",
+        "客户端错误",
+        "读口"
+      ],
+      "sources": [
+        {
+          "path": "src/service.ts",
+          "needle": "export interface EvidenceService {"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export type ServiceResult<"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export type ServiceError ="
+        },
+        {
+          "path": "src/http.ts",
+          "needle": "export function createEvidenceHandler"
+        },
+        {
+          "path": "src/http.ts",
+          "needle": "export const EVIDENCE_ROUTES ="
+        },
+        {
+          "path": "src/client.ts",
+          "needle": "export function createEvidenceClient"
+        },
+        {
+          "path": "src/client.ts",
+          "needle": "export const EVIDENCE_CLIENT_ROUTES ="
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#public-api",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/http.test.ts",
+        "test/integration.test.ts",
+        "test/features.test.ts",
+        "test/api-surface.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts"
+      ],
+      "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes.",
+      "locations": [
+        {
+          "path": "src/service.ts",
+          "needle": "export interface EvidenceService {",
+          "line": 128,
+          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export type ServiceResult<",
+          "line": 72,
+          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export type ServiceError =",
+          "line": 62,
+          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+        },
+        {
+          "path": "src/http.ts",
+          "needle": "export function createEvidenceHandler",
+          "line": 60,
+          "sha256": "97164b2a26972e7e0d493fbc540d079ac9a9a00db71a44207884a0c307f942d4"
+        },
+        {
+          "path": "src/http.ts",
+          "needle": "export const EVIDENCE_ROUTES =",
+          "line": 25,
+          "sha256": "97164b2a26972e7e0d493fbc540d079ac9a9a00db71a44207884a0c307f942d4"
+        },
+        {
+          "path": "src/client.ts",
+          "needle": "export function createEvidenceClient",
+          "line": 25,
+          "sha256": "cae906bd91d2439929da4e1001599a43144de2fad4fea7326a247890ae165cfd"
+        },
+        {
+          "path": "src/client.ts",
+          "needle": "export const EVIDENCE_CLIENT_ROUTES =",
+          "line": 10,
+          "sha256": "cae906bd91d2439929da4e1001599a43144de2fad4fea7326a247890ae165cfd"
+        }
+      ]
+    },
+    {
+      "id": "tag-normalization",
+      "title": "标签归一与主题绑定",
+      "aliases": [
+        "标签归一",
+        "标签接口",
+        "主题绑定",
+        "同义词",
+        "标签键"
+      ],
+      "sources": [
+        {
+          "path": "src/tags.ts",
+          "needle": "export function normalizeTag"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export function resolveTagBinding"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export function createCuratedBinding"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export const MACHINE_BINDING_POLICIES"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#tag-normalization",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/tags.test.ts",
+        "test/service.test.ts",
+        "test/onsite.test.ts",
+        "test/regression.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/tags.test.ts test/service.test.ts test/onsite.test.ts test/regression.test.ts"
+      ],
+      "boundary": "Normalization is not semantic synonym merging; changing stored keys requires a migration plan.",
+      "locations": [
+        {
+          "path": "src/tags.ts",
+          "needle": "export function normalizeTag",
+          "line": 45,
+          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export function resolveTagBinding",
+          "line": 176,
+          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export function createCuratedBinding",
+          "line": 211,
+          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+        },
+        {
+          "path": "src/tags.ts",
+          "needle": "export const MACHINE_BINDING_POLICIES",
+          "line": 159,
+          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+        }
+      ]
+    },
+    {
+      "id": "tagger-contribution",
+      "title": "模型标签接口与贡献包",
+      "aliases": [
+        "模型接口",
+        "模型贡献",
+        "交换包",
+        "贡献包",
+        "EvidenceTagger"
+      ],
+      "sources": [
+        {
+          "path": "src/tagging.ts",
+          "needle": "export interface EvidenceTagger {"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export async function runTagger"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function validateTagContribution"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function buildTagContribution"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function normalizeWorkId"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#tagger-contribution",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/tagging.test.ts",
+        "test/sync.test.ts",
+        "test/api-surface.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/tagging.test.ts test/sync.test.ts test/api-surface.test.ts"
+      ],
+      "boundary": "Model suggestions are not resolved tags; contribution validation does not authenticate the sender.",
+      "locations": [
+        {
+          "path": "src/tagging.ts",
+          "needle": "export interface EvidenceTagger {",
+          "line": 38,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export async function runTagger",
+          "line": 94,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function validateTagContribution",
+          "line": 159,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function buildTagContribution",
+          "line": 131,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        },
+        {
+          "path": "src/tagging.ts",
+          "needle": "export function normalizeWorkId",
+          "line": 113,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        }
+      ]
+    },
+    {
+      "id": "ledger-policy",
+      "title": "标签裁决与审核规则",
+      "aliases": [
+        "接口规则",
+        "标签裁决",
+        "审核规则",
+        "信任层级",
+        "修改申请"
+      ],
+      "sources": [
+        {
+          "path": "src/ledger.ts",
+          "needle": "export interface LedgerPolicy"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function resolveWorkTags"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function checkAssertion"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function decideChangeRequest"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export interface TagLedgerStore"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function createTagLedger"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#ledger-policy",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/sync.test.ts",
+        "test/tagging.test.ts",
+        "test/settings.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/sync.test.ts test/tagging.test.ts test/settings.test.ts"
+      ],
+      "boundary": "Policy changes can alter historical effective results; concurrency guarantees require host storage review.",
+      "locations": [
+        {
+          "path": "src/ledger.ts",
+          "needle": "export interface LedgerPolicy",
+          "line": 30,
+          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function resolveWorkTags",
+          "line": 49,
+          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function checkAssertion",
+          "line": 88,
+          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function decideChangeRequest",
+          "line": 132,
+          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export interface TagLedgerStore",
+          "line": 232,
+          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+        },
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function createTagLedger",
+          "line": 271,
+          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+        }
+      ]
+    },
+    {
+      "id": "ledger-integration",
+      "title": "账本应用与标签召回",
+      "aliases": [
+        "标签漏项",
+        "标签计数",
+        "争议排除",
+        "账本应用",
+        "审阅门槛"
+      ],
+      "sources": [
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function applyWorkTags"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface WorkTagSource"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export function createEvidenceService"
+        },
+        {
+          "path": "src/onsite.ts",
+          "needle": "export function applyReviewGate"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "async function onsiteRecords("
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#ledger-integration",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/sync.test.ts",
+        "test/service.test.ts",
+        "test/onsite.test.ts",
+        "test/integration.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/sync.test.ts test/service.test.ts test/onsite.test.ts test/integration.test.ts"
+      ],
+      "boundary": "Queries must include ledger-added tags; unavailable ledger cannot be treated as an empty ledger.",
+      "locations": [
+        {
+          "path": "src/ledger.ts",
+          "needle": "export function applyWorkTags",
+          "line": 188,
+          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+        },
+        {
+          "path": "src/ports.ts",
+          "needle": "export interface WorkTagSource",
+          "line": 76,
+          "sha256": "55007295b03ade2fabcc680f9aa141f3eeb0ce790baa8342594413370d1d8106"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "export function createEvidenceService",
+          "line": 168,
+          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+        },
+        {
+          "path": "src/onsite.ts",
+          "needle": "export function applyReviewGate",
+          "line": 428,
+          "sha256": "e0a5ea60ce38af4470a071ab7d19df6e78dba6ffed36bce76d6e835bccdd3f9d"
+        },
+        {
+          "path": "src/service.ts",
+          "needle": "async function onsiteRecords(",
+          "line": 255,
+          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+        }
+      ]
+    },
+    {
+      "id": "settings-contract",
+      "title": "设置接口与默认值",
+      "aliases": [
+        "配置接口",
+        "默认值",
+        "热更新",
+        "设置接口"
+      ],
+      "sources": [
+        {
+          "path": "src/settings.ts",
+          "needle": "export const EVIDENCE_SETTINGS:"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function validateSettings"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function createLiveSettings"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function ledgerPolicyFromSettings"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function settingsReader"
+        },
+        {
+          "path": "src/manifest.ts",
+          "needle": "export function buildPluginManifest"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#settings-contract",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/settings.test.ts",
+        "test/features.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/settings.test.ts test/features.test.ts"
+      ],
+      "boundary": "Live synchronous reads may use the previous value; registry existence does not prove a host UI is installed.",
+      "locations": [
+        {
+          "path": "src/settings.ts",
+          "needle": "export const EVIDENCE_SETTINGS:",
+          "line": 49,
+          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function validateSettings",
+          "line": 84,
+          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function createLiveSettings",
+          "line": 112,
+          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function ledgerPolicyFromSettings",
+          "line": 44,
+          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+        },
+        {
+          "path": "src/settings.ts",
+          "needle": "export function settingsReader",
+          "line": 161,
+          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+        },
+        {
+          "path": "src/manifest.ts",
+          "needle": "export function buildPluginManifest",
+          "line": 18,
+          "sha256": "74d1c4748e94cb5ca048fc446563dc4da0b49daf2909c5190f74e304f11d1a86"
+        }
+      ]
+    },
+    {
+      "id": "compatibility",
+      "title": "契约与包导出兼容",
+      "aliases": [
+        "兼容性",
+        "包导出",
+        "版本规则",
+        "破坏性变更",
+        "接口兼容",
+        "接口规则"
+      ],
+      "sources": [
+        {
+          "path": "src/types.ts",
+          "needle": "export const EVIDENCE_CONTRACT_VERSION"
+        },
+        {
+          "path": "src/features.ts",
+          "needle": "export const EVIDENCE_FEATURES"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Interface-map.md#compatibility",
+        "docs/wiki/Interface-improvement-plan.md"
+      ],
+      "tests": [
+        "test/api-surface.test.ts",
+        "test/regression.test.ts",
+        "test/features.test.ts",
+        "test/contract-tables.test.ts",
+        "test/release.test.ts"
+      ],
+      "checks": [
+        "pnpm exec jest --runInBand test/api-surface.test.ts test/regression.test.ts test/features.test.ts test/contract-tables.test.ts test/release.test.ts"
+      ],
+      "boundary": "Export snapshots cover runtime names, not all TypeScript compatibility; proposals are not shipped APIs.",
+      "locations": [
+        {
+          "path": "src/types.ts",
+          "needle": "export const EVIDENCE_CONTRACT_VERSION",
+          "line": 31,
+          "sha256": "45ccbc49118999d318032e93cae73304fc6f3d0383074131a084dc1079e6565b"
+        },
+        {
+          "path": "src/features.ts",
+          "needle": "export const EVIDENCE_FEATURES",
+          "line": 41,
+          "sha256": "0e8fc35fc69558f1b2dfbd7baf6f7f04cd21f9fca86b9dc31d735989ffba2e5b"
+        }
+      ]
+    }
+  ]
+}
