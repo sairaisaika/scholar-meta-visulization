@@ -166,3 +166,9 @@ flowchart LR
 检查：`pnpm exec jest --runInBand test/api-surface.test.ts test/regression.test.ts test/features.test.ts test/contract-tables.test.ts test/release.test.ts`，并做 `pnpm typecheck:src`、`pnpm check:package`。完整发布前检查是 pnpm check；Windows 的已知检查运行限制见[维护记录](Troubleshooting-and-maintenance.md)。
 
 **章节来源**（`compatibility`）：`src/types.ts :: export const EVIDENCE_CONTRACT_VERSION`、`src/features.ts :: export const EVIDENCE_FEATURES`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
+
+## 从声明继续到真正编辑点
+
+跨接口改动先用[紧凑入口](Interface-change-playbook.md)。机器路由现已补充：外部请求 `getJson`；宿主缓存/召回 `cached/onsiteRecords`；公共错误 `http.done/client.get/service.guard`；模型与贡献包共用 `sanitizeSuggestions`；账本 `write/decide`；根入口导出锚点。均为当前内部实现接缝，不能作为宿主公共 API 调用。
+
+`runTagger` 的 catch 仅包住 `await tagger.tag(input)`；后续清洗及 vocabulary/id/version 等 getter 不在这个 catch 中。清洗的 dropped 与账本门面的 written/unchanged/refused 是不同阶段，不能把单阶段的接受数当作最终有效标签数。

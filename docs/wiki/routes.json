@@ -167,11 +167,19 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置"
+        },
+        {
+          "id": "request",
+          "path": "src/openalex.ts",
+          "needle": "const getJson = async (path: string, attempt = 0)",
+          "role": "implementation",
+          "reason": "请求、预算、429 重试、计费和超时的内部接缝"
         }
       ],
       "docs": [
         "docs/wiki/Interface-map.md#external-transport",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Interface-change-playbook.md"
       ],
       "tests": [
         "test/openalex.test.ts",
@@ -311,11 +319,26 @@
           "needle": "export function createEvidenceService",
           "role": "implementation",
           "reason": "宿主端口的装配、缓存降级和读取实现"
+        },
+        {
+          "id": "cache-flow",
+          "path": "src/service.ts",
+          "needle": "async function cached<T>",
+          "role": "implementation",
+          "reason": "缓存命中、并发合并、null/partial 写回与异常降级"
+        },
+        {
+          "id": "records",
+          "path": "src/service.ts",
+          "needle": "async function onsiteRecords(",
+          "role": "implementation",
+          "reason": "文章验形、账本应用、标签与审阅筛选顺序"
         }
       ],
       "docs": [
         "docs/wiki/Interface-map.md#host-ports",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Interface-change-playbook.md"
       ],
       "tests": [
         "test/ports.test.ts",
@@ -444,7 +467,7 @@
           "path": "src/client.ts",
           "needle": "export function createEvidenceClient",
           "id": "s6",
-          "role": "implementation",
+          "role": "consumer",
           "reason": "export function createEvidenceClient"
         },
         {
@@ -455,16 +478,31 @@
           "reason": "export const EVIDENCE_CLIENT_ROUTES ="
         },
         {
+          "id": "sdk-request",
           "path": "src/client.ts",
-          "needle": "export function createEvidenceClient",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
+          "needle": "const get = async <T>",
+          "role": "implementation",
+          "reason": "SDK请求、状态及验形失败返回null"
+        },
+        {
+          "id": "response",
+          "path": "src/http.ts",
+          "needle": "const done = <T>",
+          "role": "implementation",
+          "reason": "服务结果转换为HTTP状态、正文和缓存头"
+        },
+        {
+          "id": "service-guard",
+          "path": "src/service.ts",
+          "needle": "const guard = async <T>",
+          "role": "implementation",
+          "reason": "服务方法异常转 unavailable"
         }
       ],
       "docs": [
         "docs/wiki/Interface-map.md#public-api",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Interface-change-playbook.md"
       ],
       "tests": [
         "test/http.test.ts",
@@ -730,11 +768,19 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置"
+        },
+        {
+          "id": "sanitize",
+          "path": "src/tagging.ts",
+          "needle": "function sanitizeSuggestions(",
+          "role": "implementation",
+          "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则"
         }
       ],
       "docs": [
         "docs/wiki/Interface-map.md#tagger-contribution",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Interface-change-playbook.md"
       ],
       "tests": [
         "test/tagging.test.ts",
@@ -764,7 +810,7 @@
             "模型 null/抛错由 runTagger 返回 null；空 suggestions 成功"
           ],
           "thrown": [
-            "runTagger 捕获模型异常；不能泛化为账本存储异常也被捕获"
+            "runTagger 仅捕获 tag(input) 的拒绝；后续清洗、vocabulary 或模型元数据 getter 的异常不在该 catch；账本存储异常另处理"
           ],
           "unsupported": [
             "贡献包不认证身份；词表基线不代表第三方模型质量"
@@ -787,6 +833,19 @@
             "test/tagging.test.ts",
             "test/sync.test.ts",
             "test/api-surface.test.ts"
+          ]
+        },
+        {
+          "id": "shared-sanitizer",
+          "statement": "runTagger 与 validateTagContribution 共用 sanitizeSuggestions；单次清洗丢弃计数与账本拒绝/unchanged 是不同阶段",
+          "source_ids": [
+            "s2",
+            "s3",
+            "sanitize"
+          ],
+          "tests": [
+            "test/tagging.test.ts",
+            "test/sync.test.ts"
           ]
         }
       ],
@@ -869,11 +928,26 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置"
+        },
+        {
+          "id": "write",
+          "path": "src/ledger.ts",
+          "needle": "const write = async (",
+          "role": "implementation",
+          "reason": "断言写入拒绝、unchanged、同次最后立场和 append"
+        },
+        {
+          "id": "decide-write",
+          "path": "src/ledger.ts",
+          "needle": "async decide(requestId: string",
+          "role": "implementation",
+          "reason": "审核门面 append 后 putRequest 的非原子边界"
         }
       ],
       "docs": [
         "docs/wiki/Interface-map.md#ledger-policy",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Interface-change-playbook.md"
       ],
       "tests": [
         "test/sync.test.ts",
@@ -1268,11 +1342,19 @@
           "id": "contract",
           "role": "declaration",
           "reason": "函数公开签名或契约常量"
+        },
+        {
+          "id": "exports",
+          "path": "src/index.ts",
+          "needle": "export * from './types'",
+          "role": "implementation",
+          "reason": "根入口导出清单；子入口另核对 package exports"
         }
       ],
       "docs": [
         "docs/wiki/Interface-map.md#compatibility",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Interface-change-playbook.md"
       ],
       "tests": [
         "test/api-surface.test.ts",
@@ -1680,10 +1762,13 @@
         "接口改进计划",
         "结果式客户端方案",
         "依赖改进计划",
-        "标签改进方案"
+        "标签改进方案",
+        "跨接口改进",
+        "接口改造总览"
       ],
       "sources": [],
       "docs": [
+        "docs/wiki/Interface-change-playbook.md",
         "docs/wiki/Interface-improvement-plan.md"
       ],
       "tests": [

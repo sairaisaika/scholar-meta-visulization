@@ -40,7 +40,7 @@
           "freshness": 5
         }
       },
-      "locations": 4,
+      "locations": 5,
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -61,7 +61,7 @@
           "freshness": 5
         }
       },
-      "locations": 8,
+      "locations": 10,
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -82,7 +82,7 @@
           "freshness": 5
         }
       },
-      "locations": 8,
+      "locations": 10,
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -124,7 +124,7 @@
           "freshness": 5
         }
       },
-      "locations": 6,
+      "locations": 7,
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -145,7 +145,7 @@
           "freshness": 5
         }
       },
-      "locations": 7,
+      "locations": 9,
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -208,7 +208,7 @@
           "freshness": 5
         }
       },
-      "locations": 4,
+      "locations": 5,
       "plan_coverage": null,
       "engineering": null,
       "gaps": []

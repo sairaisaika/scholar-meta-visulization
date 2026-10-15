@@ -156,6 +156,41 @@
       "id": "q22",
       "query": "GPU 推理集群扩容",
       "expected_routes": []
+    },
+    {
+      "id": "trial-seam-1",
+      "query": "跨接口改进要拆哪些工作包",
+      "expected_routes": [
+        "interface-plan"
+      ]
+    },
+    {
+      "id": "trial-seam-2",
+      "query": "外部请求预算重试在哪个内部函数",
+      "expected_routes": [
+        "external-transport"
+      ]
+    },
+    {
+      "id": "trial-seam-3",
+      "query": "缓存接口的命中与异常降级在哪里",
+      "expected_routes": [
+        "host-ports"
+      ]
+    },
+    {
+      "id": "trial-seam-4",
+      "query": "模型贡献清洗与去重影响哪些入口",
+      "expected_routes": [
+        "tagger-contribution"
+      ]
+    },
+    {
+      "id": "trial-seam-5",
+      "query": "HTTP 错误与客户端错误的转换点",
+      "expected_routes": [
+        "public-api"
+      ]
     }
   ]
 }

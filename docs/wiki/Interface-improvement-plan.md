@@ -70,3 +70,7 @@
 更新动作按实际改动选择：新增 API → public-api/compatibility；换数据源 → external-source；改归一 → tag-normalization + 迁移；改置信策略 → tagger-contribution/ledger-policy；改配置 → settings-contract。不要把工程提案写进“已实现”状态表。
 
 本轮验证结果见[定位演练核验记录](Wiki-routing-verification.md)。
+
+## 当前方案入口与再演练
+
+上述为历史初版方案，尚未实施。当前跨接口工作面、精确编辑接缝和交付顺序见[四类接口改动入口](Interface-change-playbook.md)；新一轮先计划后核对的实际记录见[定位演练](Interface-navigation-trial.md)。原日期与基线保留，避免把历史提案冒充本轮新发现。

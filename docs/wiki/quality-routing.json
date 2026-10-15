@@ -7,15 +7,15 @@
     "min_tasks": 10,
     "min_unknown": 2
   },
-  "task_count": 22,
+  "task_count": 27,
   "top1": {
-    "numerator": 20,
-    "denominator": 20,
+    "numerator": 25,
+    "denominator": 25,
     "rate": 1.0
   },
   "top2": {
-    "numerator": 20,
-    "denominator": 20,
+    "numerator": 25,
+    "denominator": 25,
     "rate": 1.0
   },
   "unknown_rejection": {
@@ -24,11 +24,11 @@
     "rate": 1.0
   },
   "location_success": {
-    "numerator": 22,
-    "denominator": 22,
+    "numerator": 27,
+    "denominator": 27,
     "rate": 1.0
   },
-  "max_response_words": 424,
+  "max_response_words": 446,
   "word_count_method": "whitespace proxy; not a tokenizer or cross-language segmentation measure",
   "semantic_accuracy": "not measured",
   "independent_adoption": "not measured",
@@ -65,8 +65,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 171,
-      "response_bytes": 2345,
+      "response_words": 193,
+      "response_bytes": 2585,
       "candidate_count": 1,
       "truncated": false
     },
@@ -83,8 +83,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 149,
-      "response_bytes": 2235,
+      "response_words": 166,
+      "response_bytes": 2538,
       "candidate_count": 1,
       "truncated": false
     },
@@ -101,8 +101,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 132,
-      "response_bytes": 2045,
+      "response_words": 153,
+      "response_bytes": 2438,
       "candidate_count": 1,
       "truncated": false
     },
@@ -119,8 +119,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 129,
-      "response_bytes": 2128,
+      "response_words": 152,
+      "response_bytes": 2420,
       "candidate_count": 1,
       "truncated": false
     },
@@ -191,8 +191,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 102,
-      "response_bytes": 1884,
+      "response_words": 114,
+      "response_bytes": 2047,
       "candidate_count": 1,
       "truncated": false
     },
@@ -209,8 +209,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 112,
-      "response_bytes": 1814,
+      "response_words": 128,
+      "response_bytes": 2010,
       "candidate_count": 1,
       "truncated": false
     },
@@ -282,8 +282,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 424,
-      "response_bytes": 6474,
+      "response_words": 446,
+      "response_bytes": 6714,
       "candidate_count": 2,
       "truncated": false
     },
@@ -318,8 +318,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 84,
-      "response_bytes": 1438,
+      "response_words": 86,
+      "response_bytes": 1479,
       "candidate_count": 1,
       "truncated": false
     },
@@ -336,8 +336,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 132,
-      "response_bytes": 2045,
+      "response_words": 153,
+      "response_bytes": 2438,
       "candidate_count": 1,
       "truncated": false
     },
@@ -372,8 +372,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 112,
-      "response_bytes": 1814,
+      "response_words": 128,
+      "response_bytes": 2010,
       "candidate_count": 1,
       "truncated": false
     },
@@ -390,8 +390,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 149,
-      "response_bytes": 2235,
+      "response_words": 166,
+      "response_bytes": 2538,
       "candidate_count": 1,
       "truncated": false
     },
@@ -421,6 +421,96 @@
       "response_words": 17,
       "response_bytes": 105,
       "candidate_count": 0,
+      "truncated": false
+    },
+    {
+      "id": "trial-seam-1",
+      "query": "跨接口改进要拆哪些工作包",
+      "expected": [
+        "interface-plan"
+      ],
+      "actual": [
+        "interface-plan"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 86,
+      "response_bytes": 1479,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "trial-seam-2",
+      "query": "外部请求预算重试在哪个内部函数",
+      "expected": [
+        "external-transport"
+      ],
+      "actual": [
+        "external-transport"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 128,
+      "response_bytes": 2010,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "trial-seam-3",
+      "query": "缓存接口的命中与异常降级在哪里",
+      "expected": [
+        "host-ports"
+      ],
+      "actual": [
+        "host-ports"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 166,
+      "response_bytes": 2538,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "trial-seam-4",
+      "query": "模型贡献清洗与去重影响哪些入口",
+      "expected": [
+        "tagger-contribution"
+      ],
+      "actual": [
+        "tagger-contribution"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 153,
+      "response_bytes": 2438,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "trial-seam-5",
+      "query": "HTTP 错误与客户端错误的转换点",
+      "expected": [
+        "public-api"
+      ],
+      "actual": [
+        "public-api"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 193,
+      "response_bytes": 2585,
+      "candidate_count": 1,
       "truncated": false
     }
   ]
