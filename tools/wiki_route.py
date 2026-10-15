@@ -41,7 +41,7 @@ def anchor_exists(text,anchor):
 
 
 def resolve(root,manifest):
-    if manifest.get('schema_version')!=1:raise ValueError('Unsupported route schema')
+    if manifest.get('schema_version') not in (1, 2):raise ValueError('Unsupported route schema')
     rows=[];seen=set()
     for route in manifest['routes']:
         if route['id'] in seen:raise ValueError('Duplicate route id')
@@ -130,7 +130,7 @@ def main(argv=None):
             if row.get('warning'):print('  warning: '+row['warning'])
             for e in row['locations']:print(f"  {e['path']}:{e['line']} :: {e.get('symbol') or e.get('needle')}")
             print('  docs: '+' | '.join(row['docs']));print('  tests: '+' '.join(row.get('tests',[])))
-            for command in row.get('checks',[]):print('  check: '+command)
+            for command in row.get('checks',[]):print('  check: '+(command['command'] if isinstance(command,dict) else command))
             print('  boundary: '+row['boundary'])
     return 0
 

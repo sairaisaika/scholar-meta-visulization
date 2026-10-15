@@ -45,3 +45,9 @@
 文章源按标签查询时，也必须返回仅由账本新增该标签的文章。否则文章在应用裁决前就被数据库漏掉，引擎无法补回来。账本端口取不到时服务返回 unavailable，不用原始标签凑数。
 
 依据：[tags.ts](../../src/tags.ts)、[tagging.ts](../../src/tagging.ts)、[ledger.ts](../../src/ledger.ts)、[ports.ts](../../src/ports.ts)。完整流程见[打标签专题](../tagging.md)。
+
+## 工程边界与来源
+
+申请生命周期及拒绝守卫见[申请状态图与操作表](System-views.md#state-machine)，断言、申请与派生结论见[数据模型](System-views.md#data-model)。`createTagLedger.decide` 先 append 审核断言，再 putRequest；门面未提供跨操作原子事务，部分成功和并发审核需要宿主处理。
+
+**章节来源**：归一/绑定节 `tags.normalizeTag/resolveTagBinding`；模型节 `tagging.runTagger/validateTagContribution`；裁决节 `ledger.resolveWorkTags/checkAssertion/decideChangeRequest`；统计节 `ledger.applyWorkTags` 与 `service.onsiteRecords`。对应路由动态解析当前位置，详见[生成索引](route-index.md)。

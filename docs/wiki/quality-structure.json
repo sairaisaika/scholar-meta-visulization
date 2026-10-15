@@ -1,0 +1,299 @@
+{
+  "schema_version": 2,
+  "mode": "structural",
+  "ready": true,
+  "routes": [
+    {
+      "id": "external-source",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 5,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "external-transport",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 4,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "host-ports",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 8,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "public-api",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 8,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "tag-normalization",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 6,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "tagger-contribution",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 6,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "ledger-policy",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 7,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "ledger-integration",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 6,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "settings-contract",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 8,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "compatibility",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 4,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "system-views",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 23,
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
+    },
+    {
+      "id": "interface-plan",
+      "valid": true,
+      "score": {
+        "total": 85,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 0,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 0,
+      "plan_coverage": {
+        "numerator": 6,
+        "denominator": 6
+      },
+      "engineering": null,
+      "gaps": []
+    }
+  ],
+  "route_count": 12,
+  "structural_average": 98.75,
+  "structural_minimum": 85,
+  "required_per_route": 85,
+  "diagram_coverage": {
+    "scope": "共享 Wiki 项目级六种视图，不要求每接口重复六图",
+    "required_kinds": [
+      "architecture",
+      "data-model",
+      "deployment",
+      "flow",
+      "sequence",
+      "state-machine"
+    ],
+    "documented_kinds": [
+      "architecture",
+      "data-model",
+      "deployment",
+      "flow",
+      "sequence",
+      "state-machine"
+    ],
+    "counts_by_kind": {
+      "architecture": 1,
+      "data-model": 1,
+      "deployment": 1,
+      "flow": 1,
+      "sequence": 1,
+      "state-machine": 1
+    },
+    "missing_kinds": [],
+    "not_applicable": [],
+    "reference_validation": "Only valid route references are counted; semantic and rendering checks are separate",
+    "renderer_verification": "not performed by helper"
+  },
+  "semantic_accuracy": "not measured",
+  "independent_adoption": "not measured"
+}

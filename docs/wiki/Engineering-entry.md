@@ -5,11 +5,11 @@
 在 SMV 仓库根运行：
 
 ```sh
-python tools/wiki_route.py "外部源端口"
-python tools/wiki_route.py "HTTP 错误"
-python tools/wiki_route.py "模型贡献"
-python tools/wiki_route.py "标签裁决"
-python tools/wiki_route.py --list
+python tools/wiki.py query "外部源端口"
+python tools/wiki.py query "HTTP 错误"
+python tools/wiki.py query "模型贡献"
+python tools/wiki.py query "标签裁决"
+python tools/wiki.py list
 ```
 
 每次只返回最相关的两条路由：当前源码位置、局部说明、检查命令、证据边界。查询读取已登记的文件以解析位置，不是全仓搜索；人工不用猜文件名。需要完全不读源码的计划阶段，直接用下表和[接口影响地图](Interface-map.md)；准备编辑时再定点打开列出的符号。
@@ -31,6 +31,15 @@ python tools/wiki_route.py --list
 
 读完一条就应能写出：修改哪层、哪个声明和实现、影响谁、哪条规则不能破坏、跑哪个测试、还有什么未知。如果只有一个文件名，没有这些信息，路由仍不合格。
 
-位置快照在 [agent-index.md](agent-index.md)，机器清单在 `routes.json`；查询会重新解析当前行号，快照用于审阅而非永久行号承诺。`--build` 更新快照，`--check` 检查位置、链接、锚点和快照漂移，漂移时以非零退出码失败；CI 同时运行导航验收。内容哈希统一 LF，避免 Windows/Linux 换行差异造成假漂移。它不证明描述的行为正确，也不证明接口计划已经实现。
+位置快照在 [route-index.md](route-index.md)，机器清单在 `routes.json`；查询会重新解析当前行号，快照用于审阅而非永久行号承诺。`build` 更新快照，`check` 检查位置、链接、锚点和快照漂移，漂移时以非零退出码失败；CI 同时运行导航验收。内容哈希统一 LF，避免 Windows/Linux 换行差异造成假漂移。它不证明描述的行为正确，也不证明接口计划已经实现。
 
 遇到未登记问题，查询返回无路由；不要硬套“最像”的接口。定点搜索后补路由是兜底，不能声称 Wiki 已覆盖所有未来任务。
+
+## 分层导航与维护
+
+- 系统边界 → [六视图](System-views.md)：架构、部署、数据模型；局部问题选流程、时序或状态。
+- 功能接口 → [影响地图](Interface-map.md)：源端口、HTTP/SDK、标签与账本、设置与兼容。
+- 设计提案 → [候选计划](Interface-improvement-plan.md)：提案 route 为 planned，不算已实现。
+- 审查证据 → [本轮优化验收](Wiki-quality-review.md)：结构、导航、语义、渲染和实际测试分开记录。
+
+新版 `tools/wiki.py` 来自 projectWikiSkill 的 project-wiki，支持 schema 2 契约/规则/证据与六视图覆盖。`python tools/wiki.py audit` 看结构缺口；`python tools/wiki.py evaluate --tasks docs/wiki/navigation-tasks.json` 跑导航自测。`build` 后用 `check` 检查漂移；CI 不自动修复快照。旧 `tools/wiki_route.py` 和 agent-index 保留历史调用兼容，只做旧式定位检查，不能替代新版质量门槛。

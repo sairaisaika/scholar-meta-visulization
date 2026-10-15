@@ -15,6 +15,8 @@ flowchart TD
   P --> U[宿主前端绘制]
 ```
 
+**图表来源**：`src/onsite.ts::intakeArticle`、`src/tagging.ts::runTagger`、`src/ledger.ts::createTagLedger`、`src/service.ts::createEvidenceService`；这是可组合能力概览，不是所有调用都自动执行。具体责任、数据模型、部署与失败路径见[六视图](System-views.md)。
+
 ## 五个包入口
 
 | 入口 | 执行位置 | 内容 |

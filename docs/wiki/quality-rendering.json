@@ -1,0 +1,59 @@
+{
+  "renderer": "Mermaid 11 via isolated headless Chrome",
+  "requested_url": "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js",
+  "resolved_mermaid_version": "11.17.2",
+  "browser_version": "155.0.8059.41",
+  "diagrams": [
+    {
+      "diagram": 1,
+      "file": "docs/wiki/System-views.md",
+      "parsed": true,
+      "rendered": true,
+      "source_sha256": "390ee732402e2c57744abc870e87f22b105ed21a39137376e6769c45acf00651",
+      "screenshot": "diagram-0.png"
+    },
+    {
+      "diagram": 2,
+      "file": "docs/wiki/System-views.md",
+      "parsed": true,
+      "rendered": true,
+      "source_sha256": "7a8910dfa5fe3658d91c0de1845815569fb0f9a38fdae786c4282b2ac361bc3c",
+      "screenshot": "diagram-1.png"
+    },
+    {
+      "diagram": 3,
+      "file": "docs/wiki/System-views.md",
+      "parsed": true,
+      "rendered": true,
+      "source_sha256": "57d9a385d927a2ad07fd6a15b478aaea6f8d5a0fa1dc97c4111381d1dedf6a40",
+      "screenshot": "diagram-2.png"
+    },
+    {
+      "diagram": 4,
+      "file": "docs/wiki/System-views.md",
+      "parsed": true,
+      "rendered": true,
+      "source_sha256": "58d2400d035e231f5fdb94e7e2a110607c2a35fdc816f718d99f5539512b96d9",
+      "screenshot": "diagram-3.png"
+    },
+    {
+      "diagram": 5,
+      "file": "docs/wiki/System-views.md",
+      "parsed": true,
+      "rendered": true,
+      "source_sha256": "e715521c833a68c65eee6fb1941a31709a48931e82a55e3f9a640ee2c10b984f",
+      "screenshot": "diagram-4.png"
+    },
+    {
+      "diagram": 6,
+      "file": "docs/wiki/System-views.md",
+      "parsed": true,
+      "rendered": true,
+      "source_sha256": "3a7b052110fb8b6db9e764d573532a94f8beab040bed15d5eeae2155f493f250",
+      "screenshot": "diagram-5.png"
+    }
+  ],
+  "rendered": 6,
+  "total": 6,
+  "scope": "Syntax/render only. Readability and code semantics need separate review."
+}

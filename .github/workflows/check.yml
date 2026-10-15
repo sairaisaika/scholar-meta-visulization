@@ -24,6 +24,8 @@ jobs:
           python-version: '3.13'
       - name: Wiki routes and navigation acceptance
         run: |
+          python tools/wiki.py check
+          python tools/wiki.py evaluate --tasks docs/wiki/navigation-tasks.json
           python tools/wiki_route.py --check
           python -m unittest discover -s tools -p test_wiki_route.py
       # 私有词表放在仓库 secret PRIVATE_TERMS（每行一个正则）；设了就写成仓外的临时文件，并用隐去模式跑：

@@ -14,6 +14,9 @@
 - 检查：`pnpm exec jest --runInBand test/service.test.ts test/openalex.test.ts test/openalex-counts.test.ts test/integration.test.ts`。
 - 边界：类型中列出来源不代表适配器已实现；当前只有 OpenAlex 实现。新源真实返回与配额仍需另做 live 验证。
 
+
+**章节来源**（`external-source`）：`src/ports.ts :: export interface ExternalEvidenceSource`、`src/openalex.ts :: export function createOpenAlexSource`、`src/openalex-counts.ts :: export async function fetchEvidenceCounts`、`src/service.ts :: export function createEvidenceService`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
+
 <a id="external-transport"></a>
 ## 外部请求、预算与限流
 
@@ -23,6 +26,9 @@
 - 改动影响：新增取消、重试、共享预算等能力时，需要先设计宿主端口，保持 `src/` 无运行时依赖、无 process/node 引用；浏览器不能运行时依赖此层。
 - 检查：`pnpm exec jest --runInBand test/openalex.test.ts test/openalex-counts.test.ts test/settings.test.ts`；再跑 `pnpm check:boundary` 与 `pnpm build`。
 - 边界：此页不声称存在共享预算端口或新取消接口，也不保证第三方今天的费用。
+
+
+**章节来源**（`external-transport`）：`src/openalex.ts :: export interface OpenAlexOptions`、`src/openalex.ts :: export function createOpenAlexClient`、`src/openalex.ts :: export function isFreeOpenAlexPath`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
 
 <a id="host-ports"></a>
 ## 宿主依赖与注入
@@ -38,6 +44,9 @@
 装配点是 `src/service.ts::EvidenceServiceOptions`、`createEvidenceService`。对应内存实现也在 ports.ts，标签账本存储另在 `src/ledger.ts::TagLedgerStore`。内存缓存不是数据库或分布式一致性保证。
 
 更换存储通常只需宿主实现端口，不需要改公共契约；新增引擎能力才考虑端口扩展。缓存失效、事务和身份授权需要写清宿主责任。检查：`pnpm exec jest --runInBand test/ports.test.ts test/service.test.ts test/sync.test.ts`。真实数据库事务不能用内存测试证明。
+
+
+**章节来源**（`host-ports`）：`src/ports.ts :: export interface OnsiteArticleSource`、`src/ports.ts :: export interface TagBindingStore`、`src/ports.ts :: export interface EvidenceCache`、`src/ports.ts :: export interface WorkTagSource`、`src/ports.ts :: export interface CertaintySource`、`src/service.ts :: export interface EvidenceServiceOptions`、`src/service.ts :: export function createEvidenceService`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
 
 <a id="public-api"></a>
 ## 公共服务、HTTP 与客户端
@@ -57,11 +66,16 @@ sequenceDiagram
   C-->>C: guard 通过返回数据 否则 null
 ```
 
+**图表来源**：public-api 路由的 service、handler、client 声明与实现；图只概括分层，具体失败路径见[交互时序](System-views.md#sequence)。
+
 声明：`src/service.ts::EvidenceService`、`ServiceResult`、`ServiceError`。HTTP 实现：`src/http.ts::EVIDENCE_ROUTES`、`createEvidenceHandler`。客户端：`src/client.ts::EVIDENCE_CLIENT_ROUTES`、`createEvidenceClient`；验形在 `src/guards.ts`。
 
 精确返回和参数见[接入与 API](Integration-and-API.md)。规则：服务 data/error 联合、HTTP 数据正文与状态、客户端 data/null 是三种不同边界；四个公共读口不承载编辑写入。改错误模型必须检查三层，并保持现有调用者兼容；不能只改类型或把全部失败变成“零研究”。
 
 检查：`pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts`。package 检查另验证安装后链路。客户端 guard 验形通过不等于真实第三方数据已核实。
+
+
+**章节来源**（`public-api`）：`src/service.ts :: export interface EvidenceService {`、`src/service.ts :: export type ServiceResult<`、`src/service.ts :: export type ServiceError =`、`src/http.ts :: export function createEvidenceHandler`、`src/http.ts :: export const EVIDENCE_ROUTES =`、`src/client.ts :: export function createEvidenceClient`、`src/client.ts :: export const EVIDENCE_CLIENT_ROUTES =`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
 
 <a id="tag-normalization"></a>
 ## 标签键与主题绑定
@@ -74,6 +88,9 @@ sequenceDiagram
 
 检查：`pnpm exec jest --runInBand test/tags.test.ts test/service.test.ts test/onsite.test.ts test/regression.test.ts`。模型标签验形和账本裁决另走下面两节，不在主题绑定函数内完成。
 
+
+**章节来源**（`tag-normalization`）：`src/tags.ts :: export function normalizeTag`、`src/tags.ts :: export function resolveTagBinding`、`src/tags.ts :: export function createCuratedBinding`、`src/tags.ts :: export const MACHINE_BINDING_POLICIES`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
+
 <a id="tagger-contribution"></a>
 ## 模型接口与贡献包
 
@@ -84,6 +101,9 @@ sequenceDiagram
 规则：null 为失败，空建议为成功空结果；词表 null 与 [] 含义不同；版本要保留；贡献包验形不是账号认证。当前置信度 null 不会仅因数字门槛被排除，要改成“缺值拒收”就是行为变化。
 
 检查：`pnpm exec jest --runInBand test/tagging.test.ts test/sync.test.ts test/api-surface.test.ts`。不能凭受控词表基线测试宣称外部模型质量合格。
+
+
+**章节来源**（`tagger-contribution`）：`src/tagging.ts :: export interface EvidenceTagger {`、`src/tagging.ts :: export async function runTagger`、`src/tagging.ts :: export function validateTagContribution`、`src/tagging.ts :: export function buildTagContribution`、`src/tagging.ts :: export function normalizeWorkId`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
 
 <a id="ledger-policy"></a>
 ## 裁决规则与审核状态
@@ -103,7 +123,12 @@ flowchart LR
   D -->|拒绝| U[保持原裁决]
 ```
 
+**图表来源**：ledger-policy 路由中的 checkAssertion / resolveWorkTags / decideChangeRequest，以及 `src/ledger.ts::openChangeRequest/withdrawChangeRequest`；持久化顺序另见[申请状态](System-views.md#state-machine)。
+
 这是决策流程，不宣称数据库事务已实现。修改审核规则还需检查存储原子性、身份来源及重复请求策略；这些未知项不能从函数名推断。检查：`pnpm exec jest --runInBand test/sync.test.ts test/tagging.test.ts test/settings.test.ts`。
+
+
+**章节来源**（`ledger-policy`）：`src/ledger.ts :: export interface LedgerPolicy`、`src/ledger.ts :: export function resolveWorkTags`、`src/ledger.ts :: export function checkAssertion`、`src/ledger.ts :: export function decideChangeRequest`、`src/ledger.ts :: export interface TagLedgerStore`、`src/ledger.ts :: export function createTagLedger`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
 
 <a id="ledger-integration"></a>
 ## 裁决怎样进入文章与图谱
@@ -114,6 +139,9 @@ flowchart LR
 
 规则：只从旧 tags 查询会漏掉仅账本新增的标签；disputed/absent 不计入；账本失败不是允许回退的空账本；资格变化后还要处理服务与 HTTP 缓存。检查：`pnpm exec jest --runInBand test/sync.test.ts test/service.test.ts test/onsite.test.ts test/integration.test.ts`。
 
+
+**章节来源**（`ledger-integration`）：`src/ledger.ts :: export function applyWorkTags`、`src/ports.ts :: export interface WorkTagSource`、`src/service.ts :: export function createEvidenceService`、`src/onsite.ts :: export function applyReviewGate`、`src/service.ts :: async function onsiteRecords(`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
+
 <a id="settings-contract"></a>
 ## 配置接口与热更新
 
@@ -122,6 +150,9 @@ flowchart LR
 设置不是只改默认值：类型 → 注册表 → messages 中英文 → manifest → 消费入口 → 缓存/同步时机都要对应。有效 provided 值优先于代码选项；live 同步路径可能先用旧值；方法门槛不是普通设置。
 
 检查：`pnpm exec jest --runInBand test/settings.test.ts test/features.test.ts`，然后 `pnpm build` 核对清单；刻意新增设置须重新生成 manifest。此处不提供不存在的后台存储 UI。
+
+
+**章节来源**（`settings-contract`）：`src/settings.ts :: export const EVIDENCE_SETTINGS:`、`src/settings.ts :: export function validateSettings`、`src/settings.ts :: export function createLiveSettings`、`src/settings.ts :: export function ledgerPolicyFromSettings`、`src/settings.ts :: export function settingsReader`、`src/manifest.ts :: export function buildPluginManifest`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。
 
 <a id="compatibility"></a>
 ## 对外导出与规则变更
@@ -133,3 +164,5 @@ flowchart LR
 现行版本规则以[贡献规则](../../CONTRIBUTING.md)第三、四、七节为准：契约只做加法；0.x 破坏性变更随次版本并写迁移；公开接口或行为变化更新 CHANGELOG；改 types.ts 更新契约版本。不要为消除测试失败直接无审阅地更新快照。
 
 检查：`pnpm exec jest --runInBand test/api-surface.test.ts test/regression.test.ts test/features.test.ts test/contract-tables.test.ts test/release.test.ts`，并做 `pnpm typecheck:src`、`pnpm check:package`。完整发布前检查是 pnpm check；Windows 的已知检查运行限制见[维护记录](Troubleshooting-and-maintenance.md)。
+
+**章节来源**（`compatibility`）：`src/types.ts :: export const EVIDENCE_CONTRACT_VERSION`、`src/features.ts :: export const EVIDENCE_FEATURES`。当前行号见[生成索引](route-index.md)，失败分类和未知项见 `routes.json` 对应契约。

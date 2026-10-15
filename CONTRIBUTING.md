@@ -35,7 +35,7 @@
 
 ## 四、写功能的规矩
 
-改接口、依赖端口或标签规则时，可从 [Wiki 工程入口](docs/wiki/Engineering-entry.md) 查询当前符号、影响面与窄测试。修改后更新受影响的路由/局部说明，运行 `python tools/wiki_route.py --build` 与 `python tools/wiki_route.py --check`；导航验收运行 `python -m unittest discover -s tools -p test_wiki_route.py`。CI 会检查路由漂移，但路由存在不代替实现审查或功能验收。
+改接口、依赖端口或标签规则时，可从 [Wiki 工程入口](docs/wiki/Engineering-entry.md) 查询当前符号、影响面与窄测试。修改后更新受影响的路由/局部说明，运行 `python tools/wiki.py build` 与 `python tools/wiki.py check`；导航验收运行 `python -m unittest discover -s tools -p test_wiki_route.py`。CI 会检查路由漂移，但路由存在不代替实现审查或功能验收。
 
 - 每个功能都有**生产端与消费端**，登记在 `src/features.ts`，并在 `docs/architecture.md` 的功能表里加一行（测试核对两端都在、表没漏）。
 - 加一样东西＝加一行：图种、维度、效应量度量、视图、图注限定、外部源、语言（见 `docs/architecture.md` 的扩展点表）。

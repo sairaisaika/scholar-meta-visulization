@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "thresholds": {
+    "min_top1": 0.8,
+    "min_top2": 0.9,
+    "min_tasks": 10,
+    "min_unknown": 2
+  },
+  "tasks": [
+    {
+      "id": "q1",
+      "query": "换一个文献源，不支持全量计数怎么办",
+      "expected_routes": [
+        "external-source"
+      ]
+    },
+    {
+      "id": "q2",
+      "query": "公共接口的客户端错误应该怎样保留",
+      "expected_routes": [
+        "public-api"
+      ]
+    },
+    {
+      "id": "q3",
+      "query": "要替换数据库接口和缓存接口",
+      "expected_routes": [
+        "host-ports"
+      ]
+    },
+    {
+      "id": "q4",
+      "query": "修改模型贡献的交换包",
+      "expected_routes": [
+        "tagger-contribution"
+      ]
+    },
+    {
+      "id": "q5",
+      "query": "修改标签裁决和审核规则",
+      "expected_routes": [
+        "ledger-policy"
+      ]
+    },
+    {
+      "id": "q6",
+      "query": "为什么账本应用后标签漏项",
+      "expected_routes": [
+        "ledger-integration"
+      ]
+    },
+    {
+      "id": "q7",
+      "query": "修改标签归一后如何迁移",
+      "expected_routes": [
+        "tag-normalization"
+      ]
+    },
+    {
+      "id": "q8",
+      "query": "设置接口的热更新",
+      "expected_routes": [
+        "settings-contract"
+      ]
+    },
+    {
+      "id": "q9",
+      "query": "破坏性变更和包导出",
+      "expected_routes": [
+        "compatibility"
+      ]
+    },
+    {
+      "id": "q10",
+      "query": "外部请求重试和预算",
+      "expected_routes": [
+        "external-transport"
+      ]
+    },
+    {
+      "id": "q11",
+      "query": "系统架构中哪些是进程",
+      "expected_routes": [
+        "system-views"
+      ]
+    },
+    {
+      "id": "q12",
+      "query": "申请状态机哪些拒绝不迁移",
+      "expected_routes": [
+        "system-views"
+      ]
+    },
+    {
+      "id": "q13",
+      "query": "数据模型断言和结论的关系",
+      "expected_routes": [
+        "system-views"
+      ]
+    },
+    {
+      "id": "q14",
+      "query": "交互时序 SDK 为什么只有 null",
+      "expected_routes": [
+        "system-views"
+      ]
+    },
+    {
+      "id": "q15",
+      "query": "部署边界里 SMT 是否独立运行",
+      "expected_routes": [
+        "system-views"
+      ]
+    },
+    {
+      "id": "q16",
+      "query": "结果式客户端方案怎么验收",
+      "expected_routes": [
+        "interface-plan"
+      ]
+    },
+    {
+      "id": "q17",
+      "query": "贡献包的模型贡献如何进入账本",
+      "expected_routes": [
+        "tagger-contribution"
+      ]
+    },
+    {
+      "id": "q18",
+      "query": "争议排除和审阅门槛的顺序",
+      "expected_routes": [
+        "ledger-integration"
+      ]
+    },
+    {
+      "id": "q19",
+      "query": "全局共享限额预算是否已支持",
+      "expected_routes": [
+        "external-transport"
+      ]
+    },
+    {
+      "id": "q20",
+      "query": "缓存接口失败由谁处理",
+      "expected_routes": [
+        "host-ports"
+      ]
+    },
+    {
+      "id": "q21",
+      "query": "支付退款流程",
+      "expected_routes": []
+    },
+    {
+      "id": "q22",
+      "query": "GPU 推理集群扩容",
+      "expected_routes": []
+    }
+  ]
+}

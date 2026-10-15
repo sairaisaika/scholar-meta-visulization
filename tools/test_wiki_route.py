@@ -11,6 +11,9 @@ import tempfile
 import unittest
 
 import wiki_route as router
+import wiki as precise
+import hashlib
+import re
 
 
 class WikiRouteAcceptance(unittest.TestCase):
@@ -36,6 +39,24 @@ class WikiRouteAcceptance(unittest.TestCase):
                 self.assertEqual(hits[0]['id'], expected)
                 resolved = router.resolve(root, dict(manifest, routes=[hits[0]]))[0]
                 self.assertTrue(resolved['locations'])
+
+    def test_schema_two_quality_navigation_and_saved_render_sources(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = precise.load(root)
+        self.assertEqual(manifest['schema_version'], 2)
+        self.assertTrue(precise.audit(root, manifest)['ready'])
+        self.assertFalse(precise.is_stale(root, precise.snapshot(root, manifest)))
+        report = precise.evaluate(root, manifest, precise.read_json(root / 'docs/wiki/navigation-tasks.json'))
+        self.assertTrue(report['passed'])
+        plan = next(row for row in manifest['routes'] if row['id'] == 'interface-plan')
+        self.assertEqual(plan['evidence']['implementation'], 'planned')
+        code = (root / 'docs/wiki/System-views.md').read_text(encoding='utf-8')
+        hashes = [hashlib.sha256(block.encode('utf-8')).hexdigest()
+                  for block in re.findall(r'```mermaid\n([\s\S]*?)```', code)]
+        receipt = precise.read_json(root / 'docs/wiki/quality-rendering.json')
+        self.assertEqual(len(hashes), 6)
+        self.assertEqual(hashes, [row['source_sha256'] for row in receipt['diagrams']])
+        self.assertTrue(all(row.get('parsed') and row.get('rendered') for row in receipt['diagrams']))
 
     def test_moved_typescript_declaration_and_missing_or_duplicate_symbol(self):
         with tempfile.TemporaryDirectory() as directory:

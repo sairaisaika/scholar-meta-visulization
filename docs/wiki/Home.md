@@ -10,6 +10,8 @@ Scholar Meta 把论文标签、可追溯的标签裁决、主题绑定与研究�
 |---|---|
 | 理解两个仓库的关系和实际进度 | [项目与实现状态](Project-status.md) |
 | 本地运行、接入最小服务 | [快速开始](Quick-start.md) |
+| 核对六视图与实际运行边界 | [六视图](System-views.md) |
+| 检查 Wiki 精细度和本轮验证范围 | [优化验收](Wiki-quality-review.md) |
 | 理解模块和数据流 | [架构与数据契约](Architecture.md) |
 | 给论文打标签、处理分歧 | [标签与裁决账本](Tags-and-ledger.md) |
 | 判断数据能画什么 | [证据与图形规则](Evidence-and-charts.md) |
