@@ -45,3 +45,5 @@ python tools/wiki.py list
 - 审查证据 → [本轮优化验收](Wiki-quality-review.md)：结构、导航、语义、渲染和实际测试分开记录。
 
 新版 `tools/wiki.py` 来自 projectWikiSkill 的 project-wiki，支持 schema 2 契约/规则/证据与六视图覆盖。`python tools/wiki.py audit` 看结构缺口；`python tools/wiki.py evaluate --tasks docs/wiki/navigation-tasks.json` 跑导航自测。`build` 后用 `check` 检查漂移；CI 不自动修复快照。旧 `tools/wiki_route.py` 和 agent-index 保留历史调用兼容，只做旧式定位检查，不能替代新版质量门槛。
+
+跨接口任务先运行 `python tools/wiki.py task interface-change`，一次列全四类工作面和十条路由。此命令只读取清单/文档；选定 route 后再 query 定点解析源码。地图是声明范围，不能当作自动推断的全项目影响图。

@@ -56,3 +56,23 @@ pnpm check
 `build` 更新结构快照，不代替语义复核或自动刷新 reviewed_at。修改图表后重新渲染并更新回执；`quality-structure.json` 与 `quality-routing.json` 是本次快照，后续 CI 从当前清单计算而不是信任保存分数。定点源码核验是必要步骤；不把它算作 wiki 导航失败。SMT 的现有共享入口继续指向同一正文，不复制第二套。
 
 后续实际改动演练见[先计划再核对记录](Interface-navigation-trial.md)。当前结构/导航 JSON 已按该轮刷新；先前正文的最大 412 与原报告 424 不一致，已纠正。原业务测试与渲染结果为上一轮执行，不自动当作本轮重新运行。
+
+## 根据接口演练继续维护 skill / Wiki
+
+当前 helper 更新为 projectWikiSkill 提交 `337ab5d369a5499b18f56a1d67434044bde653e6` 的原样副本，前文 `26f550b` 是历史首次引入版本。新增 task_maps、task 命令、工作面完整性用例和 edit_for/visibility；历史演练阶段记录保留，不改成独立盲测。
+
+当前验收分别报告：25/25 已知导航、2/2 未知拒绝；1 个复合任务用例要求四类工作面和十条路由；10 个带用途的有效定位（8 internal、2 public）。这是声明范围与位置检查；语义正确、可见性充分性、陌生 agent 采用及速度仍不由 helper 证明。数字与 quality-routing.json / quality-structure.json 分别核对，避免手写摘要漂移。
+
+<!-- report-summary:start -->
+| 指标 | 当前机器报告 |
+|---|---|
+| 首选命中 | 25/25 |
+| 未知拒绝 | 2/2 |
+| 最大空白分隔词数 | 446 |
+| 复合范围用例 | 1/1 |
+| 已定位改动用途 | 10 |
+<!-- report-summary:end -->
+
+上表由导航/结构 JSON 的数值核对测试保护；数字变化需要刷新报告和摘要，不得通过删除失败场景或放宽阈值掩盖。
+
+本轮执行：9 项 Python 导航/范围/摘要测试通过，结构、漂移、链接及任务地图验收通过。pnpm check 再次通过类型、边界、419 个业务测试、14 个快照及构建/产物检查；Windows 安装包步骤仍为 spawnSync pnpm ENOENT，完整验收以当前提交 Linux check 为准。六图源未修改，未重复宣称新渲染；私有词表为空仍明确跳过。

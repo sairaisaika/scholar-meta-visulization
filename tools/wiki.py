@@ -91,7 +91,52 @@ def load(root):
             if not isinstance(exception, dict) or exception.get('kind') not in required or exception['kind'] in seen or not text(exception.get('reason')):
                 raise Invalid('Diagram exceptions require a unique required kind and explicit reason')
             seen.add(exception['kind'])
+    task_maps(manifest)
     return manifest
+
+
+def task_maps(manifest):
+    """Validate declared compound scope, never infer a complete impact graph."""
+    maps = manifest.get('task_maps', [])
+    if not isinstance(maps, list):
+        raise Invalid('task_maps must be an array')
+    route_ids = {row['id'] for row in manifest['routes']}
+    seen = set()
+    for item in maps:
+        if not isinstance(item, dict) or not text(item.get('id')) or item['id'] in seen:
+            raise Invalid('Task maps require unique nonempty IDs')
+        seen.add(item['id'])
+        if not all(text(item.get(key)) for key in ('title', 'scope')) or not strings(item.get('docs')) or not item['docs']:
+            raise Invalid('Task maps require title, scope and local docs')
+        surfaces = item.get('surfaces')
+        if not isinstance(surfaces, list) or not surfaces:
+            raise Invalid('Task maps require nonempty surfaces')
+        surface_ids = set()
+        for surface in surfaces:
+            if not isinstance(surface, dict) or not text(surface.get('id')) or surface['id'] in surface_ids:
+                raise Invalid('Task surface IDs must be unique within a map')
+            surface_ids.add(surface['id'])
+            refs = surface.get('route_ids')
+            if not all(text(surface.get(key)) for key in ('question', 'why')) or not strings(refs) or not refs or len(set(refs)) != len(refs) or not set(refs) <= route_ids:
+                raise Invalid('Task surfaces require question, why and unique existing route_ids')
+    return maps
+
+
+def task_outline(root, manifest, task_id):
+    matches = [item for item in task_maps(manifest) if item['id'] == task_id]
+    if not matches:
+        raise Invalid(f'Unknown task map: {task_id}; use task without an ID to list maps')
+    item = matches[0]
+    for reference in item['docs']:
+        verify_ref(root, reference)
+    ids = list(dict.fromkeys(ref for surface in item['surfaces'] for ref in surface['route_ids']))
+    routes = [row for row in manifest['routes'] if row['id'] in ids]
+    for row in routes:
+        for reference in row.get('docs', []):
+            verify_ref(root, reference)
+    return dict(item, route_ids=ids, routes=[{'id': row['id'], 'title': row['title'],
+                'docs': row.get('docs', [])} for row in routes],
+                evidence_boundary='Declared task scope, not inferred full-project completeness; source locations/semantics require query and review')
 
 
 def py_symbols(node, prefix=''):
@@ -402,6 +447,10 @@ def resolve_route(root, row, version):
         ids.add(source['id'])
         if not text(source.get('reason')):
             raise Invalid('Each source requires its reason in the edit surface')
+        if 'visibility' in source and source['visibility'] not in ('public', 'internal'):
+            raise Invalid('Source visibility must be public or internal')
+        if 'edit_for' in source and (not strings(source['edit_for']) or not source['edit_for']):
+            raise Invalid('Source edit_for must be a nonempty string array')
         if planned and source['role'] == 'implementation':
             raise Invalid('Do not label a proposed implementation as existing source')
     rule_ids = set()
@@ -499,6 +548,8 @@ def audit(root, manifest):
             quality = score(resolved) if version == 2 else None
             reports.append({'id': row['id'], 'valid': True, 'score': quality,
                             'locations': len(resolved['locations']),
+                            'edit_targets': {'located': sum(bool(item.get('edit_for')) for item in resolved['locations']),
+                                             'semantic_accuracy': 'not verified'},
                             'plan_coverage': {'numerator': 6, 'denominator': 6} if version == 2 and row.get('kind') == 'plan' else None,
                             'engineering': resolved.get('engineering_metrics'),
                             'gaps': [field for field in ('kind', 'interface', 'rules', 'impact', 'unknowns', 'evidence', 'reviewed_at') if field not in row]})
@@ -517,12 +568,21 @@ def audit(root, manifest):
                 'not_applicable': policy.get('not_applicable', []),
                 'reference_validation': 'Only valid route references are counted; semantic and rendering checks are separate',
                 'renderer_verification': 'not performed by helper'}
-    ready = version == 2 and bool(reports) and not missing and all(item['valid'] and item['score']['total'] >= floor for item in reports)
+    map_reports = []
+    for item in task_maps(manifest):
+        try:
+            outline = task_outline(root, manifest, item['id'])
+            map_reports.append({'id': item['id'], 'valid': True, 'surfaces': len(item['surfaces']),
+                                'routes': len(outline['route_ids'])})
+        except (ValueError, OSError) as error:
+            map_reports.append({'id': item['id'], 'valid': False, 'error': str(error)})
+    ready = version == 2 and bool(reports) and not missing and all(item['valid'] and item['score']['total'] >= floor for item in reports) and all(item['valid'] for item in map_reports)
     return {'schema_version': version, 'mode': 'structural' if version == 2 else 'legacy-gap-analysis',
             'ready': ready, 'routes': reports, 'route_count': len(reports),
             'structural_average': round(sum(totals) / len(totals), 2) if totals else None,
             'structural_minimum': min(totals) if totals else None, 'required_per_route': floor,
             'diagram_coverage': coverage,
+            'task_maps': map_reports,
             'semantic_accuracy': 'not measured', 'independent_adoption': 'not measured'}
 
 
@@ -576,7 +636,8 @@ def query_text(results, total_candidates=None):
             lines.append('  docs: ' + (' | '.join(refs) if strings(refs) else 'invalid document references'))
             continue
         for source in row.get('locations', []):
-            lines.append(f'  {source["path"]}:{source["line"]} [{source.get("role", "legacy")}] '
+            role = source.get('role', 'legacy') + ('/' + source['visibility'] if source.get('visibility') else '')
+            lines.append(f'  {source["path"]}:{source["line"]} [{role}] '
                          f'{source.get("symbol") or source.get("needle")} — {source.get("reason", "")}')
         lines.append('  docs: ' + ' | '.join(row.get('docs', [])))
         contract = row.get('interface', {})
@@ -602,7 +663,9 @@ def snapshot(root, manifest):
     if manifest['schema_version'] != 2:
         raise Invalid('Schema 1 is query/audit only; review and migrate before building schema 2')
     return {'schema_version': 2, 'project': manifest['project'],
-            'routes': [resolve_route(root, row, 2) for row in manifest['routes']]}
+            'routes': [resolve_route(root, row, 2) for row in manifest['routes']],
+            **({'task_maps': [task_outline(root, manifest, item['id']) for item in task_maps(manifest)]}
+               if manifest.get('task_maps') else {})}
 
 
 def markdown_index(current):
@@ -616,6 +679,12 @@ def markdown_index(current):
             if reference.startswith('docs/wiki/'):
                 links.append(f'[{reference.removeprefix("docs/wiki/")}]({reference.removeprefix("docs/wiki/")})')
         lines.append(f'| {row["id"]}: {row["title"]} | {sources} | {"<br>".join(links)} |')
+    if current.get('task_maps'):
+        lines += ['', '## Compound task maps', '', 'Declared scope; query individual routes before implementation.', '']
+        for item in current['task_maps']:
+            lines.append(f'- {item["id"]}: {item["title"]}')
+            for surface in item['surfaces']:
+                lines.append(f'  - {surface["id"]}: {surface["question"]} → ' + ', '.join(surface['route_ids']))
     return '\n'.join(lines) + '\n'
 
 
@@ -679,9 +748,35 @@ def evaluate(root, manifest, taskfile):
     top2 = ratio(sum(row['top2'] for row in known), len(known))
     rejected = ratio(sum(row['unknown_rejected'] for row in unknown), len(unknown))
     maximum = manifest.get('quality', {}).get('max_query_words', 450)
+    map_cases = taskfile.get('task_map_cases', [])
+    if not isinstance(map_cases, list):
+        raise Invalid('task_map_cases must be an array')
+    map_results, map_seen = [], set()
+    for case in map_cases:
+        if not isinstance(case, dict) or not text(case.get('id')) or case['id'] in map_seen or not text(case.get('task_map')):
+            raise Invalid('Task map cases need unique IDs and a task_map ID')
+        map_seen.add(case['id'])
+        for key in ('expected_surfaces', 'expected_routes'):
+            values = case.get(key)
+            if not strings(values) or not values or len(values) != len(set(values)):
+                raise Invalid(f'{key} must contain unique nonempty expected IDs')
+        try:
+            outline = task_outline(root, manifest, case['task_map'])
+            actual_surfaces = {item['id'] for item in outline['surfaces']}
+            actual_routes = set(outline['route_ids'])
+            missing_surfaces = sorted(set(case['expected_surfaces']) - actual_surfaces)
+            missing_routes = sorted(set(case['expected_routes']) - actual_routes)
+            unexpected_surfaces = sorted(actual_surfaces - set(case['expected_surfaces']))
+            unexpected_routes = sorted(actual_routes - set(case['expected_routes']))
+            map_results.append({'id': case['id'], 'passed': not any((missing_surfaces, missing_routes, unexpected_surfaces, unexpected_routes)),
+                                'missing_surfaces': missing_surfaces, 'missing_routes': missing_routes,
+                                'unexpected_surfaces': unexpected_surfaces, 'unexpected_routes': unexpected_routes})
+        except (ValueError, OSError) as error:
+            map_results.append({'id': case['id'], 'passed': False, 'error': str(error)})
     passed = (bool(known) and len(outcomes) >= thresholds['min_tasks'] and len(unknown) >= thresholds['min_unknown']
               and top1['rate'] >= thresholds['min_top1'] and top2['rate'] >= thresholds['min_top2']
-              and all(row['locations_ok'] and row['response_words'] <= maximum for row in outcomes))
+              and all(row['locations_ok'] and row['response_words'] <= maximum for row in outcomes)
+              and all(row['passed'] for row in map_results))
     return {'evaluation': 'curated routing self-test; not an independent semantic/adoption trial',
             'passed': passed, 'thresholds': thresholds, 'task_count': len(outcomes),
             'top1': top1, 'top2': top2, 'unknown_rejection': rejected,
@@ -689,7 +784,9 @@ def evaluate(root, manifest, taskfile):
             'max_response_words': max((row['response_words'] for row in outcomes), default=0),
             'word_count_method': 'whitespace proxy; not a tokenizer or cross-language segmentation measure',
             'semantic_accuracy': 'not measured', 'independent_adoption': 'not measured',
-            'time_savings': 'not measured', 'tasks': outcomes}
+            'time_savings': 'not measured', 'tasks': outcomes,
+            'task_map_cases': map_results,
+            'task_map_scope': 'Declared expected IDs only; not semantic impact completeness'}
 
 
 def emit(value):
@@ -699,7 +796,7 @@ def emit(value):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
-    for command in ('query', 'list', 'audit', 'build', 'check', 'evaluate'):
+    for command in ('query', 'task', 'list', 'audit', 'build', 'check', 'evaluate'):
         sub = commands.add_parser(command)
         sub.add_argument('--root', type=Path, default=Path.cwd())
         if command == 'query':
@@ -708,10 +805,16 @@ def main(argv=None):
             sub.add_argument('--json', action='store_true')
         if command == 'evaluate':
             sub.add_argument('--tasks', type=Path, required=True)
+        if command == 'task':
+            sub.add_argument('task_id', nargs='?')
     args = parser.parse_args(argv)
     root = args.root.resolve()
     try:
         manifest = load(root)
+        if args.command == 'task':
+            emit(task_outline(root, manifest, args.task_id) if args.task_id else
+                 {'task_maps': [{'id': item['id'], 'title': item['title'], 'scope': item['scope']} for item in task_maps(manifest)]})
+            return 0
         if args.command == 'list':
             print('\n'.join(row['id'] + ': ' + row['title'] for row in manifest['routes']))
             return 0

@@ -192,5 +192,29 @@
         "public-api"
       ]
     }
+  ],
+  "task_map_cases": [
+    {
+      "id": "four-interface-scope",
+      "task_map": "interface-change",
+      "expected_surfaces": [
+        "external",
+        "dependency",
+        "tagging",
+        "rules"
+      ],
+      "expected_routes": [
+        "public-api",
+        "external-source",
+        "external-transport",
+        "host-ports",
+        "tag-normalization",
+        "tagger-contribution",
+        "ledger-policy",
+        "ledger-integration",
+        "settings-contract",
+        "compatibility"
+      ]
+    }
   ]
 }

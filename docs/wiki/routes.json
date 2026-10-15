@@ -173,7 +173,11 @@
           "path": "src/openalex.ts",
           "needle": "const getJson = async (path: string, attempt = 0)",
           "role": "implementation",
-          "reason": "请求、预算、429 重试、计费和超时的内部接缝"
+          "reason": "请求、预算、429 重试、计费和超时的内部接缝",
+          "edit_for": [
+            "请求、预算、429 重试、计费和超时的内部接缝"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -325,14 +329,22 @@
           "path": "src/service.ts",
           "needle": "async function cached<T>",
           "role": "implementation",
-          "reason": "缓存命中、并发合并、null/partial 写回与异常降级"
+          "reason": "缓存命中、并发合并、null/partial 写回与异常降级",
+          "edit_for": [
+            "缓存命中、并发合并、null/partial 写回与异常降级"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "records",
           "path": "src/service.ts",
           "needle": "async function onsiteRecords(",
           "role": "implementation",
-          "reason": "文章验形、账本应用、标签与审阅筛选顺序"
+          "reason": "文章验形、账本应用、标签与审阅筛选顺序",
+          "edit_for": [
+            "文章验形、账本应用、标签与审阅筛选顺序"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -482,21 +494,33 @@
           "path": "src/client.ts",
           "needle": "const get = async <T>",
           "role": "implementation",
-          "reason": "SDK请求、状态及验形失败返回null"
+          "reason": "SDK请求、状态及验形失败返回null",
+          "edit_for": [
+            "SDK请求、状态及验形失败返回null"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "response",
           "path": "src/http.ts",
           "needle": "const done = <T>",
           "role": "implementation",
-          "reason": "服务结果转换为HTTP状态、正文和缓存头"
+          "reason": "服务结果转换为HTTP状态、正文和缓存头",
+          "edit_for": [
+            "服务结果转换为HTTP状态、正文和缓存头"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "service-guard",
           "path": "src/service.ts",
           "needle": "const guard = async <T>",
           "role": "implementation",
-          "reason": "服务方法异常转 unavailable"
+          "reason": "服务方法异常转 unavailable",
+          "edit_for": [
+            "服务方法异常转 unavailable"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -774,7 +798,11 @@
           "path": "src/tagging.ts",
           "needle": "function sanitizeSuggestions(",
           "role": "implementation",
-          "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则"
+          "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则",
+          "edit_for": [
+            "模型与贡献包共用的清洗、门槛、去重、计数规则"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -934,14 +962,22 @@
           "path": "src/ledger.ts",
           "needle": "const write = async (",
           "role": "implementation",
-          "reason": "断言写入拒绝、unchanged、同次最后立场和 append"
+          "reason": "断言写入拒绝、unchanged、同次最后立场和 append",
+          "edit_for": [
+            "断言写入拒绝、unchanged、同次最后立场和 append"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "decide-write",
           "path": "src/ledger.ts",
           "needle": "async decide(requestId: string",
           "role": "implementation",
-          "reason": "审核门面 append 后 putRequest 的非原子边界"
+          "reason": "审核门面 append 后 putRequest 的非原子边界",
+          "edit_for": [
+            "审核门面 append 后 putRequest 的非原子边界"
+          ],
+          "visibility": "public"
         }
       ],
       "docs": [
@@ -1348,7 +1384,11 @@
           "path": "src/index.ts",
           "needle": "export * from './types'",
           "role": "implementation",
-          "reason": "根入口导出清单；子入口另核对 package exports"
+          "reason": "根入口导出清单；子入口另核对 package exports",
+          "edit_for": [
+            "根入口导出清单；子入口另核对 package exports"
+          ],
+          "visibility": "public"
         }
       ],
       "docs": [
@@ -1864,5 +1904,55 @@
       "state-machine"
     ],
     "not_applicable": []
-  }
+  },
+  "task_maps": [
+    {
+      "id": "interface-change",
+      "title": "外部、依赖、标签与接口规则改进",
+      "scope": "本次接口改动的四类工作面与十条现有路由；不声称推断全项目所有影响",
+      "docs": [
+        "docs/wiki/Interface-change-playbook.md"
+      ],
+      "surfaces": [
+        {
+          "id": "external",
+          "question": "公共读口与外部文献源怎样改？",
+          "route_ids": [
+            "public-api",
+            "external-source",
+            "external-transport"
+          ],
+          "why": "先对齐服务/HTTP/SDK 的失败分类，再处理文献源必需/可选能力及请求预算。"
+        },
+        {
+          "id": "dependency",
+          "question": "宿主依赖与存储责任怎样改？",
+          "route_ids": [
+            "host-ports"
+          ],
+          "why": "定位缓存/召回实现，明确失败降级、事务和宿主责任。"
+        },
+        {
+          "id": "tagging",
+          "question": "标签、贡献、裁决与统计怎样联动？",
+          "route_ids": [
+            "tag-normalization",
+            "tagger-contribution",
+            "ledger-policy",
+            "ledger-integration"
+          ],
+          "why": "键迁移、共用清洗、断言写入、审核、有效标签与召回必须串起来检查。"
+        },
+        {
+          "id": "rules",
+          "question": "配置、兼容和交付规则怎样保持一致？",
+          "route_ids": [
+            "settings-contract",
+            "compatibility"
+          ],
+          "why": "按实际改动同步设置消费、类型、导出、快照、迁移、安装包与 Wiki。"
+        }
+      ]
+    }
+  ]
 }

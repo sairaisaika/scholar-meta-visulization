@@ -2,6 +2,8 @@
 
 入口不是单次复合查询的前两项。先按下表选工作面，局部说明只读相关节；完整候选方案见[接口计划](Interface-improvement-plan.md)，实际演练与缺口见[本轮记录](Interface-navigation-trial.md)。SMT 共用当前包内实现，没有另一套标签服务需要猜。
 
+先运行 `python tools/wiki.py task interface-change` 获取完整声明工作面；运行 `python tools/wiki.py task` 列出可用地图。CI 除单条命中率外，也检查 external/dependency/tagging/rules 四类和十条预期路由，缺项或替换成不相关路由会失败。
+
 ## 一页确定改哪几层
 
 | 改动目标 | 路由与局部说明 | 具体编辑接缝 | 必须同时考虑 |
@@ -17,7 +19,7 @@
 | 配置与规则暴露 | settings-contract / [配置](Interface-map.md#settings-contract) | settings 注册/校验/live/reader → manifest/消费入口 | 同步旧值、异步刷新、设置优先级；配置不等于实现新能力 |
 | 对外兼容与交付 | compatibility / [兼容](Interface-map.md#compatibility) | types 契约 → index/五入口 → features/guards/present/messages | 契约/行为/API 快照、CHANGELOG、必要迁移、安装包消费者测试 |
 
-**章节来源**：上表每行的 route 在 `routes.json` 中绑定声明、实现、调用者和测试。当前定位由 `python tools/wiki.py query <route-id> --limit 1` 或[生成索引](route-index.md)提供，避免复制过期行号。`cached/get/getJson/guard/write/decide/sanitizeSuggestions` 是实现接缝，不因出现在 Wiki 就成为公共导出。
+**章节来源**：上表每行的 route 在 `routes.json` 中绑定声明、实现、调用者和测试。当前定位由 `python tools/wiki.py query <route-id> --limit 1` 或[生成索引](route-index.md)提供，避免复制过期行号。`cached/get/getJson/guard/write/sanitizeSuggestions` 是内部辅助函数；`decide` 已是 TagLedger 门面的公开方法，index 是公开导出清单。登记实现接缝不改变其可见性；具体以真实导出/返回类型为准。
 
 ## 具体做法和交付顺序
 
@@ -32,3 +34,9 @@
 新 API 命名与错误联合、跨实例预算/缓存失效、宿主身份与原子审核、真实模型质量，当前仍需设计或实测。Wiki 已提供第一版计划的六项内容：目标、依赖、接口、交付、退出证据、未知；这些不是实施完成证明。
 
 定位失败时先确认路由/快照是否漂移，再做一次有目标的源码搜索并修补。完整请求拆成工作面，不把 helper 的 top-two 或某个 100 分结构分当作全项目影响分析。文档适合减少探索式搜索，准备写代码仍要打开所指实现。
+
+## 机器验收与人工语义审查分开
+
+10 个具体改动定位现有 `edit_for` 用途字段和 `visibility`：8 个内部辅助位置、1 个公开门面方法和1个公开导出清单。helper 核对字段和当前位置并单独计数，不据此给结构分加分，也不判断改动影响已经完整。
+
+语义审查仍要核对：catch 究竟包住哪些语句；sanitizeSuggestions 的模型与贡献包两条调用；dropped 与 written/unchanged/refused/最终有效标签的阶段差异；审核规则接受与存储提交的分界。

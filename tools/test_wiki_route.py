@@ -12,6 +12,8 @@ import unittest
 
 import wiki_route as router
 import wiki as precise
+import copy
+from unittest.mock import patch
 import hashlib
 import re
 
@@ -57,6 +59,44 @@ class WikiRouteAcceptance(unittest.TestCase):
         self.assertEqual(len(hashes), 6)
         self.assertEqual(hashes, [row['source_sha256'] for row in receipt['diagrams']])
         self.assertTrue(all(row.get('parsed') and row.get('rendered') for row in receipt['diagrams']))
+
+    def test_compound_map_does_not_read_source_and_preserves_visibility(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = precise.load(root)
+        with patch.object(precise, 'resolve_source', side_effect=AssertionError('Unexpected source resolution')):
+            result = precise.task_outline(root, manifest, 'interface-change')
+        self.assertEqual({row['id'] for row in result['surfaces']}, {'external', 'dependency', 'tagging', 'rules'})
+        self.assertEqual(len(result['route_ids']), 10)
+        targets = [source for row in manifest['routes'] for source in row['sources'] if source.get('edit_for')]
+        self.assertEqual(len(targets), 10)
+        self.assertEqual({s['id'] for s in targets if s['visibility'] == 'public'}, {'decide-write', 'exports'})
+
+    def test_omitted_compound_surface_fails_despite_correct_rankings(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = precise.load(root)
+        manifest['task_maps'][0]['surfaces'].pop()
+        result = precise.evaluate(root, manifest, precise.read_json(root / 'docs/wiki/navigation-tasks.json'))
+        self.assertEqual(result['top1']['rate'], 1)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['task_map_cases'][0]['missing_surfaces'], ['rules'])
+
+    def test_saved_quality_reports_and_numeric_summary_are_current(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = precise.load(root)
+        routing = precise.evaluate(root, manifest, precise.read_json(root / 'docs/wiki/navigation-tasks.json'))
+        structure = precise.audit(root, manifest)
+        self.assertEqual(routing, precise.read_json(root / 'docs/wiki/quality-routing.json'))
+        self.assertEqual(structure, precise.read_json(root / 'docs/wiki/quality-structure.json'))
+        summary = (root / 'docs/wiki/Wiki-quality-review.md').read_text(encoding='utf-8')
+        block = summary.split('<!-- report-summary:start -->', 1)[1].split('<!-- report-summary:end -->', 1)[0]
+        expected = [
+            f"| 首选命中 | {routing['top1']['numerator']}/{routing['top1']['denominator']} |",
+            f"| 未知拒绝 | {routing['unknown_rejection']['numerator']}/{routing['unknown_rejection']['denominator']} |",
+            f"| 最大空白分隔词数 | {routing['max_response_words']} |",
+            f"| 复合范围用例 | {sum(case['passed'] for case in routing['task_map_cases'])}/{len(routing['task_map_cases'])} |",
+            f"| 已定位改动用途 | {sum(row['edit_targets']['located'] for row in structure['routes'])} |",
+        ]
+        self.assertEqual([line for line in block.splitlines() if line.startswith('| ') and not line.startswith('| 指标')], expected)
 
     def test_moved_typescript_declaration_and_missing_or_duplicate_symbol(self):
         with tempfile.TemporaryDirectory() as directory:

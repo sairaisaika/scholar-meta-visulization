@@ -16,3 +16,13 @@ Generated positions; source wins over stale prose. Read only the relevant route.
 | compatibility: 契约与包导出兼容 | `src/types.ts:31` (implementation)<br>`src/features.ts:41` (implementation)<br>`test/api-surface.test.ts:9` (consumer)<br>`src/types.ts:31` (declaration)<br>`src/index.ts:10` (implementation) | [Interface-map.md#compatibility](Interface-map.md#compatibility)<br>[Interface-improvement-plan.md](Interface-improvement-plan.md)<br>[Interface-change-playbook.md](Interface-change-playbook.md) |
 | system-views: 系统边界与六种工程视图 | `src/types.ts:814` (declaration)<br>`src/service.ts:168` (implementation)<br>`src/http.ts:60` (implementation)<br>`src/client.ts:25` (consumer)<br>`src/ledger.ts:271` (implementation)<br>`src/ledger.ts:49` (implementation)<br>`src/ledger.ts:132` (implementation)<br>`src/ledger.ts:106` (implementation)<br>`src/ledger.ts:157` (implementation)<br>`package.json:2` (contract)<br>`src/ports.ts:42` (contract)<br>`src/ports.ts:76` (contract)<br>`src/tagging.ts:94` (contract)<br>`src/openalex.ts:608` (contract)<br>`src/service.ts:255` (contract)<br>`src/ledger.ts:188` (contract)<br>`src/onsite.ts:428` (contract)<br>`src/guards.ts:33` (contract)<br>`src/types.ts:805` (contract)<br>`src/types.ts:853` (contract)<br>`src/types.ts:836` (contract)<br>`src/ledger.ts:232` (contract)<br>`src/service.ts:353` (implementation) | [System-views.md](System-views.md) |
 | interface-plan: 接口改进候选计划与退出证据 | Planned; no implementation asserted | [Interface-change-playbook.md](Interface-change-playbook.md)<br>[Interface-improvement-plan.md](Interface-improvement-plan.md) |
+
+## Compound task maps
+
+Declared scope; query individual routes before implementation.
+
+- interface-change: 外部、依赖、标签与接口规则改进
+  - external: 公共读口与外部文献源怎样改？ → public-api, external-source, external-transport
+  - dependency: 宿主依赖与存储责任怎样改？ → host-ports
+  - tagging: 标签、贡献、裁决与统计怎样联动？ → tag-normalization, tagger-contribution, ledger-policy, ledger-integration
+  - rules: 配置、兼容和交付规则怎样保持一致？ → settings-contract, compatibility

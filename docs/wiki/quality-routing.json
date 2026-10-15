@@ -66,7 +66,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 193,
-      "response_bytes": 2585,
+      "response_bytes": 2612,
       "candidate_count": 1,
       "truncated": false
     },
@@ -84,7 +84,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 166,
-      "response_bytes": 2538,
+      "response_bytes": 2556,
       "candidate_count": 1,
       "truncated": false
     },
@@ -102,7 +102,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 153,
-      "response_bytes": 2438,
+      "response_bytes": 2447,
       "candidate_count": 1,
       "truncated": false
     },
@@ -120,7 +120,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 152,
-      "response_bytes": 2420,
+      "response_bytes": 2436,
       "candidate_count": 1,
       "truncated": false
     },
@@ -192,7 +192,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 114,
-      "response_bytes": 2047,
+      "response_bytes": 2054,
       "candidate_count": 1,
       "truncated": false
     },
@@ -210,7 +210,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 128,
-      "response_bytes": 2010,
+      "response_bytes": 2019,
       "candidate_count": 1,
       "truncated": false
     },
@@ -283,7 +283,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 446,
-      "response_bytes": 6714,
+      "response_bytes": 6741,
       "candidate_count": 2,
       "truncated": false
     },
@@ -337,7 +337,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 153,
-      "response_bytes": 2438,
+      "response_bytes": 2447,
       "candidate_count": 1,
       "truncated": false
     },
@@ -373,7 +373,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 128,
-      "response_bytes": 2010,
+      "response_bytes": 2019,
       "candidate_count": 1,
       "truncated": false
     },
@@ -391,7 +391,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 166,
-      "response_bytes": 2538,
+      "response_bytes": 2556,
       "candidate_count": 1,
       "truncated": false
     },
@@ -455,7 +455,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 128,
-      "response_bytes": 2010,
+      "response_bytes": 2019,
       "candidate_count": 1,
       "truncated": false
     },
@@ -473,7 +473,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 166,
-      "response_bytes": 2538,
+      "response_bytes": 2556,
       "candidate_count": 1,
       "truncated": false
     },
@@ -491,7 +491,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 153,
-      "response_bytes": 2438,
+      "response_bytes": 2447,
       "candidate_count": 1,
       "truncated": false
     },
@@ -509,9 +509,20 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 193,
-      "response_bytes": 2585,
+      "response_bytes": 2612,
       "candidate_count": 1,
       "truncated": false
     }
-  ]
+  ],
+  "task_map_cases": [
+    {
+      "id": "four-interface-scope",
+      "passed": true,
+      "missing_surfaces": [],
+      "missing_routes": [],
+      "unexpected_surfaces": [],
+      "unexpected_routes": []
+    }
+  ],
+  "task_map_scope": "Declared expected IDs only; not semantic impact completeness"
 }

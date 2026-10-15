@@ -169,6 +169,6 @@ flowchart LR
 
 ## 从声明继续到真正编辑点
 
-跨接口改动先用[紧凑入口](Interface-change-playbook.md)。机器路由现已补充：外部请求 `getJson`；宿主缓存/召回 `cached/onsiteRecords`；公共错误 `http.done/client.get/service.guard`；模型与贡献包共用 `sanitizeSuggestions`；账本 `write/decide`；根入口导出锚点。均为当前内部实现接缝，不能作为宿主公共 API 调用。
+跨接口改动先用[紧凑入口](Interface-change-playbook.md)。机器路由现已补充：外部请求 `getJson`；宿主缓存/召回 `cached/onsiteRecords`；公共错误 `http.done/client.get/service.guard`；模型与贡献包共用 `sanitizeSuggestions`；账本 `write/decide`；根入口导出锚点。这些位置中，闭包辅助函数不是宿主公共 API；decide 已是公开账本门面方法，index 则是公开导出清单。可见性以真实返回类型与导出为准。
 
 `runTagger` 的 catch 仅包住 `await tagger.tag(input)`；后续清洗及 vocabulary/id/version 等 getter 不在这个 catch 中。清洗的 dropped 与账本门面的 written/unchanged/refused 是不同阶段，不能把单阶段的接受数当作最终有效标签数。

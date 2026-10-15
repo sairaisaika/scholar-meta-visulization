@@ -20,6 +20,10 @@
         }
       },
       "locations": 5,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -41,6 +45,10 @@
         }
       },
       "locations": 5,
+      "edit_targets": {
+        "located": 1,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -62,6 +70,10 @@
         }
       },
       "locations": 10,
+      "edit_targets": {
+        "located": 2,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -83,6 +95,10 @@
         }
       },
       "locations": 10,
+      "edit_targets": {
+        "located": 3,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -104,6 +120,10 @@
         }
       },
       "locations": 6,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -125,6 +145,10 @@
         }
       },
       "locations": 7,
+      "edit_targets": {
+        "located": 1,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -146,6 +170,10 @@
         }
       },
       "locations": 9,
+      "edit_targets": {
+        "located": 2,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -167,6 +195,10 @@
         }
       },
       "locations": 6,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -188,6 +220,10 @@
         }
       },
       "locations": 8,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -209,6 +245,10 @@
         }
       },
       "locations": 5,
+      "edit_targets": {
+        "located": 1,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -230,6 +270,10 @@
         }
       },
       "locations": 23,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
@@ -251,6 +295,10 @@
         }
       },
       "locations": 0,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
       "plan_coverage": {
         "numerator": 6,
         "denominator": 6
@@ -294,6 +342,14 @@
     "reference_validation": "Only valid route references are counted; semantic and rendering checks are separate",
     "renderer_verification": "not performed by helper"
   },
+  "task_maps": [
+    {
+      "id": "interface-change",
+      "valid": true,
+      "surfaces": 4,
+      "routes": 10
+    }
+  ],
   "semantic_accuracy": "not measured",
   "independent_adoption": "not measured"
 }

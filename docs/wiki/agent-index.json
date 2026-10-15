@@ -220,7 +220,11 @@
           "path": "src/openalex.ts",
           "needle": "const getJson = async (path: string, attempt = 0)",
           "role": "implementation",
-          "reason": "请求、预算、429 重试、计费和超时的内部接缝"
+          "reason": "请求、预算、429 重试、计费和超时的内部接缝",
+          "edit_for": [
+            "请求、预算、429 重试、计费和超时的内部接缝"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -342,6 +346,10 @@
           "needle": "const getJson = async (path: string, attempt = 0)",
           "role": "implementation",
           "reason": "请求、预算、429 重试、计费和超时的内部接缝",
+          "edit_for": [
+            "请求、预算、429 重试、计费和超时的内部接缝"
+          ],
+          "visibility": "internal",
           "line": 534,
           "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
         }
@@ -419,14 +427,22 @@
           "path": "src/service.ts",
           "needle": "async function cached<T>",
           "role": "implementation",
-          "reason": "缓存命中、并发合并、null/partial 写回与异常降级"
+          "reason": "缓存命中、并发合并、null/partial 写回与异常降级",
+          "edit_for": [
+            "缓存命中、并发合并、null/partial 写回与异常降级"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "records",
           "path": "src/service.ts",
           "needle": "async function onsiteRecords(",
           "role": "implementation",
-          "reason": "文章验形、账本应用、标签与审阅筛选顺序"
+          "reason": "文章验形、账本应用、标签与审阅筛选顺序",
+          "edit_for": [
+            "文章验形、账本应用、标签与审阅筛选顺序"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -587,6 +603,10 @@
           "needle": "async function cached<T>",
           "role": "implementation",
           "reason": "缓存命中、并发合并、null/partial 写回与异常降级",
+          "edit_for": [
+            "缓存命中、并发合并、null/partial 写回与异常降级"
+          ],
+          "visibility": "internal",
           "line": 227,
           "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
         },
@@ -596,6 +616,10 @@
           "needle": "async function onsiteRecords(",
           "role": "implementation",
           "reason": "文章验形、账本应用、标签与审阅筛选顺序",
+          "edit_for": [
+            "文章验形、账本应用、标签与审阅筛选顺序"
+          ],
+          "visibility": "internal",
           "line": 255,
           "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
         }
@@ -668,21 +692,33 @@
           "path": "src/client.ts",
           "needle": "const get = async <T>",
           "role": "implementation",
-          "reason": "SDK请求、状态及验形失败返回null"
+          "reason": "SDK请求、状态及验形失败返回null",
+          "edit_for": [
+            "SDK请求、状态及验形失败返回null"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "response",
           "path": "src/http.ts",
           "needle": "const done = <T>",
           "role": "implementation",
-          "reason": "服务结果转换为HTTP状态、正文和缓存头"
+          "reason": "服务结果转换为HTTP状态、正文和缓存头",
+          "edit_for": [
+            "服务结果转换为HTTP状态、正文和缓存头"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "service-guard",
           "path": "src/service.ts",
           "needle": "const guard = async <T>",
           "role": "implementation",
-          "reason": "服务方法异常转 unavailable"
+          "reason": "服务方法异常转 unavailable",
+          "edit_for": [
+            "服务方法异常转 unavailable"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -837,6 +873,10 @@
           "needle": "const get = async <T>",
           "role": "implementation",
           "reason": "SDK请求、状态及验形失败返回null",
+          "edit_for": [
+            "SDK请求、状态及验形失败返回null"
+          ],
+          "visibility": "internal",
           "line": 27,
           "sha256": "cae906bd91d2439929da4e1001599a43144de2fad4fea7326a247890ae165cfd"
         },
@@ -846,6 +886,10 @@
           "needle": "const done = <T>",
           "role": "implementation",
           "reason": "服务结果转换为HTTP状态、正文和缓存头",
+          "edit_for": [
+            "服务结果转换为HTTP状态、正文和缓存头"
+          ],
+          "visibility": "internal",
           "line": 85,
           "sha256": "97164b2a26972e7e0d493fbc540d079ac9a9a00db71a44207884a0c307f942d4"
         },
@@ -855,6 +899,10 @@
           "needle": "const guard = async <T>",
           "role": "implementation",
           "reason": "服务方法异常转 unavailable",
+          "edit_for": [
+            "服务方法异常转 unavailable"
+          ],
+          "visibility": "internal",
           "line": 353,
           "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
         }
@@ -1108,7 +1156,11 @@
           "path": "src/tagging.ts",
           "needle": "function sanitizeSuggestions(",
           "role": "implementation",
-          "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则"
+          "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则",
+          "edit_for": [
+            "模型与贡献包共用的清洗、门槛、去重、计数规则"
+          ],
+          "visibility": "internal"
         }
       ],
       "docs": [
@@ -1263,6 +1315,10 @@
           "needle": "function sanitizeSuggestions(",
           "role": "implementation",
           "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则",
+          "edit_for": [
+            "模型与贡献包共用的清洗、门槛、去重、计数规则"
+          ],
+          "visibility": "internal",
           "line": 70,
           "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
         }
@@ -1333,14 +1389,22 @@
           "path": "src/ledger.ts",
           "needle": "const write = async (",
           "role": "implementation",
-          "reason": "断言写入拒绝、unchanged、同次最后立场和 append"
+          "reason": "断言写入拒绝、unchanged、同次最后立场和 append",
+          "edit_for": [
+            "断言写入拒绝、unchanged、同次最后立场和 append"
+          ],
+          "visibility": "internal"
         },
         {
           "id": "decide-write",
           "path": "src/ledger.ts",
           "needle": "async decide(requestId: string",
           "role": "implementation",
-          "reason": "审核门面 append 后 putRequest 的非原子边界"
+          "reason": "审核门面 append 后 putRequest 的非原子边界",
+          "edit_for": [
+            "审核门面 append 后 putRequest 的非原子边界"
+          ],
+          "visibility": "public"
         }
       ],
       "docs": [
@@ -1492,6 +1556,10 @@
           "needle": "const write = async (",
           "role": "implementation",
           "reason": "断言写入拒绝、unchanged、同次最后立场和 append",
+          "edit_for": [
+            "断言写入拒绝、unchanged、同次最后立场和 append"
+          ],
+          "visibility": "internal",
           "line": 285,
           "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
         },
@@ -1501,6 +1569,10 @@
           "needle": "async decide(requestId: string",
           "role": "implementation",
           "reason": "审核门面 append 后 putRequest 的非原子边界",
+          "edit_for": [
+            "审核门面 append 后 putRequest 的非原子边界"
+          ],
+          "visibility": "public",
           "line": 355,
           "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
         }
@@ -1960,7 +2032,11 @@
           "path": "src/index.ts",
           "needle": "export * from './types'",
           "role": "implementation",
-          "reason": "根入口导出清单；子入口另核对 package exports"
+          "reason": "根入口导出清单；子入口另核对 package exports",
+          "edit_for": [
+            "根入口导出清单；子入口另核对 package exports"
+          ],
+          "visibility": "public"
         }
       ],
       "docs": [
@@ -2086,6 +2162,10 @@
           "needle": "export * from './types'",
           "role": "implementation",
           "reason": "根入口导出清单；子入口另核对 package exports",
+          "edit_for": [
+            "根入口导出清单；子入口另核对 package exports"
+          ],
+          "visibility": "public",
           "line": 10,
           "sha256": "dd0c818b102b2789d2f48a26922dbd34db531d1b99c812fde125180d5945189c"
         }
