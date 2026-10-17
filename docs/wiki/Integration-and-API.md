@@ -61,3 +61,7 @@ level 是 topic/subfield/field/domain。HTTP 的 id 传 `T10537` 这类裸外部
 客户端数据交给 `presentEvidenceMap` 等展示函数，再由宿主画图；null 显示暂时取不到，成功的空集才表示当前结果为空。保留 notices、caption、出处与降级理由。
 
 完整通用适配示例见[原接入指南](../integration.md)。依据：[service.ts](../../src/service.ts)、[ports.ts](../../src/ports.ts)、[http.ts](../../src/http.ts)、[client.ts](../../src/client.ts)、[onsite.ts](../../src/onsite.ts)。
+
+## 可区分失败的客户端（当前源码新增）
+
+需要细分错误时使用 `createEvidenceResultClient`，返回 ok/data/status 或 error/status/retryAfterSeconds；原工厂行为仍为 data/null。两者均使用同一读口和 guard，无自动重试。具体示例和错误映射见[客户端诊断](Client-diagnostics.md)。本轮未改变 HTTP 正文，不宣称新版本已发布。

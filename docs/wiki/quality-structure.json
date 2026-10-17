@@ -305,10 +305,35 @@
       },
       "engineering": null,
       "gaps": []
+    },
+    {
+      "id": "client-diagnostics",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 5,
+      "edit_targets": {
+        "located": 1,
+        "semantic_accuracy": "not verified"
+      },
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
     }
   ],
-  "route_count": 12,
-  "structural_average": 98.75,
+  "route_count": 13,
+  "structural_average": 98.85,
   "structural_minimum": 85,
   "required_per_route": 85,
   "diagram_coverage": {
@@ -347,7 +372,7 @@
       "id": "interface-change",
       "valid": true,
       "surfaces": 4,
-      "routes": 10
+      "routes": 11
     }
   ],
   "semantic_accuracy": "not measured",

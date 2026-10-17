@@ -66,9 +66,9 @@ class WikiRouteAcceptance(unittest.TestCase):
         with patch.object(precise, 'resolve_source', side_effect=AssertionError('Unexpected source resolution')):
             result = precise.task_outline(root, manifest, 'interface-change')
         self.assertEqual({row['id'] for row in result['surfaces']}, {'external', 'dependency', 'tagging', 'rules'})
-        self.assertEqual(len(result['route_ids']), 10)
+        self.assertEqual(len(result['route_ids']), 11)
         targets = [source for row in manifest['routes'] for source in row['sources'] if source.get('edit_for')]
-        self.assertEqual(len(targets), 10)
+        self.assertEqual(len(targets), 11)
         self.assertEqual({s['id'] for s in targets if s['visibility'] == 'public'}, {'decide-write', 'exports'})
 
     def test_omitted_compound_surface_fails_despite_correct_rankings(self):

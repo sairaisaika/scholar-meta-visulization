@@ -213,3 +213,7 @@ pnpm demo       # build only the demo page: demo/dist/index.html, open it in a b
 ## License
 
 Code is [MIT](LICENSE). OpenAlex data is CC0; on-site article licences are declared by the integrating platform (`onsiteLicense`) and printed in footnotes.
+
+### Client diagnostics (unreleased source)
+
+`createEvidenceResultClient` from `scholar-meta/client` preserves error codes, HTTP status and Retry-After hints. The original client keeps data/null behavior. See [client diagnostics](docs/wiki/Client-diagnostics.md) and [engineering TODO](docs/wiki/TODO.md).

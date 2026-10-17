@@ -14,7 +14,13 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const work = mkdtempSync(join(tmpdir(), 'smv-package-'))
-const run = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+// package scripts 提供当前 pnpm CLI，使用 argv 启动，不让 Windows 把 .cmd 当原生可执行文件。
+const run = (cmd, args, cwd) => {
+  const cli = cmd === 'pnpm' ? process.env.npm_execpath : null
+  const executable = cli ? (/\.exe$/i.test(cli) ? cli : process.execPath) : cmd
+  const argv = cli && !/\.exe$/i.test(cli) ? [cli, ...args] : args
+  return execFileSync(executable, argv, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+}
 let bad = 0
 const fail = (msg) => { console.log(`❌ ${msg}`); bad++ }
 
@@ -24,7 +30,7 @@ try {
   const tgz = readdirSync(work).find((f) => f.endsWith('.tgz'))
   if (!tgz) throw new Error('pnpm pack 没有产出 .tgz')
   if (tgz !== `${pkg.name}-${pkg.version}.tgz`) fail(`安装包名是 ${tgz}，应为 ${pkg.name}-${pkg.version}.tgz`)
-  const files = run('tar', ['-tzf', join(work, tgz)], work).split('\n').filter(Boolean).map((f) => f.replace(/^package\//, ''))
+  const files = run('tar', ['-tzf', join(work, tgz)], work).split(/\r?\n/).filter(Boolean).map((f) => f.replace(/^package\//, ''))
   for (const need of ['package.json', 'LICENSE', 'README.md', 'README.en.md', 'CHANGELOG.md', 'scholar-meta.manifest.json', 'dist/index.mjs', 'dist/index.js', 'dist/index.d.ts', 'src/types.ts']) {
     if (!files.includes(need)) fail(`安装包里缺 ${need}`)
   }
@@ -50,7 +56,7 @@ const want = {
   'scholar-meta': ['pickEvidenceView', 'poolEvidence', 'presentEvidenceMap', 'checkRiskOfBias', 'checkCertainty', 'pointEstimate', 'EVIDENCE_CONTRACT_VERSION'],
   'scholar-meta/service': ['createEvidenceService', 'createMemoryOnsiteSource', 'createMemoryCertaintySource'],
   'scholar-meta/http': ['createEvidenceHandler', 'EVIDENCE_ROUTES'],
-  'scholar-meta/client': ['createEvidenceClient'],
+  'scholar-meta/client': ['createEvidenceClient', 'createEvidenceResultClient'],
   'scholar-meta/openalex': ['createOpenAlexClient', 'createOpenAlexSource'],
 }
 for (const [entry, names] of Object.entries(want)) {
@@ -68,7 +74,7 @@ import assert from 'node:assert/strict'
 import { presentEvidenceMap } from 'scholar-meta'
 import { createEvidenceService, createMemoryCertaintySource, createMemoryOnsiteSource } from 'scholar-meta/service'
 import { createEvidenceHandler } from 'scholar-meta/http'
-import { createEvidenceClient } from 'scholar-meta/client'
+import { createEvidenceClient, createEvidenceResultClient } from 'scholar-meta/client'
 import { createOpenAlexClient } from 'scholar-meta/openalex'
 
 const articles = Array.from({ length: 6 }, (_, i) => ({
@@ -97,6 +103,11 @@ assert.equal(view.risk_of_bias.text, 'Risk of bias (RoB 2): Low 5 · High 1')
 assert.equal(await api.getTagMap(''), null) // 读口回 4xx ⇒ 客户端回 null，不当成「没有研究」
 const offline = createOpenAlexClient({ fetch: async () => { throw new Error('offline') } })
 assert.deepEqual(await offline.resolveTopicForTag('sleep'), { kind: 'error' })
+const rich = createEvidenceResultClient({ fetch: async (url) => handler(new Request('https://consumer.test' + url)) })
+const missing = await rich.getCounts('topic', 'T1')
+assert.equal(missing.ok, false)
+assert.equal(missing.status, 501)
+assert.equal(missing.error, 'not_configured')
 console.log('esm ok')
 `)
   run(process.execPath, ['consumer.mjs'], app)
@@ -106,7 +117,7 @@ console.log('esm ok')
 import { pickEvidenceView, pointEstimate, presentCertainty, type EvidenceCertainty, type EvidenceRecord, type EvidenceRiskOfBias } from 'scholar-meta'
 import { createEvidenceService, createMemoryOnsiteSource, type CertaintySource } from 'scholar-meta/service'
 import { createEvidenceHandler } from 'scholar-meta/http'
-import { createEvidenceClient, type EvidenceClient } from 'scholar-meta/client'
+import { createEvidenceClient, createEvidenceResultClient, type EvidenceClient, type EvidenceResultClient, type EvidenceClientResult } from 'scholar-meta/client'
 import { createOpenAlexClient, type TagTopicResolution } from 'scholar-meta/openalex'
 
 const rob: EvidenceRiskOfBias = { tool: 'robins_i', overall: 'serious', source: 'Editor' }
@@ -123,7 +134,9 @@ const service = createEvidenceService({ onsite: createMemoryOnsiteSource([]), ce
 const handler: (r: Request) => Promise<Response> = createEvidenceHandler(service)
 const api: EvidenceClient = createEvidenceClient({ baseUrl: '/api/evidence' })
 const resolution: TagTopicResolution = { kind: 'matched', external_id: 'T1', display_name: 'x', works_count: null, confidence: 'exact' }
-export const used = [pickEvidenceView([record]).kind, estimate, presentCertainty(cert).symbol, handler, api, resolution, createOpenAlexClient]
+const diagnostic: EvidenceResultClient = createEvidenceResultClient()
+const typedResult: Promise<EvidenceClientResult<unknown>> = diagnostic.getTagGraph()
+export const used = [diagnostic, typedResult, pickEvidenceView([record]).kind, estimate, presentCertainty(cert).symbol, handler, api, resolution, createOpenAlexClient]
 `
   writeFileSync(join(app, 'consumer.ts'), consumerTs)
   writeFileSync(join(app, 'consumer.mts'), consumerTs)

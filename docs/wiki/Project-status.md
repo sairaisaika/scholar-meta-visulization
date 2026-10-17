@@ -43,3 +43,7 @@ SMV 原有 `docs/architecture.md`、`charts.md`、`integration.md`、`tagging.md
 - 适配器直接不传预算时不限额；设置注册表的 5000 缺省值不能替代给适配器实际接入预算。
 
 这些判断来自实现函数；详见相应 Wiki 页的源码依据。
+
+## 2026-10-17 工程推进
+
+当前源码新增结果式客户端（旧 data/null 保留），并修正 Windows 安装包验收；这不表示版本或部署已发布。研究与优先级见[工程研究](Engineering-research-2026-10.md)，逐项退出证据和剩余工作见[TODO](TODO.md)。SMT 仍不另起一套实现。

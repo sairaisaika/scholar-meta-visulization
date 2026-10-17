@@ -724,13 +724,15 @@
       "docs": [
         "docs/wiki/Interface-map.md#public-api",
         "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md"
+        "docs/wiki/Interface-change-playbook.md",
+        "docs/wiki/Client-diagnostics.md"
       ],
       "tests": [
         "test/http.test.ts",
         "test/integration.test.ts",
         "test/features.test.ts",
-        "test/api-surface.test.ts"
+        "test/api-surface.test.ts",
+        "test/client-result.test.ts"
       ],
       "checks": [
         {
@@ -745,7 +747,7 @@
           "四个 GET/HEAD 读口参数和 EvidenceClientOptions"
         ],
         "outputs": [
-          "service 返回 ServiceResult；HTTP 返回数据/状态；SDK 返回 data/null"
+          "service 返回 ServiceResult；HTTP 返回数据/状态；旧 SDK data/null，新结果式工厂见 client-diagnostics"
         ],
         "errors": [
           "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
@@ -758,7 +760,7 @@
             "业务分发异常由 handler catch 返回 500；设置读取另有 catch 回缺省；宿主 log 自身抛错可拒绝 Promise"
           ],
           "unsupported": [
-            "无编辑/账本写入路由；无结果式 SDK 或自动版本握手"
+            "无编辑/账本写入路由或自动版本握手；SDK 不自动重试"
           ]
         },
         "compatibility": "保留旧 SDK data/null；改错误模型同步服务、HTTP、guard 和消费端"
@@ -855,8 +857,8 @@
           "id": "s6",
           "role": "consumer",
           "reason": "export function createEvidenceClient",
-          "line": 25,
-          "sha256": "cae906bd91d2439929da4e1001599a43144de2fad4fea7326a247890ae165cfd"
+          "line": 104,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
         },
         {
           "path": "src/client.ts",
@@ -864,8 +866,8 @@
           "id": "s7",
           "role": "implementation",
           "reason": "export const EVIDENCE_CLIENT_ROUTES =",
-          "line": 10,
-          "sha256": "cae906bd91d2439929da4e1001599a43144de2fad4fea7326a247890ae165cfd"
+          "line": 9,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
         },
         {
           "id": "sdk-request",
@@ -877,8 +879,8 @@
             "SDK请求、状态及验形失败返回null"
           ],
           "visibility": "internal",
-          "line": 27,
-          "sha256": "cae906bd91d2439929da4e1001599a43144de2fad4fea7326a247890ae165cfd"
+          "line": 55,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
         },
         {
           "id": "response",
@@ -2527,8 +2529,8 @@
           "needle": "export function createEvidenceClient",
           "role": "consumer",
           "reason": "六视图的当前边界和行为定位",
-          "line": 25,
-          "sha256": "cae906bd91d2439929da4e1001599a43144de2fad4fea7326a247890ae165cfd"
+          "line": 104,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
         },
         {
           "id": "ledger",
@@ -2705,19 +2707,23 @@
     },
     {
       "id": "interface-plan",
-      "title": "接口改进候选计划与退出证据",
+      "title": "后续接口改进候选计划",
       "aliases": [
         "接口改进计划",
         "结果式客户端方案",
         "依赖改进计划",
         "标签改进方案",
         "跨接口改进",
-        "接口改造总览"
+        "接口改造总览",
+        "工程研究计划",
+        "开发方向"
       ],
       "sources": [],
       "docs": [
         "docs/wiki/Interface-change-playbook.md",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Engineering-research-2026-10.md",
+        "docs/wiki/TODO.md"
       ],
       "tests": [
         "test/http.test.ts",
@@ -2761,7 +2767,7 @@
         "HTTP 状态映射、客户端、guards、features、安装包链路"
       ],
       "unknowns": [
-        "结果式客户端命名、共享预算/取消端口、诊断字段与政策变更均待设计"
+        "结果式客户端已实现；剩余取消、共享预算、诊断/政策与事务设计仍待确定"
       ],
       "reviewed_at": "2026-10-15",
       "evidence": {
@@ -2770,10 +2776,10 @@
       },
       "plan": {
         "outcomes": [
-          "P1 细分失败并兼容旧客户端",
-          "P2 外部与宿主能力契约矩阵",
-          "P3 建议到有效标签追溯",
-          "P4 兼容与交付一致"
+          "复核 provider 能力和当前预算合约",
+          "标签全链路诊断",
+          "审核提交责任设计",
+          "兼容与交付一致"
         ],
         "dependencies": [
           "P1 先定错误分类再定 SDK/HTTP 形状；P2 契约矩阵可独立",
@@ -2792,17 +2798,205 @@
           "争议排除、禁止自审、账本新增召回与失败不回退"
         ],
         "unknowns": [
-          "尚未选择新增 API 命名或政策变更；本次文档更新不实现提案"
+          "共享预算/取消和事务方案未实施；新 SDK 当前源码能力见 client-diagnostics"
         ]
       },
       "locations": []
+    },
+    {
+      "id": "client-diagnostics",
+      "title": "客户端结果与重试提示",
+      "aliases": [
+        "结果式客户端",
+        "客户端错误细分",
+        "重试提示",
+        "EvidenceClientResult",
+        "createEvidenceResultClient"
+      ],
+      "sources": [
+        {
+          "id": "factory",
+          "path": "src/client.ts",
+          "needle": "export function createEvidenceResultClient",
+          "role": "implementation",
+          "visibility": "public",
+          "reason": "新增五方法结果式客户端"
+        },
+        {
+          "id": "result",
+          "path": "src/client.ts",
+          "needle": "export type EvidenceClientResult<T>",
+          "role": "declaration",
+          "reason": "结果判别联合与状态、等待字段"
+        },
+        {
+          "id": "retry-policy",
+          "path": "src/client.ts",
+          "needle": "function retryAfterSeconds(",
+          "role": "implementation",
+          "visibility": "internal",
+          "reason": "解析等待提示，不执行重试",
+          "edit_for": [
+            "调整 Retry-After 秒数和日期解析"
+          ]
+        },
+        {
+          "id": "legacy",
+          "path": "src/client.ts",
+          "needle": "export function createEvidenceClient",
+          "role": "consumer",
+          "reason": "旧 data/null 包装复用新实现"
+        },
+        {
+          "id": "request-core",
+          "path": "src/client.ts",
+          "needle": "const get = async <T>",
+          "role": "implementation",
+          "visibility": "internal",
+          "reason": "新旧工厂共用的请求、错误分类与验形实现"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Client-diagnostics.md",
+        "docs/wiki/TODO.md",
+        "docs/wiki/Development-verification-2026-10.md"
+      ],
+      "tests": [
+        "test/client-result.test.ts",
+        "test/http.test.ts",
+        "test/integration.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/client-result.test.ts test/http.test.ts test/integration.test.ts",
+          "scope": "真实内存 handler 与受控 fetch；非在线部署或真实 provider"
+        }
+      ],
+      "boundary": "源码和离线安装包验证；非在线宿主验收",
+      "kind": "interface",
+      "interface": {
+        "inputs": [
+          "原五方法参数；baseUrl/fetch/headers"
+        ],
+        "outputs": [
+          "ok/data/status 或 error/status/retryAfterSeconds"
+        ],
+        "errors": [
+          "已知错误与 HTTP 状态匹配；网络、坏形状与未知 HTTP 错误分别返回"
+        ],
+        "failure_modes": {
+          "returned": [
+            "HTTP、network、invalid_response、不可编码参数均返回失败联合"
+          ],
+          "thrown": [
+            "选项需符合类型和 fetch/Response 协议；恶意 getter、错误的 Response 实现不承诺全部转换"
+          ],
+          "unsupported": [
+            "无自动重试/取消/Problem Details/版本握手"
+          ]
+        },
+        "compatibility": "旧工厂仍 data/null；孤立 Unicode 代理项现返回 null，不再拒绝 URIError"
+      },
+      "rules": [
+        {
+          "id": "sdk-failure-boundary",
+          "statement": "失败不冒充空结果；只保留与状态相符的已知错误，未知正文不透传",
+          "source_ids": [
+            "factory",
+            "result",
+            "legacy"
+          ],
+          "tests": [
+            "test/client-result.test.ts"
+          ]
+        }
+      ],
+      "impact": [
+        "新旧 SDK、HTTP/guard、安装包及宿主错误提示"
+      ],
+      "unknowns": [
+        "HTTP 日期受本机时钟与运行时解析影响；跨域提示头可见性由宿主负责"
+      ],
+      "reviewed_at": "2026-10-17",
+      "evidence": {
+        "implementation": "implemented",
+        "observations": [
+          {
+            "level": "source",
+            "reference": "src/client.ts",
+            "claim": "结果式工厂和旧客户端包装已实现",
+            "revision": "working-tree-based-on-e74574404ce9dfeddb98eaeae5ece879064dd8bc",
+            "observed_at": "2026-10-17"
+          },
+          {
+            "level": "offline-tested",
+            "reference": "docs/wiki/Development-verification-2026-10.md",
+            "claim": "本地完整 pnpm check 与真实临时安装包通过，包含新 SDK 501 映射和类型消费；非在线 provider 验收",
+            "revision": "candidate-working-tree-based-on-e745744",
+            "observed_at": "2026-10-17"
+          }
+        ]
+      },
+      "locations": [
+        {
+          "id": "factory",
+          "path": "src/client.ts",
+          "needle": "export function createEvidenceResultClient",
+          "role": "implementation",
+          "visibility": "public",
+          "reason": "新增五方法结果式客户端",
+          "line": 97,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
+        },
+        {
+          "id": "result",
+          "path": "src/client.ts",
+          "needle": "export type EvidenceClientResult<T>",
+          "role": "declaration",
+          "reason": "结果判别联合与状态、等待字段",
+          "line": 27,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
+        },
+        {
+          "id": "retry-policy",
+          "path": "src/client.ts",
+          "needle": "function retryAfterSeconds(",
+          "role": "implementation",
+          "visibility": "internal",
+          "reason": "解析等待提示，不执行重试",
+          "edit_for": [
+            "调整 Retry-After 秒数和日期解析"
+          ],
+          "line": 37,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
+        },
+        {
+          "id": "legacy",
+          "path": "src/client.ts",
+          "needle": "export function createEvidenceClient",
+          "role": "consumer",
+          "reason": "旧 data/null 包装复用新实现",
+          "line": 104,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
+        },
+        {
+          "id": "request-core",
+          "path": "src/client.ts",
+          "needle": "const get = async <T>",
+          "role": "implementation",
+          "visibility": "internal",
+          "reason": "新旧工厂共用的请求、错误分类与验形实现",
+          "line": 55,
+          "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
+        }
+      ]
     }
   ],
   "task_maps": [
     {
       "id": "interface-change",
       "title": "外部、依赖、标签与接口规则改进",
-      "scope": "本次接口改动的四类工作面与十条现有路由；不声称推断全项目所有影响",
+      "scope": "当前四类工作面、十一条实现路由；不声称自动推断全项目影响",
       "docs": [
         "docs/wiki/Interface-change-playbook.md"
       ],
@@ -2813,7 +3007,8 @@
           "route_ids": [
             "public-api",
             "external-source",
-            "external-transport"
+            "external-transport",
+            "client-diagnostics"
           ],
           "why": "先对齐服务/HTTP/SDK 的失败分类，再处理文献源必需/可选能力及请求预算。"
         },
@@ -2850,6 +3045,7 @@
         "public-api",
         "external-source",
         "external-transport",
+        "client-diagnostics",
         "host-ports",
         "tag-normalization",
         "tagger-contribution",
@@ -2891,7 +3087,8 @@
           "docs": [
             "docs/wiki/Interface-map.md#public-api",
             "docs/wiki/Interface-improvement-plan.md",
-            "docs/wiki/Interface-change-playbook.md"
+            "docs/wiki/Interface-change-playbook.md",
+            "docs/wiki/Client-diagnostics.md"
           ]
         },
         {
@@ -2943,6 +3140,15 @@
             "docs/wiki/Interface-map.md#compatibility",
             "docs/wiki/Interface-improvement-plan.md",
             "docs/wiki/Interface-change-playbook.md"
+          ]
+        },
+        {
+          "id": "client-diagnostics",
+          "title": "客户端结果与重试提示",
+          "docs": [
+            "docs/wiki/Client-diagnostics.md",
+            "docs/wiki/TODO.md",
+            "docs/wiki/Development-verification-2026-10.md"
           ]
         }
       ],

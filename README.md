@@ -213,3 +213,7 @@ pnpm demo       # 只构建演示页：demo/dist/index.html，浏览器直接打
 ## 许可
 
 代码采用 [MIT](LICENSE)。OpenAlex 数据为 CC0；站内文章的许可由接入方声明（`onsiteLicense`），脚注逐条印出。
+
+### 客户端诊断（未发布源码新增）
+
+`scholar-meta/client` 新增 `createEvidenceResultClient`，保留错误类别、HTTP 状态和重试提示；旧客户端继续 data/null。见[客户端诊断](docs/wiki/Client-diagnostics.md)、[工程研究](docs/wiki/Engineering-research-2026-10.md)和[TODO](docs/wiki/TODO.md)。

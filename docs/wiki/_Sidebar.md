@@ -16,3 +16,7 @@
 - [接入与 API](Integration-and-API.md)
 - [配置与外部数据](Settings-and-external-data.md)
 - [排错与维护](Troubleshooting-and-maintenance.md)
+
+[工程研究与下一阶段计划](Engineering-research-2026-10.md) · [开发 TODO](TODO.md)
+
+[结果式客户端与错误诊断](Client-diagnostics.md)

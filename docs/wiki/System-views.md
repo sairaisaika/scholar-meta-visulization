@@ -76,7 +76,7 @@ sequenceDiagram
 
 **图表来源**：`src/client.ts::createEvidenceClient`、`src/http.ts::createEvidenceHandler`、`src/service.ts::getTagCounts` 方法实现、`onsiteRecords/guard`、`src/guards.ts::isEvidenceOnsiteCounts`。路由 public-api 定位服务/handler/client，ledger-integration 定位内部召回。此图只展开合法参数、开启路由且进入服务重算的路径；完整状态码见[API](Integration-and-API.md)。
 
-服务 `ServiceResult`、HTTP 状态与 SDK `data/null` 不同。SDK 不暴露细分错误码，也没有健康握手、前后台轮询、增量游标或订阅生命周期；这些需宿主自行设计，不能从参考 wiki 移植成“已有功能”。处理分发异常由 handler catch 返回 500；设置读取另有 catch 使用缺省。宿主 log 回调自身抛错不受“所有异常必转换”的保证。
+服务 `ServiceResult`、HTTP 状态与 SDK `data/null` 不同。旧 createEvidenceClient 不暴露细分错误码，也没有健康握手、前后台轮询、增量游标或订阅生命周期；这些需宿主自行设计，不能从参考 wiki 移植成“已有功能”。处理分发异常由 handler catch 返回 500；设置读取另有 catch 使用缺省。宿主 log 回调自身抛错不受“所有异常必转换”的保证。
 
 <a id="data-model"></a>
 ## 数据模型：断言、申请与派生结论
@@ -184,3 +184,5 @@ stateDiagram-v2
 **章节来源**：各图表块列出的类型/函数，加上 `src/service.ts::cached/onsiteRecords`、`src/settings.ts::createLiveSettings/settingsReader` 和 `CONTRIBUTING.md` 的公开引擎边界。由 routes.json 的 system-views 及特性路由解析当前位置；不要手工维护固定行号。源码提交链接应使用本页记录的 revision，移动行号以 helper 为准。
 
 定点检查：`pnpm exec jest --runInBand test/http.test.ts test/service.test.ts test/sync.test.ts test/tagging.test.ts test/settings.test.ts`。实际运行结果见[本轮优化验收](Wiki-quality-review.md)，不要把存在测试文件当作测试已执行。修改接口的六项交付与依赖仍见[接口改进计划](Interface-improvement-plan.md)；本次只改文档和导航工具，没有实现其中的新 API。
+
+2026-10-17 增量：上述时序图仍展示旧工厂的 data/null。新 createEvidenceResultClient 请求同一 HTTP 读口但保留错误/状态/等待提示，见[客户端诊断](Client-diagnostics.md)。图的旧路径仍有效，不将新增 SDK 工厂误画为新网络服务。

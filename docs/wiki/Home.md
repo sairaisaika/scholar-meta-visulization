@@ -26,3 +26,5 @@ Scholar Meta 把论文标签、可追溯的标签裁决、主题绑定与研究�
 现有五篇专题文档继续承担深入说明：[标签方法](../tags.md)、[打标签](../tagging.md)、[架构](../architecture.md)、[接入](../integration.md)、[图种](../charts.md)。Wiki 是跨主题的使用入口，具体接口以源码和测试为准。
 
 当前提供的是可随代码审阅的本地 Wiki 正文。GitHub Wiki 的线上启用或发布状态见[项目状态](Project-status.md)，不能把文件已写好视为线上已经发布。
+
+[工程研究与下一阶段计划](Engineering-research-2026-10.md) · [开发 TODO](TODO.md)

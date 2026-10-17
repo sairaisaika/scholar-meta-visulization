@@ -191,6 +191,34 @@
       "expected_routes": [
         "public-api"
       ]
+    },
+    {
+      "id": "research-20261017-1",
+      "query": "结果式客户端的错误如何保留",
+      "expected_routes": [
+        "client-diagnostics"
+      ]
+    },
+    {
+      "id": "research-20261017-2",
+      "query": "重试提示怎么解析",
+      "expected_routes": [
+        "client-diagnostics"
+      ]
+    },
+    {
+      "id": "research-20261017-3",
+      "query": "createEvidenceResultClient 返回什么",
+      "expected_routes": [
+        "client-diagnostics"
+      ]
+    },
+    {
+      "id": "research-20261017-4",
+      "query": "工程研究计划和开发方向",
+      "expected_routes": [
+        "interface-plan"
+      ]
     }
   ],
   "task_map_cases": [
@@ -213,7 +241,8 @@
         "ledger-policy",
         "ledger-integration",
         "settings-contract",
-        "compatibility"
+        "compatibility",
+        "client-diagnostics"
       ]
     }
   ]

@@ -70,7 +70,7 @@ sequenceDiagram
 
 声明：`src/service.ts::EvidenceService`、`ServiceResult`、`ServiceError`。HTTP 实现：`src/http.ts::EVIDENCE_ROUTES`、`createEvidenceHandler`。客户端：`src/client.ts::EVIDENCE_CLIENT_ROUTES`、`createEvidenceClient`；验形在 `src/guards.ts`。
 
-精确返回和参数见[接入与 API](Integration-and-API.md)。规则：服务 data/error 联合、HTTP 数据正文与状态、客户端 data/null 是三种不同边界；四个公共读口不承载编辑写入。改错误模型必须检查三层，并保持现有调用者兼容；不能只改类型或把全部失败变成“零研究”。
+精确返回和参数见[接入与 API](Integration-and-API.md)。规则：服务 data/error 联合、HTTP 数据正文与状态、旧客户端 data/null 是三种不同边界；四个公共读口不承载编辑写入。改错误模型必须检查三层，并保持现有调用者兼容；不能只改类型或把全部失败变成“零研究”。
 
 检查：`pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts`。package 检查另验证安装后链路。客户端 guard 验形通过不等于真实第三方数据已核实。
 
@@ -172,3 +172,5 @@ flowchart LR
 跨接口改动先用[紧凑入口](Interface-change-playbook.md)。机器路由现已补充：外部请求 `getJson`；宿主缓存/召回 `cached/onsiteRecords`；公共错误 `http.done/client.get/service.guard`；模型与贡献包共用 `sanitizeSuggestions`；账本 `write/decide`；根入口导出锚点。这些位置中，闭包辅助函数不是宿主公共 API；decide 已是公开账本门面方法，index 则是公开导出清单。可见性以真实返回类型与导出为准。
 
 `runTagger` 的 catch 仅包住 `await tagger.tag(input)`；后续清洗及 vocabulary/id/version 等 getter 不在这个 catch 中。清洗的 dropped 与账本门面的 written/unchanged/refused 是不同阶段，不能把单阶段的接受数当作最终有效标签数。
+
+2026-10-17：结果式客户端已从提案进入源码，独立 route 为 `client-diagnostics`，覆盖新工厂、结果联合、等待解析和旧包装。公共 HTTP 仍原状态/error 形状；其余共享预算/取消等仍是后续设计。

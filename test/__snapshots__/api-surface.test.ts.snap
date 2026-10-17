@@ -191,6 +191,7 @@ exports[`公开接口 scholar-meta/client 导出的名字 1`] = `
 [
   "EVIDENCE_CLIENT_ROUTES",
   "createEvidenceClient",
+  "createEvidenceResultClient",
 ]
 `;
 

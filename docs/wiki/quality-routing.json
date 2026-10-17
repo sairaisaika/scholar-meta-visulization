@@ -7,15 +7,15 @@
     "min_tasks": 10,
     "min_unknown": 2
   },
-  "task_count": 27,
+  "task_count": 31,
   "top1": {
-    "numerator": 25,
-    "denominator": 25,
+    "numerator": 29,
+    "denominator": 29,
     "rate": 1.0
   },
   "top2": {
-    "numerator": 25,
-    "denominator": 25,
+    "numerator": 29,
+    "denominator": 29,
     "rate": 1.0
   },
   "unknown_rejection": {
@@ -24,11 +24,11 @@
     "rate": 1.0
   },
   "location_success": {
-    "numerator": 27,
-    "denominator": 27,
+    "numerator": 31,
+    "denominator": 31,
     "rate": 1.0
   },
-  "max_response_words": 446,
+  "max_response_words": 449,
   "word_count_method": "whitespace proxy; not a tokenizer or cross-language segmentation measure",
   "semantic_accuracy": "not measured",
   "independent_adoption": "not measured",
@@ -65,8 +65,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 193,
-      "response_bytes": 2612,
+      "response_words": 196,
+      "response_bytes": 2715,
       "candidate_count": 1,
       "truncated": false
     },
@@ -228,7 +228,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 253,
-      "response_bytes": 4128,
+      "response_bytes": 4129,
       "candidate_count": 1,
       "truncated": false
     },
@@ -246,7 +246,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 253,
-      "response_bytes": 4128,
+      "response_bytes": 4129,
       "candidate_count": 1,
       "truncated": false
     },
@@ -264,7 +264,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 253,
-      "response_bytes": 4128,
+      "response_bytes": 4129,
       "candidate_count": 1,
       "truncated": false
     },
@@ -282,8 +282,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 446,
-      "response_bytes": 6741,
+      "response_words": 449,
+      "response_bytes": 6845,
       "candidate_count": 2,
       "truncated": false
     },
@@ -301,7 +301,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 253,
-      "response_bytes": 4128,
+      "response_bytes": 4129,
       "candidate_count": 1,
       "truncated": false
     },
@@ -312,15 +312,16 @@
         "interface-plan"
       ],
       "actual": [
-        "interface-plan"
+        "interface-plan",
+        "client-diagnostics"
       ],
       "top1": true,
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 86,
-      "response_bytes": 1479,
-      "candidate_count": 1,
+      "response_words": 197,
+      "response_bytes": 3548,
+      "candidate_count": 2,
       "truncated": false
     },
     {
@@ -436,8 +437,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 86,
-      "response_bytes": 1479,
+      "response_words": 90,
+      "response_bytes": 1540,
       "candidate_count": 1,
       "truncated": false
     },
@@ -508,8 +509,81 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 193,
-      "response_bytes": 2612,
+      "response_words": 196,
+      "response_bytes": 2715,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "research-20261017-1",
+      "query": "结果式客户端的错误如何保留",
+      "expected": [
+        "client-diagnostics"
+      ],
+      "actual": [
+        "client-diagnostics"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 107,
+      "response_bytes": 2007,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "research-20261017-2",
+      "query": "重试提示怎么解析",
+      "expected": [
+        "client-diagnostics"
+      ],
+      "actual": [
+        "client-diagnostics",
+        "external-transport"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 235,
+      "response_bytes": 4027,
+      "candidate_count": 2,
+      "truncated": false
+    },
+    {
+      "id": "research-20261017-3",
+      "query": "createEvidenceResultClient 返回什么",
+      "expected": [
+        "client-diagnostics"
+      ],
+      "actual": [
+        "client-diagnostics"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 107,
+      "response_bytes": 2007,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "research-20261017-4",
+      "query": "工程研究计划和开发方向",
+      "expected": [
+        "interface-plan"
+      ],
+      "actual": [
+        "interface-plan"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 90,
+      "response_bytes": 1540,
       "candidate_count": 1,
       "truncated": false
     }

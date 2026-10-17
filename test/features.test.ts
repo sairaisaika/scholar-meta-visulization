@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { EVIDENCE_FEATURES } from '../src/features'
 import type { EvidenceFeatureEnd } from '../src/features'
 import { EVIDENCE_ROUTES } from '../src/http'
-import { EVIDENCE_CLIENT_ROUTES, createEvidenceClient } from '../src/client'
+import { EVIDENCE_CLIENT_ROUTES, createEvidenceClient, createEvidenceResultClient } from '../src/client'
 import { createEvidenceService, createMemoryOnsiteSource } from '../src/service'
 
 const root = join(__dirname, '..')
@@ -37,8 +37,10 @@ describe('功能登记表', () => {
     expect(EVIDENCE_CLIENT_ROUTES).toEqual(EVIDENCE_ROUTES)
     const used = new Set(EVIDENCE_FEATURES.map((f) => f.route).filter(Boolean))
     expect([...used].sort()).toEqual(Object.keys(EVIDENCE_ROUTES).sort())
-    const client = createEvidenceClient() as unknown as Record<string, unknown>
-    for (const m of ['getTagMap', 'getNodeMap', 'getCounts', 'getTagCounts', 'getTagGraph']) expect(typeof client[m]).toBe('function')
+    for (const factory of [createEvidenceClient, createEvidenceResultClient]) {
+      const client = factory() as unknown as Record<string, unknown>
+      for (const m of ['getTagMap', 'getNodeMap', 'getCounts', 'getTagCounts', 'getTagGraph']) expect(typeof client[m]).toBe('function')
+    }
   })
 
   it('入口：登记表用到的入口都在 package.json 的 exports 里，文件存在', () => {

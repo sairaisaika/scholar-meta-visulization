@@ -16,4 +16,4 @@ apply. Interface or behavior changes require the relevant contract/version,
 CHANGELOG, snapshots and documentation updates described there. Run `pnpm check`
 before committing; report platform limitations accurately.
 
-跨接口任务先运行 `python tools/wiki.py task interface-change`，一次列全四类工作面和十条路由。此命令只读取清单/文档；选定 route 后再 query 定点解析源码。地图是声明范围，不能当作自动推断的全项目影响图。
+跨接口任务先运行 `python tools/wiki.py task interface-change`，一次列全四类工作面和十一条路由。此命令只读取清单/文档；选定 route 后再 query 定点解析源码。地图是声明范围，不能当作自动推断的全项目影响图。

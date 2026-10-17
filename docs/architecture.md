@@ -104,3 +104,7 @@
 5. `pnpm build`：tsup 打出五个入口的 ESM + CJS + 类型声明，`scripts/check-dist.mjs` 核对产物齐全、浏览器入口的产物里没有服务端代码。
 
 CI（`.github/workflows/check.yml`）在每次推送到 `main` 与每个 PR 上跑同一条 `pnpm check`。
+
+## 客户端诊断消费方式
+
+既有图谱/计数生产端及领域 payload 不变，`scholar-meta/client` 新增 createEvidenceResultClient 作为同一数据的诊断消费路径；旧 createEvidenceClient 包装该实现。五方法仍对应既有四路由，不增加 EVIDENCE_FEATURES 的领域功能 ID。SDK 结果类型放在 client.ts，不改自包含领域契约；验收见 test/client-result.test.ts 与安装包类型消费。
