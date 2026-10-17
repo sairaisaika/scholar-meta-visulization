@@ -30,6 +30,32 @@ describe('OpenAlex · 429 退避', () => {
     expect(await createOpenAlexClient({ fetch: asFetch(f), log }).groupByWorks('primary_topic.id:T1', 'type')).toBeNull()
     expect(f).toHaveBeenCalledTimes(3)
   })
+  it.each<Record<string, string>>([
+    { 'retry-after': '60' },
+    { 'retry-after': new Date(Date.now() + 60_000).toUTCString() },
+    { 'retry-after': '0', 'x-ratelimit-remaining': '0' },
+  ])('长等待或额度耗尽交还宿主，不提前重试：%j', async headers => {
+    const f = jest.fn().mockResolvedValue(res(429, {}, headers))
+    expect(await createOpenAlexClient({ fetch: asFetch(f), log }).groupByWorks('x', 'type')).toBeNull()
+    expect(f).toHaveBeenCalledTimes(1)
+  })
+  it('失败响应记账，重试前重新检查实例预算', async () => {
+    const f = jest.fn().mockResolvedValue(res(429, {}, { 'retry-after': '0', 'x-ratelimit-credits-used': '1' }))
+    const onCredits = jest.fn()
+    const c = createOpenAlexClient({ fetch: asFetch(f), log, dailyCreditBudget: 1, onCredits })
+    expect(await c.groupByWorks('x', 'type')).toBeNull()
+    expect(f).toHaveBeenCalledTimes(1)
+    expect(c.creditsSpentToday()).toBe(1)
+    expect(onCredits).toHaveBeenCalledWith(1)
+  })
+  it('坏正文仍记录响应计费，后续付费请求被预算拦截', async () => {
+    const f = jest.fn().mockResolvedValue(res(200, null, { 'x-ratelimit-credits-used': '2' }))
+    const c = createOpenAlexClient({ fetch: asFetch(f), log, dailyCreditBudget: 2 })
+    expect(await c.groupByWorks('x', 'type')).toBeNull()
+    expect(await c.groupByWorks('x', 'type')).toBeNull()
+    expect(c.creditsSpentToday()).toBe(2)
+    expect(f).toHaveBeenCalledTimes(1)
+  })
   it('其他非 2xx（如 400）不重试', async () => {
     const f = jest.fn().mockResolvedValue(res(400, {}))
     expect(await createOpenAlexClient({ fetch: asFetch(f), log }).groupByWorks('primary_topic.id:T1', 'type')).toBeNull()

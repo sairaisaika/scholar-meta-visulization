@@ -10,6 +10,10 @@
 - 原 `createEvidenceClient` 仍返回 data/null，复用同一请求和验形实现，非成功状态保持不读取错误正文；不自动重试。无法编码的孤立 Unicode 代理项由此前的 URIError 拒绝改为失败结果（旧调用 null）。未改服务/HTTP 正文或 src/types.ts 契约。
 - 未知或与 HTTP 状态不匹配的错误正文只报告 http_error，不透传服务器原始文本。新增 SDK 只是已有图谱/计数功能的诊断消费路径，不增加数据载荷或功能注册 ID。
 
+### 外部请求行为
+- OpenAlex 每个响应先记录有效计费头，包括非成功状态和坏正文；每次重试前重新检查实例内 UTC 日预算。
+- 429 的剩余额度明确为零时停止；支持 Retry-After 秒数/HTTP 日期。等待超过 4 秒时返回 null 交由宿主安排，不再截短服务端等待要求。仍最多重试两次，无全局预算保证。
+
 ### 开发检查
 - 安装包检查通过当前 package-script 的 pnpm CLI 启动子进程，修复 Windows 的 spawnSync pnpm ENOENT；保留真实打包/安装与类型验收。
 

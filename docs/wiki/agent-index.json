@@ -143,8 +143,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export function createOpenAlexSource",
-          "line": 608,
-          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+          "line": 616,
+          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
         },
         {
           "path": "src/openalex-counts.ts",
@@ -311,7 +311,7 @@
           "role": "declaration",
           "reason": "export interface OpenAlexOptions",
           "line": 84,
-          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
         },
         {
           "path": "src/openalex.ts",
@@ -320,7 +320,7 @@
           "role": "implementation",
           "reason": "export function createOpenAlexClient",
           "line": 510,
-          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
         },
         {
           "path": "src/openalex.ts",
@@ -329,7 +329,7 @@
           "role": "implementation",
           "reason": "export function isFreeOpenAlexPath",
           "line": 103,
-          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
         },
         {
           "path": "src/service.ts",
@@ -351,7 +351,7 @@
           ],
           "visibility": "internal",
           "line": 534,
-          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
         }
       ]
     },
@@ -2619,8 +2619,8 @@
           "needle": "export function createOpenAlexSource",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 608,
-          "sha256": "327202b5e80949bd70c50b9a42a3d17a932d85c3df16de074eab3822b0e5133e"
+          "line": 616,
+          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
         },
         {
           "id": "records",

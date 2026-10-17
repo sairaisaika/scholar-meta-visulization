@@ -534,7 +534,7 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
   const getJson = async (path: string, attempt = 0): Promise<{ json: unknown; credits: number } | null> => {
     const budget = (await provided())['external.dailyCreditBudget']
       ?? (typeof opts.dailyCreditBudget === 'function' ? opts.dailyCreditBudget() : opts.dailyCreditBudget)
-    if (attempt === 0 && budget !== undefined && !isFreeOpenAlexPath(path) && spentToday() >= budget) {
+    if (budget !== undefined && !isFreeOpenAlexPath(path) && spentToday() >= budget) {
       log('[evidence.openalex] daily credit budget exhausted', { budget })
       return null
     }
@@ -547,9 +547,24 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
         // 外部公共数据：不带任何 cookie / 凭据；不用宿主框架的 fetch 缓存（如 Next），缓存归宿主自己的表
         cache: 'no-store',
       })
+      // 每个响应先记账：失败或坏正文也可能已产生上游费用。
+      const raw = Number(res.headers.get('x-ratelimit-credits-used') ?? '0')
+      const credits = Number.isFinite(raw) && raw > 0 ? raw : 0
+      if (credits > 0) {
+        spentToday()
+        spent += credits
+        opts.onCredits?.(credits)
+      }
       if (res.status === 429 && attempt < RETRY_429) {
-        const after = Number(res.headers.get('retry-after'))
-        const wait = Math.min(Number.isFinite(after) && after > 0 ? after * 1000 : 800 * 2 ** attempt, RETRY_MAX_WAIT_MS)
+        const remaining = res.headers.get('x-ratelimit-remaining')
+        if (remaining !== null && remaining.trim() !== '' && Number(remaining) === 0) return null
+        const header = res.headers.get('retry-after')
+        const seconds = header !== null && header.trim() !== '' ? Number(header) : NaN
+        const date = header !== null && /^[A-Za-z]{3},/.test(header) ? Date.parse(header) : NaN
+        const wait = Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000
+          : Number.isFinite(date) ? Math.max(0, date - Date.now()) : 800 * 2 ** attempt
+        // 不提前于服务端要求重试；过长等待交还宿主调度，不占住请求。
+        if (wait > RETRY_MAX_WAIT_MS) return null
         clearTimeout(timer)
         await sleep(wait)
         return getJson(path, attempt + 1)
@@ -563,13 +578,6 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
         // 形状不对当失败（Europe PMC 式静默空体的同型防线）
         log('[evidence.openalex] malformed body', { path })
         return null
-      }
-      const raw = Number(res.headers.get('x-ratelimit-credits-used') ?? '0')
-      const credits = Number.isFinite(raw) && raw > 0 ? raw : 0
-      if (credits > 0) {
-        spentToday()
-        spent += credits
-        opts.onCredits?.(credits)
       }
       return { json, credits }
     } catch (e) {

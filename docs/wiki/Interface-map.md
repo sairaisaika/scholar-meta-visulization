@@ -174,3 +174,12 @@ flowchart LR
 `runTagger` 的 catch 仅包住 `await tagger.tag(input)`；后续清洗及 vocabulary/id/version 等 getter 不在这个 catch 中。清洗的 dropped 与账本门面的 written/unchanged/refused 是不同阶段，不能把单阶段的接受数当作最终有效标签数。
 
 2026-10-17：结果式客户端已从提案进入源码，独立 route 为 `client-diagnostics`，覆盖新工厂、结果联合、等待解析和旧包装。公共 HTTP 仍原状态/error 形状；其余共享预算/取消等仍是后续设计。
+
+
+### OpenAlex 429 与响应计费（2026-10-17）
+
+生产端为 OpenAlex HTTP status/headers，消费端为 `createOpenAlexClient` 的内部 `getJson`，再经外部源供服务层使用。改动入口沿 external-transport 查询，验收用 `test/openalex.test.ts` 的“429 退避”测试组。
+
+每个响应在验正文前记录正有限的 `x-ratelimit-credits-used`，包括错误/坏正文；每次尝试前重查实例预算。429 若 `x-ratelimit-remaining` 明确为零立即返回 null；不能据此区分所有额度方案，也不推断未知错误正文。其余 429 解析 Retry-After 秒数/HTTP 日期，缺失或无效值用既有退避；等待超过 4 秒返回 null 交宿主调度，允许等待仍最多重试两次。失败保持 null，不冒充成功空结果或缓存。
+
+这是离线验证的行为收紧，尚非当前外部服务合约全面认证。并发可越过检查、跨实例不共享预算、预先不知道下一次成本、onCredits 等宿主回调可能抛错的边界仍存在。分页/分组页长、当前计量单位与受控 live 回执继续属于 R02 待办。
