@@ -51,13 +51,15 @@
       ],
       "docs": [
         "docs/wiki/Interface-map.md#external-source",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Provider-contract-matrix.md"
       ],
       "tests": [
         "test/service.test.ts",
         "test/openalex.test.ts",
         "test/openalex-counts.test.ts",
-        "test/integration.test.ts"
+        "test/integration.test.ts",
+        "test/provider-contract.test.ts"
       ],
       "checks": [
         {
@@ -183,12 +185,14 @@
       "docs": [
         "docs/wiki/Interface-map.md#external-transport",
         "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md"
+        "docs/wiki/Interface-change-playbook.md",
+        "docs/wiki/OpenAlex-contract-2026-10.md"
       ],
       "tests": [
         "test/openalex.test.ts",
         "test/openalex-counts.test.ts",
-        "test/settings.test.ts"
+        "test/settings.test.ts",
+        "test/openalex-paging.test.ts"
       ],
       "checks": [
         {
@@ -241,9 +245,9 @@
         "外部源、设置读取、缓存失败语义和宿主额度协调"
       ],
       "unknowns": [
-        "并发可越过预算检查；真实额度/服务费用未验证"
+        "共享全局预算、真实429压力与复杂嵌套分组仍未保证"
       ],
-      "reviewed_at": "2026-10-15",
+      "reviewed_at": "2026-10-21",
       "evidence": {
         "implementation": "implemented",
         "observations": [
@@ -2028,6 +2032,127 @@
           }
         ]
       }
+    },
+    {
+      "id": "synthesis-table",
+      "title": "多结局与复合数据证据表",
+      "aliases": [
+        "多结局",
+        "复合指标",
+        "多个数据一个值",
+        "文章提取",
+        "多时间点",
+        "结局合成",
+        "synthesis-table",
+        "intakeOutcomeRows",
+        "buildSynthesisTable"
+      ],
+      "sources": [
+        {
+          "id": "decl",
+          "path": "src/synthesis.ts",
+          "needle": "export interface SynthesisContext",
+          "role": "declaration",
+          "reason": "研究/结果/时间/单位/出处的上下文"
+        },
+        {
+          "id": "producer",
+          "path": "src/synthesis.ts",
+          "needle": "export function intakeOutcomeRows",
+          "role": "implementation",
+          "reason": "结构化多结局收口"
+        },
+        {
+          "id": "consumer",
+          "path": "src/synthesis.ts",
+          "needle": "export function buildSynthesisTable",
+          "role": "consumer",
+          "reason": "分面表与独立性闸"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Outcome-synthesis.md",
+        "docs/wiki/Publication-integration-handoff.md"
+      ],
+      "tests": [
+        "test/synthesis.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/synthesis.test.ts",
+          "scope": "合成输入验收；不是模型准确率或真实网站验收"
+        }
+      ],
+      "boundary": "结构化输入与人工语义编码；不做全文自动提取或跨结局总分。",
+      "kind": "interface",
+      "interface": {
+        "inputs": [
+          "公开文章、结果数组、审核上下文"
+        ],
+        "outputs": [
+          "既有EvidenceRecord、多结局表与阻止原因"
+        ],
+        "errors": [
+          "行验形问题、缺出处、重复或非独立阻止合成"
+        ],
+        "compatibility": "新增纯函数；旧HTTP与领域types.ts不变",
+        "failure_modes": {
+          "returned": [
+            "验形问题与合成阻止原因"
+          ],
+          "thrown": [
+            "调用方违反类型契约可抛错；不承诺处理任意循环对象"
+          ],
+          "unsupported": [
+            "全文自动提取、身份认证与跨结局总分"
+          ]
+        }
+      },
+      "impact": [
+        "编辑提取/审核、表格与分面消费者"
+      ],
+      "unknowns": [
+        "全文提取真实性、复杂协方差和真实网站接入未验"
+      ],
+      "reviewed_at": "2026-10-21",
+      "evidence": {
+        "implementation": "implemented",
+        "observations": [
+          {
+            "level": "offline-tested",
+            "reference": "test/synthesis.test.ts",
+            "claim": "结构化拆行、语义分面与依赖闸；合成数据",
+            "revision": "candidate-based-on-665b890",
+            "observed_at": "2026-10-21"
+          }
+        ]
+      },
+      "diagrams": [
+        {
+          "kind": "flow",
+          "path": "docs/wiki/Outcome-synthesis.md",
+          "purpose": "结构化提取到分面与合成闸",
+          "question": "结构化提取怎样变成可审核分面",
+          "scope": "当前纯函数与手工上下文；不表示全文提取已实现",
+          "source_ids": [
+            "producer",
+            "consumer"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "independence",
+          "statement": "同分面重复研究或依赖群不可当独立研究合成",
+          "source_ids": [
+            "producer",
+            "consumer"
+          ],
+          "tests": [
+            "test/synthesis.test.ts"
+          ]
+        }
+      ]
     }
   ],
   "quality": {
@@ -2050,7 +2175,7 @@
     {
       "id": "interface-change",
       "title": "外部、依赖、标签与接口规则改进",
-      "scope": "当前四类工作面、十一条实现路由；不声称自动推断全项目影响",
+      "scope": "当前四类工作面、十二条实现路由；不声称自动推断全项目影响",
       "docs": [
         "docs/wiki/Interface-change-playbook.md"
       ],
@@ -2062,7 +2187,8 @@
             "public-api",
             "external-source",
             "external-transport",
-            "client-diagnostics"
+            "client-diagnostics",
+            "synthesis-table"
           ],
           "why": "先对齐服务/HTTP/SDK 的失败分类，再处理文献源必需/可选能力及请求预算。"
         },

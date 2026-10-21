@@ -5,12 +5,19 @@
 
 ## 未发布
 
+### 多结局证据表
+- 主入口新增 `intakeOutcomeRows`、`buildSynthesisTable` 及 `SynthesisContext` / `SynthesisTable` 类型：结构化多结局拆行、语义分面、报告/研究/结果分计数与独立性闸；复合指标保留组成不自动运算，不生成总体分数。
+- 新增编辑侧 synthesis_table 功能与合成数据交互演示。没有新增 HTTP 路由，没有修改 src/types.ts 或旧 poolEvidence 的行为；完整数据/语义约束见 Wiki Outcome-synthesis。
+
 ### 公开接口与兼容行为
 - `scholar-meta/client` 新增 `createEvidenceResultClient`，五个读方法返回判别结果，保留错误类别、HTTP 状态与 Retry-After 秒数；新增类型 `EvidenceClientError`、`EvidenceClientResult`、`EvidenceResultClient`。没有移除导出。
 - 原 `createEvidenceClient` 仍返回 data/null，复用同一请求和验形实现，非成功状态保持不读取错误正文；不自动重试。无法编码的孤立 Unicode 代理项由此前的 URIError 拒绝改为失败结果（旧调用 null）。未改服务/HTTP 正文或 src/types.ts 契约。
 - 未知或与 HTTP 状态不匹配的错误正文只报告 http_error，不透传服务器原始文本。新增 SDK 只是已有图谱/计数功能的诊断消费路径，不增加数据载荷或功能注册 ID。
 
 ### 外部请求行为
+- 普通节点列表使用受支持的 per_page=100；group_by 保留200并跟随cursor（最多20页），重复/失败/计数漂移与无完整证据的满页拒绝返回全量结果。分组接受字符串/布尔/数值key并统一为字符串，数值未知哨兵-111归为unknown。
+- live 新增六次无重试合约探针与脱敏工件；完整冒烟串行限速、最多80次实际请求，费用按响应记录。
+
 - OpenAlex 每个响应先记录有效计费头，包括非成功状态和坏正文；每次重试前重新检查实例内 UTC 日预算。
 - 429 的剩余额度明确为零时停止；支持 Retry-After 秒数/HTTP 日期。等待超过 4 秒时返回 null 交由宿主安排，不再截短服务端等待要求。仍最多重试两次，无全局预算保证。
 

@@ -75,7 +75,7 @@ function shortId(url: string | null | undefined): string | null {
 /**
  * 429 最多重试几次、每次最长等多久。实测：一个节点冷启动的十几次 group_by 同时在飞时，
  * 个别请求回 429（每秒次数限制，不是日配额）；一律当失败会让整组计数落空。
- * 429 不花 credit，退避后重试是 OpenAlex 文档建议的做法；有 Retry-After 就照它，封顶以免把一次页面请求拖太久。
+ * 官方错误响应为零 credit；实际仍记录头。有 Retry-After 就照它，过长等待交宿主，避免把一次页面请求拖太久。
  */
 const RETRY_429 = 2
 const RETRY_MAX_WAIT_MS = 4000
@@ -168,18 +168,18 @@ const NODE_LEVELS: Record<OpenAlexNodeLevel, { path: string; idShape: RegExp; pa
   domain: { path: 'domains', idShape: /^\d+$/, parent: null },
 }
 /**
- * 兄弟列表只取画球要用的三列；200 是 per_page 上限，**放不下就翻页**（每页 1 credit）。
+ * 兄弟列表只取画球要用的三列；100 是普通列表支持的 per_page 上限，**放不下就翻页**（每页 1 credit）。
  * 2026-09-28 `group_by` 核对：同父 subfield 最多 42（Medicine）、同父 topic 最多 **224**（subfield 3312 Sociology and Political Science，
  * 其余 ≤137）——「几十个都放得下」对 topic 级不成立，一页会悄悄少 24 个兄弟。
  */
-const SIBLING_SELECT = 'select=id,display_name,works_count&per_page=200'
-const SIBLING_PER_PAGE = 200
+const SIBLING_SELECT = 'select=id,display_name,works_count&per_page=100'
+const SIBLING_PER_PAGE = 100
 /** 翻页护栏：真实数据两页足够；到这还没完就当形状异常止步并记日志，不无限打下去。 */
 const SIBLING_MAX_PAGES = 3
 
 /**
  * 一个节点的整条缩放阶梯：节点本身 + 祖先 + 同父兄弟。
- * 实体一次（topic 0 credit，上级三级 1 credit）+ 同级列表一次（1 credit；同父超过 200 个时每多一页再 1）。
+ * 实体一次（topic 0 credit，上级三级 1 credit）+ 同级列表一次（1 credit；同父超过 100 个时每多一页再 1）。
  */
 export interface OpenAlexNodeBundle {
   node: EvidenceTopic
@@ -270,7 +270,7 @@ async function listNodes(
 const CHILD_LEVEL: Record<OpenAlexNodeLevel, OpenAlexNodeLevel | null> = { domain: 'field', field: 'subfield', subfield: 'topic', topic: null }
 
 /**
- * 一个节点往里一层：大类 → 领域 → 子领域 → 主题（**1 credit**；同父超过 200 个时每多一页再 1）。
+ * 一个节点往里一层：大类 → 领域 → 子领域 → 主题（**1 credit**；同父超过 100 个时每多一页再 1）。
  * 主题级、id 形状不对 ⇒ null（不出网）；第一页就没拿到 ⇒ null（这次没问成，**不是**「没有往里的一层」）；
  * 后面的页没拿到 ⇒ 带 `partial: true` 回已拿到的。按 works_count 从多到少。
  */
@@ -467,10 +467,11 @@ const parseGroups = (raw: unknown): OpenAlexGroup[] | null => {
   for (const g of raw) {
     if (!g || typeof g !== 'object') return null
     const r = g as { key?: unknown; key_display_name?: unknown; count?: unknown; groups?: unknown }
-    if (typeof r.key !== 'string' || typeof r.count !== 'number') return null
+    if ((typeof r.key !== 'string' && typeof r.key !== 'boolean' && typeof r.key !== 'number') || (typeof r.key === 'number' && !Number.isFinite(r.key)) || typeof r.count !== 'number' || !Number.isSafeInteger(r.count) || r.count < 0) return null
     const sub = r.groups === undefined ? undefined : parseGroups(r.groups)
     if (sub === null) return null
-    out.push({ key: r.key, label: typeof r.key_display_name === 'string' ? r.key_display_name : r.key, count: r.count, ...(sub ? { sub } : {}) })
+    const key = /^-111(?:\.0+)?$/.test(String(r.key)) ? 'unknown' : String(r.key)
+    out.push({ key, label: typeof r.key_display_name === 'string' ? r.key_display_name : key, count: r.count, ...(sub ? { sub } : {}) })
   }
   return out
 }
@@ -478,16 +479,41 @@ const parseGroups = (raw: unknown): OpenAlexGroup[] | null => {
 /** `filter` 下按 `groupBy`（一维或 `a,b` 两维）分组计数。形状不对 ⇒ null（调用方降级，绝不当成「零」）。 */
 async function groupByWorks({ getJson, log }: Ctx, filter: string, groupBy: string): Promise<OpenAlexCountResult | null> {
   const query = `/works?filter=${filter}&group_by=${groupBy}&per_page=200`
-  const out = await getJson(query)
-  if (!out) return null
-  const j = out.json as { meta?: { count?: unknown }; group_by?: unknown }
-  const total = typeof j.meta?.count === 'number' ? j.meta.count : null
-  const groups = parseGroups(j.group_by)
-  if (total === null || groups === null) {
-    log('[evidence.openalex] malformed group_by', { query })
-    return null
+  let cursor: string | null = null
+  let total: number | null = null
+  let credits = 0
+  const groups: OpenAlexGroup[] = []
+  const seenCursors = new Set<string>()
+  const seenKeys = new Set<string>()
+  for (let page = 0; page < 20; page++) {
+    const out = await getJson(cursor === null ? query : `${query}&cursor=${encodeURIComponent(cursor)}`)
+    if (!out) return null
+    const j = out.json as { meta?: { count?: unknown; next_cursor?: unknown }; group_by?: unknown }
+    const count = j.meta?.count
+    const parsed = parseGroups(j.group_by)
+    if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0 || parsed === null || (total !== null && total !== count)) {
+      log('[evidence.openalex] malformed group_by', { query })
+      return null
+    }
+    total = count
+    credits += out.credits
+    for (const group of parsed) {
+      if (seenKeys.has(group.key)) return null
+      seenKeys.add(group.key)
+      groups.push(group)
+    }
+    const next = j.meta?.next_cursor
+    if (next === null || next === undefined) {
+      // 满页且没有结束游标时不能证明已完整；拒绝伪造全量分布。
+      if (next === undefined && parsed.length >= 200) return null
+      return { total, groups, query, credits, retrieved_at: new Date().toISOString() }
+    }
+    if (typeof next !== 'string' || next.length === 0 || seenCursors.has(next)) return null
+    seenCursors.add(next)
+    cursor = next
   }
-  return { total, groups, query, credits: out.credits, retrieved_at: new Date().toISOString() }
+  return null // 有界翻页失败不返回局部分布。
+
 }
 
 /** `filter` 下的作品数（分母另查用；1 credit）。 */
@@ -547,7 +573,7 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
         // 外部公共数据：不带任何 cookie / 凭据；不用宿主框架的 fetch 缓存（如 Next），缓存归宿主自己的表
         cache: 'no-store',
       })
-      // 每个响应先记账：失败或坏正文也可能已产生上游费用。
+      // 每个响应先读计费头；官方 4xx/5xx 应为零，不从状态猜费用，坏正文仍可已计费。
       const raw = Number(res.headers.get('x-ratelimit-credits-used') ?? '0')
       const credits = Number.isFinite(raw) && raw > 0 ? raw : 0
       if (credits > 0) {
@@ -557,14 +583,20 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
       }
       if (res.status === 429 && attempt < RETRY_429) {
         const remaining = res.headers.get('x-ratelimit-remaining')
-        if (remaining !== null && remaining.trim() !== '' && Number(remaining) === 0) return null
+        if (remaining !== null && remaining.trim() !== '' && Number(remaining) === 0) {
+          log('[evidence.openalex] retry deferred', { status: 429, reason: 'allowance_exhausted', attempt })
+          return null
+        }
         const header = res.headers.get('retry-after')
         const seconds = header !== null && header.trim() !== '' ? Number(header) : NaN
         const date = header !== null && /^[A-Za-z]{3},/.test(header) ? Date.parse(header) : NaN
         const wait = Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000
           : Number.isFinite(date) ? Math.max(0, date - Date.now()) : 800 * 2 ** attempt
         // 不提前于服务端要求重试；过长等待交还宿主调度，不占住请求。
-        if (wait > RETRY_MAX_WAIT_MS) return null
+        if (wait > RETRY_MAX_WAIT_MS) {
+          log('[evidence.openalex] retry deferred', { status: 429, reason: 'retry_after', attempt })
+          return null
+        }
         clearTimeout(timer)
         await sleep(wait)
         return getJson(path, attempt + 1)

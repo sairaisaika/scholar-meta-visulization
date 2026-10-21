@@ -20,6 +20,11 @@
   },
   "features": [
     {
+      "id": "synthesis_table",
+      "audience": "editor",
+      "route": null
+    },
+    {
       "id": "evidence_map",
       "audience": "reader",
       "route": "map"

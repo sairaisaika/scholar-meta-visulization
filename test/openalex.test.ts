@@ -6,7 +6,7 @@
  *   ③ key 只走 `Authorization: Bearer` 头：不进 URL、不进日志；没配不带；可以传函数现取；
  *   ④ 注入的 fetch / baseUrl 生效；
  *   ⑤ 四级节点 bundle：实体先、同级列表后；祖先从近到远带 parent_id；兄弟去掉自己、带 works_count、不读实体自带的 siblings[]；
- *      id 形状不对不出网；列表失败回残缺 bundle 不回 null；同父超过 200 个翻页（实测 subfield 3312 有 224 个 topic），不足一页不翻。
+ *      id 形状不对不出网；列表失败回残缺 bundle 不回 null；同父超过 100 个翻页（实测 subfield 3312 有 224 个 topic），不足一页不翻。
  */
 import { createOpenAlexClient, createOpenAlexSource } from '../src/openalex'
 
@@ -133,7 +133,7 @@ describe('OpenAlex · API key', () => {
 })
 
 describe('OpenAlex · fetchNodeBundle（四级节点：实体 + 同父兄弟列表）', () => {
-  const SEL = 'select=id,display_name,works_count&per_page=200'
+  const SEL = 'select=id,display_name,works_count&per_page=100'
   const field27 = { id: 'https://openalex.org/fields/27', display_name: 'Medicine' }
   const domain4 = { id: 'https://openalex.org/domains/4', display_name: 'Health Sciences' }
   const urls = (f: jest.Mock) => f.mock.calls.map((c) => c[0] as string)
@@ -275,16 +275,18 @@ describe('OpenAlex · fetchNodeBundle（四级节点：实体 + 同父兄弟列�
     results: Array.from({ length: to - from + 1 }, (_, i) => ({ id: `https://openalex.org/T${from + i}`, display_name: `t${from + i}`, works_count: 1 })),
   })
 
-  it('同父超过 200 个 ⇒ 第二页显式 &page=2，兄弟拼齐（224 − 自己 = 223）', async () => {
+  it('同父超过 100 个 ⇒ 三页显式 &page=2/3，兄弟拼齐（224 − 自己 = 223）', async () => {
     const f = jest.fn()
       .mockResolvedValueOnce(res(200, { id: 'https://openalex.org/T1', display_name: 't1', subfield: sub3312, field: field27, domain: domain4 }))
-      .mockResolvedValueOnce(res(200, topicPage(1, 200)))
+      .mockResolvedValueOnce(res(200, topicPage(1, 100)))
+      .mockResolvedValueOnce(res(200, topicPage(101, 200)))
       .mockResolvedValueOnce(res(200, topicPage(201, 224)))
     const b = await createOpenAlexClient({ fetch: asFetch(f), log: jest.fn() }).fetchNodeBundle('topic', 'T1')
     expect(urls(f)).toEqual([
       'https://api.openalex.org/topics/T1',
       `https://api.openalex.org/topics?filter=subfield.id:3312&${SEL}`,
       `https://api.openalex.org/topics?filter=subfield.id:3312&${SEL}&page=2`,
+      `https://api.openalex.org/topics?filter=subfield.id:3312&${SEL}&page=3`,
     ])
     expect(b?.siblings).toHaveLength(223)
     expect(b?.siblings.map((s) => s.id)).not.toContain('openalex:T1')
@@ -295,11 +297,11 @@ describe('OpenAlex · fetchNodeBundle（四级节点：实体 + 同父兄弟列�
     const log = jest.fn()
     const f = jest.fn()
       .mockResolvedValueOnce(res(200, { id: 'https://openalex.org/T1', display_name: 't1', subfield: sub3312, field: field27, domain: domain4 }))
-      .mockResolvedValueOnce(res(200, topicPage(1, 200)))
+      .mockResolvedValueOnce(res(200, topicPage(1, 100)))
       .mockResolvedValueOnce(res(500, {}))
     const b = await createOpenAlexClient({ fetch: asFetch(f), log }).fetchNodeBundle('topic', 'T1')
     expect(f).toHaveBeenCalledTimes(3)
-    expect(b?.siblings).toHaveLength(199)
+    expect(b?.siblings).toHaveLength(99)
     expect(log.mock.calls.some(([m, d]) => String(m).includes('partial bundle') && (d as { page?: number }).page === 2)).toBe(true)
 
     // meta.count 说只有 16 个 ⇒ 一页收工，不打第二页
@@ -313,7 +315,7 @@ describe('OpenAlex · fetchNodeBundle（四级节点：实体 + 同父兄弟列�
 })
 
 describe('OpenAlex · 下钻（0.4.0）：往里一层与作品细节', () => {
-  const SEL = 'select=id,display_name,works_count&per_page=200'
+  const SEL = 'select=id,display_name,works_count&per_page=100'
   const urls = (f: jest.Mock) => f.mock.calls.map((c) => c[0] as string)
   const client = (f: jest.Mock, log = jest.fn()) => createOpenAlexClient({ fetch: asFetch(f), log })
 

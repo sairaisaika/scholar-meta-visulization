@@ -27,3 +27,24 @@ Windows 包脚本修改包含两部分：用当前 package-script 提供的 pnpm
 基线 a764c2b；R02 部分完成，R04 仅盘点。新增 5 个案例覆盖长秒数/日期等待、明确零剩余、失败响应计费与重试预算、坏正文计费；相关三套测试 54/54 通过。完整 pnpm check 再次通过：440 passed / 12 skipped、14 快照；真实 pack/install、CJS/ESM/TS、联调及 demo 均通过。Python Wiki 9/9。私有词表为空跳过，live 没有执行，不将其列为成功。
 
 完整类型检查发现参数化测试表的可选属性推导不符合 Record<string,string>，已显式约束测试数据类型并重跑完整检查。没有改变公共导出或领域契约；分页/计量单位/受控在线验收仍待验证。Provider 现状与空白见[合约矩阵](Provider-contract-matrix.md)。
+
+
+## 2026-10-21：R02/R04 与多结局证据表
+
+基线665b890；先通过Wiki external-source/external-transport/host-ports定位后编辑，最后同步文档、导航、TODO与交接。旧665b890的check成功但live失败，原因边界见[OpenAlex合约](OpenAlex-contract-2026-10.md)，未将旧失败隐藏。
+
+| 检查 | 本轮观察 | 边界 |
+|---|---|---|
+| pnpm check（Windows） | 完整通过；494 passed /12 skipped，14快照；类型/边界/build/manifest/demo均通过 | 私有词表为空明确跳过；默认跳过live与单独实跑分开记录 |
+| 安装包 | 真正pack/install，五入口CJS/ESM、bundler/node16，新增两个函数实调用与配置类型通过 | 源码候选包，非新npm发布 |
+| Provider | 共用factory套件20案例，既有service/OpenAlex用例保留 | 当前消费端受控合约，非第二真实源 |
+| 多结局 | 24案例，结构化输入→既有验形→分面/独立性闸→可选数值合成 | 合成数据；不是全文提取准确率 |
+| OpenAlex探针 | 最多6次无重试，6/6，实际4credits，回执在库 | 所选REST路径；未制造真实预算耗尽 |
+| 完整live | 12/12，串行250ms、32次实际请求/30credits，上限80次 | 之前不节流的本地首次11/12；共享匿名出口并非永久可用 |
+| 实际浏览器 | 表有6报告/6研究/11结果/3分面；独立情景两个不同结局分别汇总；共享参与者情景两个分面都停止汇总且逐项仍在；复合组成可见、无跨结局总分；控制台无错误 | 当前演示为合成数据，宽屏与窄屏可见；不是网站生产部署 |
+| Wiki | 14路由、31/31首选、2/2未知拒绝、最大449词、复合任务地图十二路由，Python9/9 | 登记题自测，不是陌生agent效率实验 |
+| 图 | 原系统六图未改；新增局部流程图实际SVG/截图核对，独立hash回执quality-synthesis-rendering.json | 图形渲染不证明模型提取或统计语义正确 |
+
+API快照只新增intakeOutcomeRows与buildSynthesisTable；新增编辑侧feature及manifest条目；领域types.ts、旧HTTP响应和poolEvidence行为不变。新上下文/表格配置类型从主入口导出，不能当旧EvidenceMapData过guard。未修改网站仓或SMT的独立工作树；[交接文档](Publication-integration-handoff.md)供网站会话自行定位接入。
+
+真实全文提取/出处准确率、复杂设计/协方差、网站存储权限与安装部署仍未完成，见R10–R12；R05–R07原计划继续保留。不会因有数值合成函数就声称任意文章都能meta。

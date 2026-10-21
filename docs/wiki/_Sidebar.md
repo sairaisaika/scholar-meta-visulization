@@ -20,3 +20,7 @@
 [工程研究与下一阶段计划](Engineering-research-2026-10.md) · [开发 TODO](TODO.md)
 
 [结果式客户端与错误诊断](Client-diagnostics.md)
+
+- [多结局与复合指标](Outcome-synthesis.md)
+- [文刊功能交接（给网站会话）](Publication-integration-handoff.md)
+- [OpenAlex当前合约](OpenAlex-contract-2026-10.md)

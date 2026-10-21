@@ -51,13 +51,15 @@
       ],
       "docs": [
         "docs/wiki/Interface-map.md#external-source",
-        "docs/wiki/Interface-improvement-plan.md"
+        "docs/wiki/Interface-improvement-plan.md",
+        "docs/wiki/Provider-contract-matrix.md"
       ],
       "tests": [
         "test/service.test.ts",
         "test/openalex.test.ts",
         "test/openalex-counts.test.ts",
-        "test/integration.test.ts"
+        "test/integration.test.ts",
+        "test/provider-contract.test.ts"
       ],
       "checks": [
         {
@@ -143,8 +145,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export function createOpenAlexSource",
-          "line": 616,
-          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
+          "line": 648,
+          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
         },
         {
           "path": "src/openalex-counts.ts",
@@ -230,12 +232,14 @@
       "docs": [
         "docs/wiki/Interface-map.md#external-transport",
         "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md"
+        "docs/wiki/Interface-change-playbook.md",
+        "docs/wiki/OpenAlex-contract-2026-10.md"
       ],
       "tests": [
         "test/openalex.test.ts",
         "test/openalex-counts.test.ts",
-        "test/settings.test.ts"
+        "test/settings.test.ts",
+        "test/openalex-paging.test.ts"
       ],
       "checks": [
         {
@@ -288,9 +292,9 @@
         "外部源、设置读取、缓存失败语义和宿主额度协调"
       ],
       "unknowns": [
-        "并发可越过预算检查；真实额度/服务费用未验证"
+        "共享全局预算、真实429压力与复杂嵌套分组仍未保证"
       ],
-      "reviewed_at": "2026-10-15",
+      "reviewed_at": "2026-10-21",
       "evidence": {
         "implementation": "implemented",
         "observations": [
@@ -311,7 +315,7 @@
           "role": "declaration",
           "reason": "export interface OpenAlexOptions",
           "line": 84,
-          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
+          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
         },
         {
           "path": "src/openalex.ts",
@@ -319,8 +323,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export function createOpenAlexClient",
-          "line": 510,
-          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
+          "line": 536,
+          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
         },
         {
           "path": "src/openalex.ts",
@@ -329,7 +333,7 @@
           "role": "implementation",
           "reason": "export function isFreeOpenAlexPath",
           "line": 103,
-          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
+          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
         },
         {
           "path": "src/service.ts",
@@ -350,8 +354,8 @@
             "请求、预算、429 重试、计费和超时的内部接缝"
           ],
           "visibility": "internal",
-          "line": 534,
-          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
+          "line": 560,
+          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
         }
       ]
     },
@@ -2138,7 +2142,7 @@
           "role": "implementation",
           "reason": "export const EVIDENCE_FEATURES",
           "line": 41,
-          "sha256": "0e8fc35fc69558f1b2dfbd7baf6f7f04cd21f9fca86b9dc31d735989ffba2e5b"
+          "sha256": "e6c4ef1b8ff68e04a4a4d4a6afecd05597fe351da3b304e28abaf1fee9a041cc"
         },
         {
           "id": "consumer",
@@ -2169,7 +2173,7 @@
           ],
           "visibility": "public",
           "line": 10,
-          "sha256": "dd0c818b102b2789d2f48a26922dbd34db531d1b99c812fde125180d5945189c"
+          "sha256": "837cfe5b84369ea84e8bc19989fa904a8c70734d3e8d1656d3358db3f78b3dd1"
         }
       ]
     },
@@ -2619,8 +2623,8 @@
           "needle": "export function createOpenAlexSource",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 616,
-          "sha256": "f991d595def4cabdb048b91343b6aa39a708ba9b070bb6aaf9a16f2bdaeb46e9"
+          "line": 648,
+          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
         },
         {
           "id": "records",
@@ -2990,13 +2994,163 @@
           "sha256": "b154c540a27a08a8b98767882bf821f5a6b536310249adf3c2c632443e86c475"
         }
       ]
+    },
+    {
+      "id": "synthesis-table",
+      "title": "多结局与复合数据证据表",
+      "aliases": [
+        "多结局",
+        "复合指标",
+        "多个数据一个值",
+        "文章提取",
+        "多时间点",
+        "结局合成",
+        "synthesis-table",
+        "intakeOutcomeRows",
+        "buildSynthesisTable"
+      ],
+      "sources": [
+        {
+          "id": "decl",
+          "path": "src/synthesis.ts",
+          "needle": "export interface SynthesisContext",
+          "role": "declaration",
+          "reason": "研究/结果/时间/单位/出处的上下文"
+        },
+        {
+          "id": "producer",
+          "path": "src/synthesis.ts",
+          "needle": "export function intakeOutcomeRows",
+          "role": "implementation",
+          "reason": "结构化多结局收口"
+        },
+        {
+          "id": "consumer",
+          "path": "src/synthesis.ts",
+          "needle": "export function buildSynthesisTable",
+          "role": "consumer",
+          "reason": "分面表与独立性闸"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Outcome-synthesis.md",
+        "docs/wiki/Publication-integration-handoff.md"
+      ],
+      "tests": [
+        "test/synthesis.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/synthesis.test.ts",
+          "scope": "合成输入验收；不是模型准确率或真实网站验收"
+        }
+      ],
+      "boundary": "结构化输入与人工语义编码；不做全文自动提取或跨结局总分。",
+      "kind": "interface",
+      "interface": {
+        "inputs": [
+          "公开文章、结果数组、审核上下文"
+        ],
+        "outputs": [
+          "既有EvidenceRecord、多结局表与阻止原因"
+        ],
+        "errors": [
+          "行验形问题、缺出处、重复或非独立阻止合成"
+        ],
+        "compatibility": "新增纯函数；旧HTTP与领域types.ts不变",
+        "failure_modes": {
+          "returned": [
+            "验形问题与合成阻止原因"
+          ],
+          "thrown": [
+            "调用方违反类型契约可抛错；不承诺处理任意循环对象"
+          ],
+          "unsupported": [
+            "全文自动提取、身份认证与跨结局总分"
+          ]
+        }
+      },
+      "impact": [
+        "编辑提取/审核、表格与分面消费者"
+      ],
+      "unknowns": [
+        "全文提取真实性、复杂协方差和真实网站接入未验"
+      ],
+      "reviewed_at": "2026-10-21",
+      "evidence": {
+        "implementation": "implemented",
+        "observations": [
+          {
+            "level": "offline-tested",
+            "reference": "test/synthesis.test.ts",
+            "claim": "结构化拆行、语义分面与依赖闸；合成数据",
+            "revision": "candidate-based-on-665b890",
+            "observed_at": "2026-10-21"
+          }
+        ]
+      },
+      "diagrams": [
+        {
+          "kind": "flow",
+          "path": "docs/wiki/Outcome-synthesis.md",
+          "purpose": "结构化提取到分面与合成闸",
+          "question": "结构化提取怎样变成可审核分面",
+          "scope": "当前纯函数与手工上下文；不表示全文提取已实现",
+          "source_ids": [
+            "producer",
+            "consumer"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "independence",
+          "statement": "同分面重复研究或依赖群不可当独立研究合成",
+          "source_ids": [
+            "producer",
+            "consumer"
+          ],
+          "tests": [
+            "test/synthesis.test.ts"
+          ]
+        }
+      ],
+      "locations": [
+        {
+          "id": "decl",
+          "path": "src/synthesis.ts",
+          "needle": "export interface SynthesisContext",
+          "role": "declaration",
+          "reason": "研究/结果/时间/单位/出处的上下文",
+          "line": 10,
+          "sha256": "474b793f15885ff2460d367bcddf589b9deefac1b1d6389b37af1a36bd337328"
+        },
+        {
+          "id": "producer",
+          "path": "src/synthesis.ts",
+          "needle": "export function intakeOutcomeRows",
+          "role": "implementation",
+          "reason": "结构化多结局收口",
+          "line": 53,
+          "sha256": "474b793f15885ff2460d367bcddf589b9deefac1b1d6389b37af1a36bd337328"
+        },
+        {
+          "id": "consumer",
+          "path": "src/synthesis.ts",
+          "needle": "export function buildSynthesisTable",
+          "role": "consumer",
+          "reason": "分面表与独立性闸",
+          "line": 89,
+          "sha256": "474b793f15885ff2460d367bcddf589b9deefac1b1d6389b37af1a36bd337328"
+        }
+      ]
     }
   ],
   "task_maps": [
     {
       "id": "interface-change",
       "title": "外部、依赖、标签与接口规则改进",
-      "scope": "当前四类工作面、十一条实现路由；不声称自动推断全项目影响",
+      "scope": "当前四类工作面、十二条实现路由；不声称自动推断全项目影响",
       "docs": [
         "docs/wiki/Interface-change-playbook.md"
       ],
@@ -3008,7 +3162,8 @@
             "public-api",
             "external-source",
             "external-transport",
-            "client-diagnostics"
+            "client-diagnostics",
+            "synthesis-table"
           ],
           "why": "先对齐服务/HTTP/SDK 的失败分类，再处理文献源必需/可选能力及请求预算。"
         },
@@ -3046,6 +3201,7 @@
         "external-source",
         "external-transport",
         "client-diagnostics",
+        "synthesis-table",
         "host-ports",
         "tag-normalization",
         "tagger-contribution",
@@ -3060,7 +3216,8 @@
           "title": "外部文献源端口",
           "docs": [
             "docs/wiki/Interface-map.md#external-source",
-            "docs/wiki/Interface-improvement-plan.md"
+            "docs/wiki/Interface-improvement-plan.md",
+            "docs/wiki/Provider-contract-matrix.md"
           ]
         },
         {
@@ -3069,7 +3226,8 @@
           "docs": [
             "docs/wiki/Interface-map.md#external-transport",
             "docs/wiki/Interface-improvement-plan.md",
-            "docs/wiki/Interface-change-playbook.md"
+            "docs/wiki/Interface-change-playbook.md",
+            "docs/wiki/OpenAlex-contract-2026-10.md"
           ]
         },
         {
@@ -3149,6 +3307,14 @@
             "docs/wiki/Client-diagnostics.md",
             "docs/wiki/TODO.md",
             "docs/wiki/Development-verification-2026-10.md"
+          ]
+        },
+        {
+          "id": "synthesis-table",
+          "title": "多结局与复合数据证据表",
+          "docs": [
+            "docs/wiki/Outcome-synthesis.md",
+            "docs/wiki/Publication-integration-handoff.md"
           ]
         }
       ],

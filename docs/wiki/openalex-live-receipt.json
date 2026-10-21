@@ -1,0 +1,106 @@
+{
+  "observed_at": "2026-10-21T05:16:30.573Z",
+  "authentication": "anonymous",
+  "max_requests": 6,
+  "retries": 0,
+  "observed_credits": 4,
+  "results": [
+    {
+      "id": "topic",
+      "path": "/topics/T10537",
+      "status": 200,
+      "headers": {
+        "x-ratelimit-limit": "1000",
+        "x-ratelimit-remaining": "998",
+        "x-ratelimit-credits-used": "0",
+        "x-ratelimit-cost-usd": "0",
+        "x-ratelimit-reset": "67408",
+        "retry-after": null
+      },
+      "passed": true,
+      "rows": null,
+      "groups": null
+    },
+    {
+      "id": "list-100",
+      "path": "/topics?filter=subfield.id:2738&select=id,display_name,works_count&per_page=100",
+      "status": 200,
+      "headers": {
+        "x-ratelimit-limit": "1000",
+        "x-ratelimit-remaining": "997",
+        "x-ratelimit-credits-used": "1",
+        "x-ratelimit-cost-usd": "0.0001",
+        "x-ratelimit-reset": "67408",
+        "retry-after": null
+      },
+      "passed": true,
+      "rows": 16,
+      "groups": 0
+    },
+    {
+      "id": "list-page-2",
+      "path": "/topics?filter=subfield.id:2738&select=id&per_page=1&page=2",
+      "status": 200,
+      "headers": {
+        "x-ratelimit-limit": "1000",
+        "x-ratelimit-remaining": "996",
+        "x-ratelimit-credits-used": "1",
+        "x-ratelimit-cost-usd": "0.0001",
+        "x-ratelimit-reset": "67408",
+        "retry-after": null
+      },
+      "passed": true,
+      "rows": 1,
+      "groups": 0
+    },
+    {
+      "id": "doi-or",
+      "path": "/works?filter=doi:10.1136/bmj.n71|10.1371/journal.pone.0010068&select=id,doi,primary_topic&per_page=50",
+      "status": 200,
+      "headers": {
+        "x-ratelimit-limit": "1000",
+        "x-ratelimit-remaining": "995",
+        "x-ratelimit-credits-used": "1",
+        "x-ratelimit-cost-usd": "0.0001",
+        "x-ratelimit-reset": "67408",
+        "retry-after": null
+      },
+      "passed": true,
+      "rows": 2,
+      "groups": 0
+    },
+    {
+      "id": "groups-200",
+      "path": "/works?filter=primary_topic.id:T10537&group_by=type&per_page=200",
+      "status": 200,
+      "headers": {
+        "x-ratelimit-limit": "1000",
+        "x-ratelimit-remaining": "994",
+        "x-ratelimit-credits-used": "1",
+        "x-ratelimit-cost-usd": "0.0001",
+        "x-ratelimit-reset": "67408",
+        "retry-after": null
+      },
+      "passed": true,
+      "rows": null,
+      "groups": 24
+    },
+    {
+      "id": "invalid-filter",
+      "path": "/works?filter=not_a_real_field:yes&per_page=1",
+      "status": 400,
+      "headers": {
+        "x-ratelimit-limit": "1000",
+        "x-ratelimit-remaining": "994",
+        "x-ratelimit-credits-used": "0",
+        "x-ratelimit-cost-usd": "0",
+        "x-ratelimit-reset": "67407",
+        "retry-after": null
+      },
+      "passed": true,
+      "rows": null,
+      "groups": null
+    }
+  ],
+  "passed": true
+}

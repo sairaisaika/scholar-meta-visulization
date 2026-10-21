@@ -40,6 +40,11 @@ const svc = (method: string): EvidenceFeatureEnd => ({ entry: 'scholar-meta/serv
 
 export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
   {
+    id: 'synthesis_table', audience: 'editor', route: null, payload: 'EvidenceRecord',
+    answers: '多结局/多时间点分面列证据，核对出处和独立性后才允许同组数值合成，不生成跨结局总分',
+    producer: main('synthesis', 'intakeOutcomeRows'), consumer: main('synthesis', 'buildSynthesisTable'),
+  },
+  {
     id: 'evidence_map', audience: 'reader', route: 'map', payload: 'EvidenceMapData',
     answers: '一个标签（或一个主题）下有哪些站内与站外研究，能诚实画到哪一级',
     producer: svc('getTagMap'), consumer: main('present', 'presentEvidenceMap'),

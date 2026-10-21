@@ -2,7 +2,7 @@
 
 入口不是单次复合查询的前两项。先按下表选工作面，局部说明只读相关节；完整候选方案见[接口计划](Interface-improvement-plan.md)，实际演练与缺口见[本轮记录](Interface-navigation-trial.md)。SMT 共用当前包内实现，没有另一套标签服务需要猜。
 
-先运行 `python tools/wiki.py task interface-change` 获取完整声明工作面；运行 `python tools/wiki.py task` 列出可用地图。CI 除单条命中率外，也检查 external/dependency/tagging/rules 四类和十一条预期路由，缺项或替换成不相关路由会失败。
+先运行 `python tools/wiki.py task interface-change` 获取完整声明工作面；运行 `python tools/wiki.py task` 列出可用地图。CI 除单条命中率外，也检查 external/dependency/tagging/rules 四类和十二条预期路由，缺项或替换成不相关路由会失败。
 
 ## 一页确定改哪几层
 
@@ -41,4 +41,6 @@
 
 语义审查仍要核对：catch 究竟包住哪些语句；sanitizeSuggestions 的模型与贡献包两条调用；dropped 与 written/unchanged/refused/最终有效标签的阶段差异；审核规则接受与存储提交的分界。
 
-2026-10-17 当前推进：R01 结果式客户端的实现/验收入口已加入 external 工作面（client-diagnostics），任务地图现为四类、十一条实现路由；等待解析增加一个内部改动位置，总计11处（9 internal、2 public）。上文10处是本次演练初始定位集合，历史记录不覆盖为新实测。下一步见[研究与 TODO](TODO.md)。
+2026-10-17 当前推进：R01 结果式客户端的实现/验收入口已加入 external 工作面（client-diagnostics），任务地图现为四类、十二条实现路由；等待解析增加一个内部改动位置，总计11处（9 internal、2 public）。上文10处是本次演练初始定位集合，历史记录不覆盖为新实测。下一步见[研究与 TODO](TODO.md)。
+
+新增 `synthesis-table` 工作面：多结局/多时间点/复合指标 → synthesis.intakeOutcomeRows → buildSynthesisTable；语义审核、独立性与出处要求见 [局部设计](Outcome-synthesis.md)。此路由已纳入 external 工作面；纯函数没有自动增加 HTTP 权限。

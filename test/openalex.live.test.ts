@@ -2,7 +2,7 @@
  * OpenAlex 真实 API 冒烟测试——**缺省跳过**，`OPENALEX_LIVE=1 pnpm jest test/openalex.live.test.ts` 才跑（要能出网）。
  * 用来核对只按文档实现、用模拟响应测过的形状：子领域 / 领域 / 大类实体、按 DOI 的 OR 过滤、两维 group_by 的交叉表；
  * 0.4.0 起还有往里一层的列表、作品的发表来源 / 开放获取地址 / 主题 / 引用。
- * 花费约 25 credits（一次全量计数约 17；其余大多 0 或 1）。有 OPENALEX_API_KEY 就带上（只进请求头）。
+ * 旧约25 credits仅历史估计；当前按响应记录，最多80次实际请求。有 OPENALEX_API_KEY 就带上（只进请求头）。
  * GitHub 上由 `.github/workflows/live.yml` 跑（手动触发，或改了适配器时）。
  */
 import { createOpenAlexClient, fetchEvidenceCounts } from '../src/openalex'
@@ -12,7 +12,28 @@ const suite = live ? describe : describe.skip
 
 suite('OpenAlex 真实 API（OPENALEX_LIVE=1 才跑）', () => {
   jest.setTimeout(120_000)
-  const client = createOpenAlexClient({ apiKey: () => process.env.OPENALEX_API_KEY, log: (m, d) => console.warn(m, d) })
+  // 串行且间隔 250ms，避免 CI 共用匿名出口时把自己的并发当服务故障。
+  // 最多 80 次实际请求（含重试）；费用由响应记录，不用旧价格推算。
+  let queue = Promise.resolve()
+  let requests = 0
+  let credits = 0
+  const controlledFetch: typeof fetch = async (input, init) => {
+    const previous = queue
+    let release!: () => void
+    queue = new Promise<void>(resolve => { release = resolve })
+    await previous
+    try {
+      if (++requests > 80) throw new Error('live request cap')
+      await new Promise(resolve => setTimeout(resolve, 250))
+      const r = await fetch(input, init)
+      const cost = Number(r.headers.get('x-ratelimit-credits-used'))
+      if (Number.isFinite(cost) && cost > 0) credits += cost
+      if (r.status !== 200) console.warn('live status', { status: r.status, remaining: r.headers.get('x-ratelimit-remaining'), reset: r.headers.get('x-ratelimit-reset'), retry_after: r.headers.get('retry-after') })
+      return r
+    } finally { release() }
+  }
+  afterAll(() => console.info('live bounded receipt', { requests, credits, max_requests: 80 }))
+  const client = createOpenAlexClient({ fetch: controlledFetch, apiKey: () => process.env.OPENALEX_API_KEY, log: (m, d) => console.warn(m, d) })
 
   it('自动补全：adhd 有候选', async () => {
     const r = await client.suggestTopicsForTag('adhd', 3)

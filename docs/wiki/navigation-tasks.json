@@ -219,6 +219,20 @@
       "expected_routes": [
         "interface-plan"
       ]
+    },
+    {
+      "id": "q-synthesis-outcomes",
+      "query": "多结局不同时间点如何进入证据表",
+      "expected_routes": [
+        "synthesis-table"
+      ]
+    },
+    {
+      "id": "q-synthesis-composite",
+      "query": "复合指标多个数据一个值如何保留来源",
+      "expected_routes": [
+        "synthesis-table"
+      ]
     }
   ],
   "task_map_cases": [
@@ -242,7 +256,8 @@
         "ledger-integration",
         "settings-contract",
         "compatibility",
-        "client-diagnostics"
+        "client-diagnostics",
+        "synthesis-table"
       ]
     }
   ]

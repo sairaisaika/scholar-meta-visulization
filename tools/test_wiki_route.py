@@ -59,6 +59,12 @@ class WikiRouteAcceptance(unittest.TestCase):
         self.assertEqual(len(hashes), 6)
         self.assertEqual(hashes, [row['source_sha256'] for row in receipt['diagrams']])
         self.assertTrue(all(row.get('parsed') and row.get('rendered') for row in receipt['diagrams']))
+        feature = (root / 'docs/wiki/Outcome-synthesis.md').read_text(encoding='utf-8')
+        feature_code = re.findall(r'```mermaid\n([\s\S]*?)```', feature)
+        feature_receipt = precise.read_json(root / 'docs/wiki/quality-synthesis-rendering.json')
+        self.assertEqual(len(feature_code), 1)
+        self.assertEqual(hashlib.sha256(feature_code[0].encode('utf-8')).hexdigest(), feature_receipt['source_sha256'])
+        self.assertTrue(feature_receipt['rendered'])
 
     def test_compound_map_does_not_read_source_and_preserves_visibility(self):
         root = Path(__file__).resolve().parents[1]
@@ -66,7 +72,7 @@ class WikiRouteAcceptance(unittest.TestCase):
         with patch.object(precise, 'resolve_source', side_effect=AssertionError('Unexpected source resolution')):
             result = precise.task_outline(root, manifest, 'interface-change')
         self.assertEqual({row['id'] for row in result['surfaces']}, {'external', 'dependency', 'tagging', 'rules'})
-        self.assertEqual(len(result['route_ids']), 11)
+        self.assertEqual(len(result['route_ids']), 12)
         targets = [source for row in manifest['routes'] for source in row['sources'] if source.get('edit_for')]
         self.assertEqual(len(targets), 11)
         self.assertEqual({s['id'] for s in targets if s['visibility'] == 'public'}, {'decide-write', 'exports'})

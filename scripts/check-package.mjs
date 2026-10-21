@@ -53,7 +53,7 @@ try {
   writeFileSync(join(app, 'consumer.cjs'), `
 const assert = require('node:assert/strict')
 const want = {
-  'scholar-meta': ['pickEvidenceView', 'poolEvidence', 'presentEvidenceMap', 'checkRiskOfBias', 'checkCertainty', 'pointEstimate', 'EVIDENCE_CONTRACT_VERSION'],
+  'scholar-meta': ['pickEvidenceView', 'poolEvidence', 'presentEvidenceMap', 'checkRiskOfBias', 'checkCertainty', 'pointEstimate', 'EVIDENCE_CONTRACT_VERSION', 'intakeOutcomeRows', 'buildSynthesisTable'],
   'scholar-meta/service': ['createEvidenceService', 'createMemoryOnsiteSource', 'createMemoryCertaintySource'],
   'scholar-meta/http': ['createEvidenceHandler', 'EVIDENCE_ROUTES'],
   'scholar-meta/client': ['createEvidenceClient', 'createEvidenceResultClient'],
@@ -71,11 +71,17 @@ console.log('cjs ok')
   // ④ ESM 端到端：客户端 → 读口 → 服务 → 内存端口
   writeFileSync(join(app, 'consumer.mjs'), `
 import assert from 'node:assert/strict'
-import { presentEvidenceMap } from 'scholar-meta'
+import { presentEvidenceMap, intakeOutcomeRows, buildSynthesisTable } from 'scholar-meta'
 import { createEvidenceService, createMemoryCertaintySource, createMemoryOnsiteSource } from 'scholar-meta/service'
 import { createEvidenceHandler } from 'scholar-meta/http'
 import { createEvidenceClient, createEvidenceResultClient } from 'scholar-meta/client'
 import { createOpenAlexClient } from 'scholar-meta/openalex'
+
+const outcomeInput = intakeOutcomeRows({ id: 'multi', title: 'Two outcomes' }, [{ id: 'a' }, { id: 'b' }])
+const outcomeTable = buildSynthesisTable(outcomeInput.records, outcomeInput.contexts)
+assert.equal(outcomeTable.counts.observations, 2)
+assert.equal(outcomeTable.overall, null)
+assert.ok(outcomeTable.facets.every(f => f.pooling === null))
 
 const articles = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1, title: 'Trial ' + (i + 1), tags: ['Sleep'], study_design: 'rct', direction: 'favours',
@@ -114,7 +120,7 @@ console.log('esm ok')
 
   // ③ 类型：bundler 与 node16 两种解析；node16 下 .mts 走 import 条件、.cts 走 require 条件
   const consumerTs = `
-import { pickEvidenceView, pointEstimate, presentCertainty, type EvidenceCertainty, type EvidenceRecord, type EvidenceRiskOfBias } from 'scholar-meta'
+import { intakeOutcomeRows, buildSynthesisTable, type SynthesisContext, pickEvidenceView, pointEstimate, presentCertainty, type EvidenceCertainty, type EvidenceRecord, type EvidenceRiskOfBias } from 'scholar-meta'
 import { createEvidenceService, createMemoryOnsiteSource, type CertaintySource } from 'scholar-meta/service'
 import { createEvidenceHandler } from 'scholar-meta/http'
 import { createEvidenceClient, createEvidenceResultClient, type EvidenceClient, type EvidenceResultClient, type EvidenceClientResult } from 'scholar-meta/client'
@@ -136,7 +142,9 @@ const api: EvidenceClient = createEvidenceClient({ baseUrl: '/api/evidence' })
 const resolution: TagTopicResolution = { kind: 'matched', external_id: 'T1', display_name: 'x', works_count: null, confidence: 'exact' }
 const diagnostic: EvidenceResultClient = createEvidenceResultClient()
 const typedResult: Promise<EvidenceClientResult<unknown>> = diagnostic.getTagGraph()
-export const used = [diagnostic, typedResult, pickEvidenceView([record]).kind, estimate, presentCertainty(cert).symbol, handler, api, resolution, createOpenAlexClient]
+const outcomeRows = intakeOutcomeRows({ id: 'a', title: 'A' }, [])
+const table = buildSynthesisTable(outcomeRows.records, [] satisfies SynthesisContext[])
+export const used = [table, diagnostic, typedResult, pickEvidenceView([record]).kind, estimate, presentCertainty(cert).symbol, handler, api, resolution, createOpenAlexClient]
 `
   writeFileSync(join(app, 'consumer.ts'), consumerTs)
   writeFileSync(join(app, 'consumer.mts'), consumerTs)

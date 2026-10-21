@@ -28,3 +28,7 @@ Scholar Meta 把论文标签、可追溯的标签裁决、主题绑定与研究�
 当前提供的是可随代码审阅的本地 Wiki 正文。GitHub Wiki 的线上启用或发布状态见[项目状态](Project-status.md)，不能把文件已写好视为线上已经发布。
 
 [工程研究与下一阶段计划](Engineering-research-2026-10.md) · [开发 TODO](TODO.md)
+
+- [多结局与复合指标](Outcome-synthesis.md)
+- [文刊功能交接（给网站会话）](Publication-integration-handoff.md)
+- [OpenAlex当前合约](OpenAlex-contract-2026-10.md)

@@ -34,6 +34,7 @@
 
 | 功能 | 谁看 | 两端之间流的契约 | 生产端 | 消费端 | 读口 |
 |---|---|---|---|---|---|
+| `synthesis_table` | 编辑 | `EvidenceRecord` | `intakeOutcomeRows`（上下文为编辑配置） | `buildSynthesisTable` | —（纯函数，多结局分面；不新增读口） |
 | `evidence_map` | 读者 | `EvidenceMapData` | `service.getTagMap` | `presentEvidenceMap` | `GET /map?tag=` |
 | `node_map` | 读者 | `EvidenceMapData` | `service.getNodeMap` | `presentEvidenceMap` | `GET /map?level=&id=` |
 | `node_children` | 读者 | `EvidenceTopic` | `service.getNodeMap`（外部树经 `ExternalEvidenceSource.children`；主题往里是编辑绑到它的站内标签） | `presentNodeChildren` | 随 `/map?level=&id=` |

@@ -1,0 +1,10 @@
+{
+  "observed_at": "2026-10-21",
+  "renderer": "Mermaid 11.17.2 CDN in Codex IAB",
+  "method": "Actual browser SVG and screenshot reviewed, not only source parse",
+  "file": "docs/wiki/Outcome-synthesis.md",
+  "source_sha256": "b3fb5d35c7b4e9b62a0ed2c76c1f91a3b13016b4d112325bafd1e589bd4ed8ad",
+  "rendered": true,
+  "screenshot_role": "synthesis-flow.png local visual evidence",
+  "boundary": "Supplement to six unchanged system diagrams; no runtime/extraction accuracy claim"
+}

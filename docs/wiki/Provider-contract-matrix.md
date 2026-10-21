@@ -1,6 +1,6 @@
-# Provider 合约矩阵（R04 初步盘点）
+# Provider 合约矩阵（R04）
 
-2026-10-17；入口为 ExternalEvidenceSource（src/ports.ts），由 createEvidenceService 消费；OpenAlex 实现经 createOpenAlexSource 装配。先查询 external-source / host-ports，再核对引用测试。此表是现有测试盘点，不是所有适配器的认证，也不是新增 provider 已完成。
+2026-10-21；入口为 ExternalEvidenceSource（src/ports.ts），由 createEvidenceService 消费；OpenAlex 实现经 createOpenAlexSource 装配。先查询 external-source / host-ports，再核对引用测试。R04 完成的是现有端口的可复用服务消费端套件与边界盘点，不是所有适配器认证，也不是第二源已实现。
 
 | 维度 | 约定与已验证案例 | 可直接定位的测试 |
 |---|---|---|
@@ -14,6 +14,23 @@
 | 缓存故障 | get/set 抛错仍取外部结果 | test/service.test.ts “缓存抛错” |
 | HTTP 失败 | 非成功/坏正文为失败；429 预算与等待行为另见 transport | test/openalex.test.ts “429 退避”与“标签解析三态” |
 
-待补：把每个外部方法各自的 null / 空 / 抛错 / 缺可选能力排列为可执行共用合约套件，明确 counts 与 topicsForDois 缺失、抛错及缓存交叉组合；验证不同源 ID 的隔离和第二适配器复用。现有 fakeExternal 的通过只证明当前服务测试输入，不能代表真实 OpenAlex 或任意 provider。R04 保持未完成。
+## 可执行矩阵与复用
 
-定位后的开发顺序：先盘点已有断言，补真正缺失的失败组合，再抽取可复用测试工厂；保持失败不缓存、政策不变、源前缀隔离。第二源选择属于 R07，应在矩阵可复用后进行。
+运行：`pnpm exec jest --runInBand test/provider-contract.test.ts test/service.test.ts test/openalex.test.ts test/openalex-counts.test.ts`。
+
+`test/provider-contract.ts` 导出 `providerContract(name, make)`。make 接受 Partial<ExternalEvidenceSource> 方法替换，构造可受控适配器；每个测试有独立服务、缓存和固定时钟，不依赖真实网络。`test/provider-contract.test.ts` 执行20个案例（含共享缓存隔离）；fixture 的零计数与空数组是合法成功，不是缺数据替身。
+
+| 能力 | null | 空/零 | 抛错 | 缺可选方法 | 缓存/partial |
+|---|---|---|---|---|---|
+| suggestTopics | unavailable且再问 | no_match且缓存 | service unavailable且再问 | 必需，缺失不支持 | 既有并发合并测试保留 |
+| nodeBundle | service unavailable且再问 | 无合法“空节点” | service unavailable且再问 | 必需 | partial可显示但每次重取 |
+| sampleWorks | 图仍可用，external_match unavailable | []成功matched | service unavailable且再问 | 必需 | 成功空也缓存 |
+| children | children:null且再问 | []成功且缓存 | service unavailable且再问 | 字段省略 | partial:true不长缓存 |
+| counts | unavailable且再问 | total:0成功 | service unavailable且再问 | not_configured | 并发/后续成功读合并；get/set故障仍取数 |
+| topicsForDois | 名字候选仍在，cited:null且再问 | []成功且缓存 | service unavailable且再问 | 保留名字候选 | get/set故障仍取数 |
+
+当前 service 对某个方法返回 null 与抛错不一定相同（例如 DOI null 允许名字候选降级，而抛错使整个 suggestBindings unavailable）。这是观察到并钉住的边界，不擅自把异常转换成“零”或更宽成功。自定义适配器应按端口将预期上游失败转换为 null；任意 JSON 必须先验形，不能把 TypeScript 声明当运行时安全保证。
+
+共享缓存以source.id隔离：测试分别使用openalex/crossref命名空间与相同节点ID，确认不串缓存。第二命名空间只是受控fixture，**不是Crossref真实适配器**。接入新源时可复用此套件并提供其受控factory；还须独立验证实际请求/响应映射、来源ID与节点形状、协议字段、错误处理和真实服务。OpenAlex真实回执另见 [R02](OpenAlex-contract-2026-10.md)。
+
+范围外：任意坏缓存值的通用验形、跨实例原子预算/锁、TTL过期时钟与无限故障笛卡尔积不是本次认证结论；新组合有具体故障再补测试。第二源选择属于R07，不把受控套件通过当作上线。
