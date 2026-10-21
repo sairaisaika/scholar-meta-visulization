@@ -48,3 +48,15 @@ Windows 包脚本修改包含两部分：用当前 package-script 提供的 pnpm
 API快照只新增intakeOutcomeRows与buildSynthesisTable；新增编辑侧feature及manifest条目；领域types.ts、旧HTTP响应和poolEvidence行为不变。新上下文/表格配置类型从主入口导出，不能当旧EvidenceMapData过guard。未修改网站仓或SMT的独立工作树；[交接文档](Publication-integration-handoff.md)供网站会话自行定位接入。
 
 真实全文提取/出处准确率、复杂设计/协方差、网站存储权限与安装部署仍未完成，见R10–R12；R05–R07原计划继续保留。不会因有数值合成函数就声称任意文章都能meta。
+
+
+### 远程结束回执
+
+实现提交：`0e3b9014a556b1f90c43c85f292c1c03bcdb2cf8`。
+
+- [check 39550342862](https://github.com/sairaisaika/scholar-meta-visulization/actions/runs/39550342862)：success，包含Wiki与完整pnpm check。
+- [live 39550342810](https://github.com/sairaisaika/scholar-meta-visulization/actions/runs/39550342810)：success；匿名6次探针4credits；完整12/12、32次请求30credits，与本地分开确认。
+- [Pages 39550342773](https://github.com/sairaisaika/scholar-meta-visulization/actions/runs/39550342773)：build/deploy成功；实际打开[已部署多结局演示](https://sairaisaika.github.io/scholar-meta-visulization/synthesis.html)核对两个结局各自汇总与共享参与者情景的双重拒绝，非仅工作流绿。
+- [release工作流39550396245](https://github.com/sairaisaika/scholar-meta-visulization/actions/runs/39550396245)：success，不据此声称发布了新版npm；本轮未改package版本。
+
+最后只读核对SMT工作树干净，仍只有README/LICENSE/AGENTS，当前AGENTS明确指向共享Wiki而无独立实现。网站仓完全未编辑。后续文档回执提交不改变上述已验证实现SHA。

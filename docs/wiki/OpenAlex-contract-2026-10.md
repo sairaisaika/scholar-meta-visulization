@@ -21,3 +21,5 @@
 CI现在先跑6次探针并上传脱敏回执，再跑有界完整live；探针失败会让该工作流失败，离线check仍单独报告。GitHub共享匿名出口可能被其他调用用尽；不能通过假成功掩盖。未来上游改变/受控测试失败时，重开R02而不是删除断言。
 
 边界：未强行制造真实429或耗尽账户；HTTP日期/长等待/零remaining/预算行为用受控响应测试。没有验证100个OR值的上限压力、付费账户、多实例额度、所有group_by组合或深游标极端页数；当前只实现既有适配器所需路径。嵌套分组的下级截断若上游不提供结束证据仍需单独评估，不把此合约认定为任意OQL/全数据导出能力。
+
+本轮GitHub真实验证：[live 39550342810](https://github.com/sairaisaika/scholar-meta-visulization/actions/runs/39550342810)成功；探针6/6、4credits，完整12/12、32次/30credits。实现SHA与其余工作流见[结束回执](Development-verification-2026-10.md)。

@@ -57,3 +57,5 @@ const table = buildSynthesisTable(extracted.records, extracted.contexts)
 - 标签模型失败/不确定/争议、外部源 null/空/partial、503/429 与缓存故障在页面上有不同可解释状态。
 
 完整结构化提取、模型准确率、协方差模型、真实网站安装/部署与公开发布尚未由本轮证明。不要只凭本仓 CI 绿就声明网站功能已上线。
+
+可复核实现提交：`0e3b9014a556b1f90c43c85f292c1c03bcdb2cf8`，远程check/live成功，详见[结束回执](Development-verification-2026-10.md)。可先看[在线合成数据演示](https://sairaisaika.github.io/scholar-meta-visulization/synthesis.html)，再在网站自己的工作分支完成接线；不要把本演示当真实文刊数据。
