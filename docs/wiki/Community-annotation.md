@@ -222,6 +222,15 @@ flowchart LR
 | M10–M12 | 导出、展示、词典、功能登记 | 落地；功能五项（`community_records` / `work_card` / `ladder_gap` / `frame_preview` / `community_export`） | 无 |
 | M13 | 闸 | CHANGELOG 0.6.0、API 快照（只增不删）、回归快照新增一组、接入指南 8 / 9 节、打标签文档第 9 节、README、两页 Wiki 与路由、`pnpm check` 本机全绿 | 首次推送的 CI `check` 在旧版导航索引快照上失败（`wiki_route.py --check` 的 `snapshot_stale`），本次提交重建索引 |
 
-**平台侧（SMT）**：骨架已就位——`config/`（裁决参数、角色、黑名单、种子）、`vocab/`（分面词表由引擎常量生成、概念词表起步、标签别名、绑定）、`data/` 占位、`.github/`（issue 表单、intake / export / sample / replay / check 工作流）、`LICENSE-DATA`、README / AGENTS；`scripts/` 与 `site/` 的实现回执见下方补记。
+**平台侧（SMT）**：骨架已就位——`config/`（裁决参数、角色、黑名单、种子）、`vocab/`（分面词表由引擎常量生成、概念词表起步、标签别名、绑定）、`data/` 占位、`.github/`（issue 表单、intake / export / sample / replay / check 工作流）、`LICENSE-DATA`、README / AGENTS；`scripts/` 与 `site/` 已实现并随骨架一起提交（SMT `main`）：
+
+| 计划 | 实现 | 差异 |
+|---|---|---|
+| intake：鉴权、防滥用、校验全部调引擎、幂等、回评、关闭 | `scripts/intake.ts` + `lib/intake-core.ts`（纯函数）+ `lib/github.ts`（可注入 fetch）+ `lib/git.ts`（rebase 重试）；每次运行扫全部待处理 issue；评论命令 `/agree` `/disagree` `/unsure` `/accept` `/reject` `/bind` `/approve` | 已关闭 issue 上的命令只在事件直接指向它时处理（避免兜底扫描重复回评）；`at` 用入库时刻、一次运行内严格递增；行有任何入库问题（含 flagged）即拒 |
+| export：裁决 → 概念 → 分片 / manifest / frames / queues，不进 main | `scripts/export.ts` + `lib/export-core.ts`：`resolveAnnotations` → `reconcileRows` → `resolveConcepts` → `EvidenceCommunityWork`，分片 sha256 真算，`readCommunityExport` 读回自检 | 归档片（Release 资产）暂未读回 |
+| sample：CI 里取冷启动书架 | `scripts/sample.ts`：列表请求自拼 `select` 再用引擎 `workCardOf` → `publicWorkCard`；每篇写模型层主题与关键词建议断言；以 PR 提交 | 关键词建议每词一条（≤ 5），不是固定两条；引擎没有「按过滤器列作品回名片」的函数 |
+| replay · check · redact · release-export | 全部就位；`check.ts` 核对词表环 / 深度 / 引擎常量相等 / JSONL / 邮箱 / 50 MB / 摘要为空，`--export` 读回 | `release-export.sh` 需 gh 与网络，容器内未实跑 |
+| 静态页 | `site/`：esbuild；入口 → 导出名片优先 → 用户主动直连 OpenAlex（明示 IP）；本地 PDF 只在浏览器提 DOI；三个问题 + 数字卡实时验形；`describeLadderGap` / frame 预览；预填 issue（> 7 KB 降级复制）；盲复录 `matchReExtraction` 生成 endorse / dispute 带 `peeked`；中英；CSP | 分面值（人群 / 场景）没有引擎词典，页面显示原值；PDF 流程未用真实样例 PDF 跑过 |
+| 验收 | SMT：`pnpm typecheck`、`pnpm test` 25/25、`pnpm check`、`pnpm export`（0 作品）→ `pnpm check --export` 读回零问题、`pnpm site:build`；Playwright 29/29（本地静态服务器，不出网）；私有词闸 | Pages 需维护者在仓库设置里把来源改成 GitHub Actions；sample 与真实 issue 走通待 CI |
 
 **宿主**：交接文件已作为文件交给维护者（不进仓）；三方边界结论：SMT 与宿主零直接接口。演示页换真实数据（§真实数据）待 SMT 有导出后做（TODO R15）。
