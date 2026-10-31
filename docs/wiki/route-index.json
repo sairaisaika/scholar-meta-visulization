@@ -3165,11 +3165,7 @@
         "标注怎样变成图",
         "名片",
         "DOI",
-        "链接认成论文",
-        "作品引用",
-        "parseWorkRef",
-        "fetchWorkCard",
-        "readCommunityExport"
+        "链接认成论文"
       ],
       "sources": [
         {
@@ -3259,7 +3255,7 @@
         "ledger-policy（按层比例裁决）、synthesis-table（frame 键与预览）、host-ports（社区端口）、compatibility（契约与快照）"
       ],
       "unknowns": [
-        "OpenAlex 单实体计费未实测；盲复录在静态页是荣誉制；真实社区规模与刷票风险未观察"
+        "OpenAlex 单实体计费未实测；盲复录在静态页是荣誉制；真实社区规模与刷票风险未观察；平台仓的 Action 与页面仍在实现（见 community-engine 的已实现部分）"
       ],
       "reviewed_at": "2026-10-31",
       "evidence": {
@@ -3403,6 +3399,270 @@
           "reason": "结果行的分面键与汇总闸——「加上这篇后」预览的依据",
           "line": 110,
           "sha256": "24b3533dfcadcd48e6f58de92a3d7d192e00833ce73724a4b76af997548a5aa5"
+        }
+      ]
+    },
+    {
+      "id": "community-engine",
+      "title": "社区标注的引擎实现：裁决、导出读取与宿主端口",
+      "aliases": [
+        "resolveAnnotations",
+        "readCommunityExport",
+        "createCommunityPorts",
+        "assessQuorum",
+        "mergeWorkTagSources",
+        "社区裁决函数",
+        "导出读取函数",
+        "社区端口",
+        "比例裁决实现",
+        "盲复录比对",
+        "matchReExtraction",
+        "describeLadderGap",
+        "previewFrameChange",
+        "阶梯差距",
+        "frame 预览",
+        "community.ts"
+      ],
+      "sources": [
+        {
+          "id": "types",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceAnnotation {",
+          "role": "declaration",
+          "reason": "社区断言的契约形状（kind / op / subject / payload）"
+        },
+        {
+          "id": "export-type",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceCommunityExport {",
+          "role": "contract",
+          "reason": "平台产、宿主消费的导出形状"
+        },
+        {
+          "id": "quorum",
+          "path": "src/ledger.ts",
+          "needle": "export function assessQuorum",
+          "role": "implementation",
+          "reason": "比例裁决：Wilson 区间、最少人数、挑战规则"
+        },
+        {
+          "id": "resolve",
+          "path": "src/community.ts",
+          "needle": "export function resolveAnnotations",
+          "role": "implementation",
+          "reason": "全部断言种类的裁决（标签 / 分面单选 / 结果行整行原子）"
+        },
+        {
+          "id": "read",
+          "path": "src/community.ts",
+          "needle": "export function readCommunityExport",
+          "role": "implementation",
+          "reason": "导出验形：契约主次版本、摘要置空、坏条目逐条报"
+        },
+        {
+          "id": "ports",
+          "path": "src/community.ts",
+          "needle": "export function createCommunityPorts",
+          "role": "implementation",
+          "reason": "把导出装成文章 / 账本 / 绑定端口与结果行、记录"
+        },
+        {
+          "id": "service",
+          "path": "src/service.ts",
+          "needle": "community?: (OnsiteArticleSource",
+          "role": "caller",
+          "reason": "服务层按 community.apply 把社区记录并进图谱"
+        },
+        {
+          "id": "present",
+          "path": "src/present.ts",
+          "needle": "export function presentCommunityWork",
+          "role": "consumer",
+          "reason": "「这篇现在被说成什么」的人话"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Community-annotation.md",
+        "docs/wiki/Tagging-model.md",
+        "docs/tagging.md",
+        "docs/integration.md"
+      ],
+      "tests": [
+        "test/community.test.ts",
+        "test/community-service.test.ts",
+        "test/regression.test.ts",
+        "test/workref.test.ts",
+        "test/openalex.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/community.test.ts test/community-service.test.ts test/regression.test.ts test/workref.test.ts",
+          "scope": "离线：比例裁决与独立参考值对表、断言裁决、导出读回、端口、服务并入；不含真实平台 Action 与页面"
+        }
+      ],
+      "boundary": "引擎只提供契约、规则、读取与端口；不拉文件、不认识 GitHub、不托管账号。pending 不是账本立场；社区数据本身不出汇总菱形（reviewed 只有编辑层核验才为 true）。",
+      "kind": "interface",
+      "interface": {
+        "inputs": [
+          "EvidenceAnnotation[] 与 EvidenceCommunityPolicy；导出 manifest 与分片 JSON；服务设置 community.apply"
+        ],
+        "outputs": [
+          "EvidenceCommunityDecision[]；EvidenceCommunityExport 与 issues；OnsiteArticleSource / WorkTagSource / TagBindingStore 端口；记录与语境"
+        ],
+        "errors": [
+          "readCommunityExport 契约对不上 ⇒ ok:false；坏条目逐条报不抛；端口抛错 ⇒ 服务 unavailable"
+        ],
+        "compatibility": "只加法；不设 quorum、不配 community、community.apply=off 时与 0.5.0 逐字相同",
+        "failure_modes": {
+          "returned": [
+            "ok:false 与 issues 列表；pending 不出现在 resolveWorkTags 结果里"
+          ],
+          "thrown": [
+            "调用方违反类型契约可抛错；mergeWorkTagSources 任一来源抛错整体抛错"
+          ],
+          "unsupported": [
+            "引擎不拉导出、不校 sha256、不认识平台文件布局"
+          ]
+        }
+      },
+      "impact": [
+        "ledger-policy（quorum 字段）、synthesis-table（frame 键与 concept_ids）、host-ports（community 端口）、compatibility（契约、快照、设置）、settings-contract（community.* 三项）"
+      ],
+      "unknowns": [
+        "真实平台数据下的刷票与争议规模；OpenAlex 单实体计费；宿主实际接入效果"
+      ],
+      "reviewed_at": "2026-10-31",
+      "evidence": {
+        "implementation": "implemented",
+        "observations": [
+          {
+            "level": "offline-tested",
+            "reference": "test/community.test.ts",
+            "claim": "比例裁决与独立闭式参考值逐个对表；断言裁决、复录比对、导出读回、端口与合并",
+            "revision": "dc2398e033d37e1693bb75b946d41746982d53c5",
+            "observed_at": "2026-10-31"
+          },
+          {
+            "level": "offline-tested",
+            "reference": "test/community-service.test.ts",
+            "claim": "服务层 community.apply 三态与同 DOI 去重",
+            "revision": "dc2398e033d37e1693bb75b946d41746982d53c5",
+            "observed_at": "2026-10-31"
+          },
+          {
+            "level": "installed",
+            "reference": "scripts/check-package.mjs",
+            "claim": "0.6.0 安装包 CJS / ESM / TS 两种解析与端到端（本机 pnpm check）",
+            "revision": "dc2398e033d37e1693bb75b946d41746982d53c5",
+            "observed_at": "2026-10-31"
+          }
+        ]
+      },
+      "rules": [
+        {
+          "id": "pending-not-a-stance",
+          "statement": "pending 不转成账本立场，不进统计；只有 accepted / confirmed 计入",
+          "source_ids": [
+            "resolve",
+            "quorum"
+          ],
+          "tests": [
+            "test/community.test.ts"
+          ]
+        },
+        {
+          "id": "row-atomic",
+          "statement": "结果行整行原子：认可即盲复录整行并在容差内一致；不一致自动争议",
+          "source_ids": [
+            "resolve"
+          ],
+          "tests": [
+            "test/community.test.ts"
+          ]
+        },
+        {
+          "id": "present-only-default",
+          "statement": "宿主缺省只收「有」：merge 模式下任何非「有」的结论会去掉作者原标签",
+          "source_ids": [
+            "ports"
+          ],
+          "tests": [
+            "test/community.test.ts"
+          ]
+        }
+      ],
+      "locations": [
+        {
+          "id": "types",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceAnnotation {",
+          "role": "declaration",
+          "reason": "社区断言的契约形状（kind / op / subject / payload）",
+          "line": 1220,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
+        },
+        {
+          "id": "export-type",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceCommunityExport {",
+          "role": "contract",
+          "reason": "平台产、宿主消费的导出形状",
+          "line": 1365,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
+        },
+        {
+          "id": "quorum",
+          "path": "src/ledger.ts",
+          "needle": "export function assessQuorum",
+          "role": "implementation",
+          "reason": "比例裁决：Wilson 区间、最少人数、挑战规则",
+          "line": 61,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
+        },
+        {
+          "id": "resolve",
+          "path": "src/community.ts",
+          "needle": "export function resolveAnnotations",
+          "role": "implementation",
+          "reason": "全部断言种类的裁决（标签 / 分面单选 / 结果行整行原子）",
+          "line": 113,
+          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+        },
+        {
+          "id": "read",
+          "path": "src/community.ts",
+          "needle": "export function readCommunityExport",
+          "role": "implementation",
+          "reason": "导出验形：契约主次版本、摘要置空、坏条目逐条报",
+          "line": 501,
+          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+        },
+        {
+          "id": "ports",
+          "path": "src/community.ts",
+          "needle": "export function createCommunityPorts",
+          "role": "implementation",
+          "reason": "把导出装成文章 / 账本 / 绑定端口与结果行、记录",
+          "line": 579,
+          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+        },
+        {
+          "id": "service",
+          "path": "src/service.ts",
+          "needle": "community?: (OnsiteArticleSource",
+          "role": "caller",
+          "reason": "服务层按 community.apply 把社区记录并进图谱",
+          "line": 94,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+        },
+        {
+          "id": "present",
+          "path": "src/present.ts",
+          "needle": "export function presentCommunityWork",
+          "role": "consumer",
+          "reason": "「这篇现在被说成什么」的人话",
+          "line": 1329,
+          "sha256": "3db4f68c834bef2a68f9a601ca7f5c9176d60e7927889323fda1680197fe8bc5"
         }
       ]
     }

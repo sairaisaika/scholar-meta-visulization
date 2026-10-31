@@ -145,8 +145,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export function createOpenAlexSource",
-          "line": 648,
-          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
+          "line": 765,
+          "sha256": "443bb7b9c7cfd520f531a99159c4101fc8c4e6d86f48f879858bd826faaba2d3"
         },
         {
           "path": "src/openalex-counts.ts",
@@ -163,8 +163,8 @@
           "id": "s4",
           "role": "implementation",
           "reason": "export function createEvidenceService",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/service.ts",
@@ -172,8 +172,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         }
       ]
     },
@@ -220,7 +220,7 @@
         {
           "id": "request",
           "path": "src/openalex.ts",
-          "needle": "const getJson = async (path: string, attempt = 0)",
+          "needle": "const getJson: GetJson = async (path, attempt = 0",
           "role": "implementation",
           "reason": "请求、预算、429 重试、计费和超时的内部接缝",
           "edit_for": [
@@ -315,7 +315,7 @@
           "role": "declaration",
           "reason": "export interface OpenAlexOptions",
           "line": 84,
-          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
+          "sha256": "443bb7b9c7cfd520f531a99159c4101fc8c4e6d86f48f879858bd826faaba2d3"
         },
         {
           "path": "src/openalex.ts",
@@ -323,8 +323,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export function createOpenAlexClient",
-          "line": 536,
-          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
+          "line": 648,
+          "sha256": "443bb7b9c7cfd520f531a99159c4101fc8c4e6d86f48f879858bd826faaba2d3"
         },
         {
           "path": "src/openalex.ts",
@@ -333,7 +333,7 @@
           "role": "implementation",
           "reason": "export function isFreeOpenAlexPath",
           "line": 103,
-          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
+          "sha256": "443bb7b9c7cfd520f531a99159c4101fc8c4e6d86f48f879858bd826faaba2d3"
         },
         {
           "path": "src/service.ts",
@@ -341,21 +341,21 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "id": "request",
           "path": "src/openalex.ts",
-          "needle": "const getJson = async (path: string, attempt = 0)",
+          "needle": "const getJson: GetJson = async (path, attempt = 0",
           "role": "implementation",
           "reason": "请求、预算、429 重试、计费和超时的内部接缝",
           "edit_for": [
             "请求、预算、429 重试、计费和超时的内部接缝"
           ],
           "visibility": "internal",
-          "line": 560,
-          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
+          "line": 672,
+          "sha256": "443bb7b9c7cfd520f531a99159c4101fc8c4e6d86f48f879858bd826faaba2d3"
         }
       ]
     },
@@ -581,7 +581,7 @@
           "role": "declaration",
           "reason": "export interface EvidenceServiceOptions",
           "line": 74,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/service.ts",
@@ -589,8 +589,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "id": "factory",
@@ -598,8 +598,8 @@
           "needle": "export function createEvidenceService",
           "role": "implementation",
           "reason": "宿主端口的装配、缓存降级和读取实现",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "id": "cache-flow",
@@ -611,8 +611,8 @@
             "缓存命中、并发合并、null/partial 写回与异常降级"
           ],
           "visibility": "internal",
-          "line": 227,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 235,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "id": "records",
@@ -624,8 +624,8 @@
             "文章验形、账本应用、标签与审阅筛选顺序"
           ],
           "visibility": "internal",
-          "line": 255,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 263,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         }
       ]
     },
@@ -816,8 +816,8 @@
           "id": "s1",
           "role": "declaration",
           "reason": "export interface EvidenceService {",
-          "line": 128,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 135,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/service.ts",
@@ -826,7 +826,7 @@
           "role": "declaration",
           "reason": "export type ServiceResult<",
           "line": 72,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/service.ts",
@@ -835,7 +835,7 @@
           "role": "declaration",
           "reason": "export type ServiceError =",
           "line": 62,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/http.ts",
@@ -909,8 +909,8 @@
             "服务方法异常转 unavailable"
           ],
           "visibility": "internal",
-          "line": 353,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 392,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         }
       ]
     },
@@ -1090,8 +1090,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/tags.ts",
@@ -1312,8 +1312,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 271,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 337,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "sanitize",
@@ -1350,7 +1350,7 @@
         },
         {
           "path": "src/ledger.ts",
-          "needle": "export function resolveWorkTags",
+          "needle": "export function resolveWorkTags(",
           "id": "s2",
           "role": "implementation",
           "reason": "export function resolveWorkTags"
@@ -1499,17 +1499,17 @@
           "id": "s1",
           "role": "declaration",
           "reason": "export interface LedgerPolicy",
-          "line": 30,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 31,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "path": "src/ledger.ts",
-          "needle": "export function resolveWorkTags",
+          "needle": "export function resolveWorkTags(",
           "id": "s2",
           "role": "implementation",
           "reason": "export function resolveWorkTags",
-          "line": 49,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 146,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "path": "src/ledger.ts",
@@ -1517,8 +1517,8 @@
           "id": "s3",
           "role": "implementation",
           "reason": "export function checkAssertion",
-          "line": 88,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 154,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "path": "src/ledger.ts",
@@ -1526,8 +1526,8 @@
           "id": "s4",
           "role": "implementation",
           "reason": "export function decideChangeRequest",
-          "line": 132,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 198,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "path": "src/ledger.ts",
@@ -1535,8 +1535,8 @@
           "id": "s5",
           "role": "declaration",
           "reason": "export interface TagLedgerStore",
-          "line": 232,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 298,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "path": "src/ledger.ts",
@@ -1544,8 +1544,8 @@
           "id": "s6",
           "role": "implementation",
           "reason": "export function createTagLedger",
-          "line": 271,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 337,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "path": "src/ledger.ts",
@@ -1553,8 +1553,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 271,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 337,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "write",
@@ -1566,8 +1566,8 @@
             "断言写入拒绝、unchanged、同次最后立场和 append"
           ],
           "visibility": "internal",
-          "line": 285,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 351,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "decide-write",
@@ -1579,8 +1579,8 @@
             "审核门面 append 后 putRequest 的非原子边界"
           ],
           "visibility": "public",
-          "line": 355,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 421,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         }
       ]
     },
@@ -1724,8 +1724,8 @@
           "id": "s1",
           "role": "implementation",
           "reason": "export function applyWorkTags",
-          "line": 188,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 254,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "path": "src/ports.ts",
@@ -1742,8 +1742,8 @@
           "id": "s3",
           "role": "implementation",
           "reason": "export function createEvidenceService",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/onsite.ts",
@@ -1751,8 +1751,8 @@
           "id": "s4",
           "role": "implementation",
           "reason": "export function applyReviewGate",
-          "line": 428,
-          "sha256": "e0a5ea60ce38af4470a071ab7d19df6e78dba6ffed36bce76d6e835bccdd3f9d"
+          "line": 434,
+          "sha256": "410eb9efa21558f90177d3a5e5efa9d629b3957d4c5c9af053bcf78e888b1aa8"
         },
         {
           "path": "src/service.ts",
@@ -1760,8 +1760,8 @@
           "id": "s5",
           "role": "implementation",
           "reason": "async function onsiteRecords(",
-          "line": 255,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 263,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/service.ts",
@@ -1769,8 +1769,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         }
       ]
     },
@@ -1925,8 +1925,8 @@
           "id": "s1",
           "role": "implementation",
           "reason": "export const EVIDENCE_SETTINGS:",
-          "line": 49,
-          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+          "line": 52,
+          "sha256": "95669b37a5a2bb9b474b22c3598689592006f496b1a63a01c15f9b3579378be9"
         },
         {
           "path": "src/settings.ts",
@@ -1934,8 +1934,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export function validateSettings",
-          "line": 84,
-          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+          "line": 87,
+          "sha256": "95669b37a5a2bb9b474b22c3598689592006f496b1a63a01c15f9b3579378be9"
         },
         {
           "path": "src/settings.ts",
@@ -1943,8 +1943,8 @@
           "id": "s3",
           "role": "implementation",
           "reason": "export function createLiveSettings",
-          "line": 112,
-          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+          "line": 115,
+          "sha256": "95669b37a5a2bb9b474b22c3598689592006f496b1a63a01c15f9b3579378be9"
         },
         {
           "path": "src/settings.ts",
@@ -1952,8 +1952,8 @@
           "id": "s4",
           "role": "implementation",
           "reason": "export function ledgerPolicyFromSettings",
-          "line": 44,
-          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+          "line": 47,
+          "sha256": "95669b37a5a2bb9b474b22c3598689592006f496b1a63a01c15f9b3579378be9"
         },
         {
           "path": "src/settings.ts",
@@ -1961,8 +1961,8 @@
           "id": "s5",
           "role": "implementation",
           "reason": "export function settingsReader",
-          "line": 161,
-          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+          "line": 164,
+          "sha256": "95669b37a5a2bb9b474b22c3598689592006f496b1a63a01c15f9b3579378be9"
         },
         {
           "path": "src/manifest.ts",
@@ -1979,8 +1979,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "path": "src/settings.ts",
@@ -1988,8 +1988,8 @@
           "id": "contract",
           "role": "declaration",
           "reason": "函数公开签名或契约常量",
-          "line": 49,
-          "sha256": "9007c709b250a7382821ddca32e8cb39d2a08e79992691d5bedfce0e94298665"
+          "line": 52,
+          "sha256": "95669b37a5a2bb9b474b22c3598689592006f496b1a63a01c15f9b3579378be9"
         }
       ]
     },
@@ -2133,7 +2133,7 @@
           "role": "implementation",
           "reason": "export const EVIDENCE_CONTRACT_VERSION",
           "line": 31,
-          "sha256": "45ccbc49118999d318032e93cae73304fc6f3d0383074131a084dc1079e6565b"
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
         },
         {
           "path": "src/features.ts",
@@ -2142,7 +2142,7 @@
           "role": "implementation",
           "reason": "export const EVIDENCE_FEATURES",
           "line": 41,
-          "sha256": "e6c4ef1b8ff68e04a4a4d4a6afecd05597fe351da3b304e28abaf1fee9a041cc"
+          "sha256": "1920ab58bbcb718325780c57a0440f0674462aace7ae99ba2c25d085ee5d40da"
         },
         {
           "id": "consumer",
@@ -2160,7 +2160,7 @@
           "role": "declaration",
           "reason": "函数公开签名或契约常量",
           "line": 31,
-          "sha256": "45ccbc49118999d318032e93cae73304fc6f3d0383074131a084dc1079e6565b"
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
         },
         {
           "id": "exports",
@@ -2173,7 +2173,7 @@
           ],
           "visibility": "public",
           "line": 10,
-          "sha256": "837cfe5b84369ea84e8bc19989fa904a8c70734d3e8d1656d3358db3f78b3dd1"
+          "sha256": "f6d4861dc42eb0d7ccfe7c2604dc2dcb07c13d5bbee12fb917ed4e0153ba261e"
         }
       ]
     },
@@ -2228,7 +2228,7 @@
         {
           "id": "resolve",
           "path": "src/ledger.ts",
-          "needle": "export function resolveWorkTags",
+          "needle": "export function resolveWorkTags(",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位"
         },
@@ -2506,8 +2506,8 @@
           "needle": "export interface EvidenceTagAssertion",
           "role": "declaration",
           "reason": "六视图的当前边界和行为定位",
-          "line": 814,
-          "sha256": "45ccbc49118999d318032e93cae73304fc6f3d0383074131a084dc1079e6565b"
+          "line": 822,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
         },
         {
           "id": "service",
@@ -2515,8 +2515,8 @@
           "needle": "export function createEvidenceService",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位",
-          "line": 168,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 175,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "id": "http",
@@ -2542,17 +2542,17 @@
           "needle": "export function createTagLedger",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位",
-          "line": 271,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 337,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "resolve",
           "path": "src/ledger.ts",
-          "needle": "export function resolveWorkTags",
+          "needle": "export function resolveWorkTags(",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位",
-          "line": 49,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 146,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "decide",
@@ -2560,8 +2560,8 @@
           "needle": "export function decideChangeRequest",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位",
-          "line": 132,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 198,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "open",
@@ -2569,8 +2569,8 @@
           "needle": "export function openChangeRequest",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位",
-          "line": 106,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 172,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "withdraw",
@@ -2578,8 +2578,8 @@
           "needle": "export function withdrawChangeRequest",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位",
-          "line": 157,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 223,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "package",
@@ -2588,7 +2588,7 @@
           "role": "contract",
           "reason": "六视图的当前边界和行为定位",
           "line": 2,
-          "sha256": "16f7490f2068640bfb2ca02e67b6419d22274b3b6b9eb3aa2e717db2cef02188"
+          "sha256": "a6ca6260db356b8066391fbce16b780cb1076e6970d0239c6a106acdd44250c6"
         },
         {
           "id": "ports",
@@ -2623,8 +2623,8 @@
           "needle": "export function createOpenAlexSource",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 648,
-          "sha256": "ffc1bde9fef09f62052467c5ebfe8f1e9814b07e9f1a7f32ad1805e27a5173f2"
+          "line": 765,
+          "sha256": "443bb7b9c7cfd520f531a99159c4101fc8c4e6d86f48f879858bd826faaba2d3"
         },
         {
           "id": "records",
@@ -2632,8 +2632,8 @@
           "needle": "async function onsiteRecords(",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 255,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 263,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         },
         {
           "id": "applied",
@@ -2641,8 +2641,8 @@
           "needle": "export function applyWorkTags",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 188,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 254,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "review",
@@ -2650,8 +2650,8 @@
           "needle": "export function applyReviewGate",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 428,
-          "sha256": "e0a5ea60ce38af4470a071ab7d19df6e78dba6ffed36bce76d6e835bccdd3f9d"
+          "line": 434,
+          "sha256": "410eb9efa21558f90177d3a5e5efa9d629b3957d4c5c9af053bcf78e888b1aa8"
         },
         {
           "id": "shape",
@@ -2668,8 +2668,8 @@
           "needle": "export interface EvidenceTagActor",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 805,
-          "sha256": "45ccbc49118999d318032e93cae73304fc6f3d0383074131a084dc1079e6565b"
+          "line": 813,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
         },
         {
           "id": "request",
@@ -2677,8 +2677,8 @@
           "needle": "export interface EvidenceTagChangeRequest",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 853,
-          "sha256": "45ccbc49118999d318032e93cae73304fc6f3d0383074131a084dc1079e6565b"
+          "line": 863,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
         },
         {
           "id": "decision",
@@ -2686,8 +2686,8 @@
           "needle": "export interface EvidenceWorkTag {",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 836,
-          "sha256": "45ccbc49118999d318032e93cae73304fc6f3d0383074131a084dc1079e6565b"
+          "line": 844,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
         },
         {
           "id": "store",
@@ -2695,8 +2695,8 @@
           "needle": "export interface TagLedgerStore",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 232,
-          "sha256": "cda0fdab4807507fe6ff5593a5133c85b82255996c0d4135a0d0b93fe730ae6c"
+          "line": 298,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
         },
         {
           "id": "guard",
@@ -2704,8 +2704,8 @@
           "needle": "const guard = async <T>",
           "role": "implementation",
           "reason": "数据方法异常转 unavailable；不包含宿主 log 自身异常",
-          "line": 353,
-          "sha256": "60f66f12cc6f448568367abb91968f63ae593595381cad18ae578999e8f37cc7"
+          "line": 392,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
         }
       ]
     },
@@ -3122,8 +3122,8 @@
           "needle": "export interface SynthesisContext",
           "role": "declaration",
           "reason": "研究/结果/时间/单位/出处的上下文",
-          "line": 10,
-          "sha256": "474b793f15885ff2460d367bcddf589b9deefac1b1d6389b37af1a36bd337328"
+          "line": 11,
+          "sha256": "24b3533dfcadcd48e6f58de92a3d7d192e00833ce73724a4b76af997548a5aa5"
         },
         {
           "id": "producer",
@@ -3131,8 +3131,8 @@
           "needle": "export function intakeOutcomeRows",
           "role": "implementation",
           "reason": "结构化多结局收口",
-          "line": 53,
-          "sha256": "474b793f15885ff2460d367bcddf589b9deefac1b1d6389b37af1a36bd337328"
+          "line": 61,
+          "sha256": "24b3533dfcadcd48e6f58de92a3d7d192e00833ce73724a4b76af997548a5aa5"
         },
         {
           "id": "consumer",
@@ -3140,8 +3140,529 @@
           "needle": "export function buildSynthesisTable",
           "role": "consumer",
           "reason": "分面表与独立性闸",
-          "line": 89,
-          "sha256": "474b793f15885ff2460d367bcddf589b9deefac1b1d6389b37af1a36bd337328"
+          "line": 110,
+          "sha256": "24b3533dfcadcd48e6f58de92a3d7d192e00833ce73724a4b76af997548a5aa5"
+        }
+      ]
+    },
+    {
+      "id": "community-annotation",
+      "title": "社区标注平台与三层标签模型",
+      "aliases": [
+        "社区标注",
+        "社区标签",
+        "打标签平台",
+        "GitHub 当数据库",
+        "标签分层",
+        "上级标签",
+        "分面标注",
+        "作品名片",
+        "比例裁决",
+        "Wilson 认可",
+        "社区导出",
+        "community",
+        "SMT 数据仓",
+        "标注怎样变成图",
+        "名片",
+        "DOI",
+        "链接认成论文"
+      ],
+      "sources": [
+        {
+          "id": "workref",
+          "path": "src/workref.ts",
+          "needle": "export function parseWorkRef",
+          "role": "contract",
+          "reason": "用户贴进来的 DOI / 链接 / 标题认成作品引用"
+        },
+        {
+          "id": "workcard",
+          "path": "src/openalex.ts",
+          "needle": "export type WorkCardResolution",
+          "role": "contract",
+          "reason": "单篇作品名片的三态（found / not_found / error）"
+        },
+        {
+          "id": "quantile",
+          "path": "src/stats.ts",
+          "needle": "export function normalQuantile",
+          "role": "contract",
+          "reason": "置信度换 z，给比例裁决的 Wilson 区间"
+        },
+        {
+          "id": "card-type",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceWorkCard",
+          "role": "declaration",
+          "reason": "作品名片的契约形状"
+        },
+        {
+          "id": "ledger",
+          "path": "src/ledger.ts",
+          "needle": "export function resolveWorkTags(",
+          "role": "contract",
+          "reason": "层级裁决的既有五规则；比例规则在同一函数内按层启用"
+        },
+        {
+          "id": "synthesis",
+          "path": "src/synthesis.ts",
+          "needle": "export function buildSynthesisTable",
+          "role": "consumer",
+          "reason": "结果行的分面键与汇总闸——「加上这篇后」预览的依据"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Tagging-model.md",
+        "docs/wiki/Community-annotation.md"
+      ],
+      "tests": [
+        "test/workref.test.ts",
+        "test/openalex.test.ts",
+        "test/stats.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/workref.test.ts test/openalex.test.ts test/stats.test.ts",
+          "scope": "作品引用识别、名片三态、正态分位数；平台侧 Action 与导出在 SMT 仓验收"
+        }
+      ],
+      "boundary": "引擎只提供契约、裁决规则与读取函数；账号、存储、Action、页面在 SMT 仓；宿主只经 SMV 契约消费导出，SMT 与宿主零直接接口。",
+      "kind": "plan",
+      "interface": {
+        "inputs": [
+          "DOI / OpenAlex / PMID / 链接 / 标题；断言 JSONL；导出 manifest 与分片"
+        ],
+        "outputs": [
+          "EvidenceWorkRef / EvidenceWorkCard；社区裁决与 EvidenceWorkTag；EvidenceCommunityExport 的内存端口"
+        ],
+        "errors": [
+          "名片 not_found ≠ error；导出验形逐条报 issue；pending 不转成账本立场"
+        ],
+        "compatibility": "契约只加法；缺省不设 quorum / 不配 community 时行为与 0.5.0 相同",
+        "failure_modes": {
+          "returned": [
+            "not_found / error 三态；导出 issues 列表"
+          ],
+          "thrown": [
+            "调用方违反类型契约可抛错"
+          ],
+          "unsupported": [
+            "引擎不拉导出、不认识 GitHub、不托管账号"
+          ]
+        }
+      },
+      "impact": [
+        "ledger-policy（按层比例裁决）、synthesis-table（frame 键与预览）、host-ports（社区端口）、compatibility（契约与快照）"
+      ],
+      "unknowns": [
+        "OpenAlex 单实体计费未实测；盲复录在静态页是荣誉制；真实社区规模与刷票风险未观察；平台仓的 Action 与页面仍在实现（见 community-engine 的已实现部分）"
+      ],
+      "reviewed_at": "2026-10-31",
+      "evidence": {
+        "implementation": "planned",
+        "observations": []
+      },
+      "plan": {
+        "outcomes": [
+          "三层标签模型落到契约与判据",
+          "比例裁决（Wilson + 挑战规则）单一实现",
+          "导出读取与内存端口让宿主零解析代码",
+          "SMT 仓按设计布局并能跑通 issue → JSONL → 导出"
+        ],
+        "dependencies": [
+          "先定契约与裁决规则，再写 SMT 脚本；SMT 钉 SMV 发布版本",
+          "OpenAlex 单实体计费实测后再改免费路径"
+        ],
+        "interfaces": [
+          "ledger-policy / synthesis-table / host-ports / compatibility / external-transport"
+        ],
+        "deliverables": [
+          "SMV 0.6.0：类型、community.ts、ledger quorum、frame 与阶梯差距、展示与词典、功能登记、CHANGELOG",
+          "SMT：数据布局、issue 表单、intake / export / sample / replay / check 工作流、静态页"
+        ],
+        "exit_evidence": [
+          "比例裁决与独立参考对表；导出能被 readCommunityExport 零问题读回；缺省配置下回归快照不变；pnpm check 绿",
+          "SMT 仓 CI 绿；一条 issue 入库并出现在导出里"
+        ],
+        "unknowns": [
+          "单实体计费；盲复录诚实性；宿主是否回流自家裁决"
+        ]
+      },
+      "diagrams": [
+        {
+          "kind": "flow",
+          "path": "docs/wiki/Tagging-model.md",
+          "purpose": "三层标注各自影响选哪些 / 能画什么",
+          "question": "一条标注怎样变成一张图",
+          "scope": "设计；实现后核对",
+          "source_ids": [
+            "synthesis",
+            "ledger"
+          ]
+        },
+        {
+          "kind": "sequence",
+          "path": "docs/wiki/Community-annotation.md",
+          "purpose": "贴 DOI 到 issue 入库到导出的交互",
+          "question": "用户在平台上做什么、何时看到结果",
+          "scope": "设计；Action 与导出在 SMT 仓",
+          "source_ids": [
+            "workref",
+            "workcard"
+          ]
+        },
+        {
+          "kind": "state-machine",
+          "path": "docs/wiki/Community-annotation.md",
+          "purpose": "社区裁决状态迁移",
+          "question": "pending / accepted / disputed / rejected / confirmed / removed 怎么变",
+          "scope": "设计；参数在 SMT 配置",
+          "source_ids": [
+            "quantile",
+            "ledger"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "pending-not-a-stance",
+          "statement": "pending 不转成账本立场，不进统计；只有 accepted / confirmed 计入",
+          "source_ids": [
+            "ledger"
+          ],
+          "tests": [
+            "test/stats.test.ts"
+          ]
+        },
+        {
+          "id": "row-atomic",
+          "statement": "结果行是整行原子：认可即盲复录整行，不按字段拼装",
+          "source_ids": [
+            "synthesis"
+          ],
+          "tests": [
+            "test/stats.test.ts"
+          ]
+        }
+      ],
+      "locations": [
+        {
+          "id": "workref",
+          "path": "src/workref.ts",
+          "needle": "export function parseWorkRef",
+          "role": "contract",
+          "reason": "用户贴进来的 DOI / 链接 / 标题认成作品引用",
+          "line": 27,
+          "sha256": "7417577e5dda8444169269ff3cacf21b7344e04432d08a9de24f14a1181266c6"
+        },
+        {
+          "id": "workcard",
+          "path": "src/openalex.ts",
+          "needle": "export type WorkCardResolution",
+          "role": "contract",
+          "reason": "单篇作品名片的三态（found / not_found / error）",
+          "line": 450,
+          "sha256": "443bb7b9c7cfd520f531a99159c4101fc8c4e6d86f48f879858bd826faaba2d3"
+        },
+        {
+          "id": "quantile",
+          "path": "src/stats.ts",
+          "needle": "export function normalQuantile",
+          "role": "contract",
+          "reason": "置信度换 z，给比例裁决的 Wilson 区间",
+          "line": 38,
+          "sha256": "d888c675eab597f22050fd4bcc2616cd954c64b15c017d6035814326fb0296f1"
+        },
+        {
+          "id": "card-type",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceWorkCard",
+          "role": "declaration",
+          "reason": "作品名片的契约形状",
+          "line": 1069,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
+        },
+        {
+          "id": "ledger",
+          "path": "src/ledger.ts",
+          "needle": "export function resolveWorkTags(",
+          "role": "contract",
+          "reason": "层级裁决的既有五规则；比例规则在同一函数内按层启用",
+          "line": 146,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
+        },
+        {
+          "id": "synthesis",
+          "path": "src/synthesis.ts",
+          "needle": "export function buildSynthesisTable",
+          "role": "consumer",
+          "reason": "结果行的分面键与汇总闸——「加上这篇后」预览的依据",
+          "line": 110,
+          "sha256": "24b3533dfcadcd48e6f58de92a3d7d192e00833ce73724a4b76af997548a5aa5"
+        }
+      ]
+    },
+    {
+      "id": "community-engine",
+      "title": "社区标注的引擎实现：裁决、导出读取与宿主端口",
+      "aliases": [
+        "resolveAnnotations",
+        "readCommunityExport",
+        "createCommunityPorts",
+        "assessQuorum",
+        "mergeWorkTagSources",
+        "社区裁决函数",
+        "导出读取函数",
+        "社区端口",
+        "比例裁决实现",
+        "盲复录比对",
+        "matchReExtraction",
+        "describeLadderGap",
+        "previewFrameChange",
+        "阶梯差距",
+        "frame 预览",
+        "community.ts"
+      ],
+      "sources": [
+        {
+          "id": "types",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceAnnotation {",
+          "role": "declaration",
+          "reason": "社区断言的契约形状（kind / op / subject / payload）"
+        },
+        {
+          "id": "export-type",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceCommunityExport {",
+          "role": "contract",
+          "reason": "平台产、宿主消费的导出形状"
+        },
+        {
+          "id": "quorum",
+          "path": "src/ledger.ts",
+          "needle": "export function assessQuorum",
+          "role": "implementation",
+          "reason": "比例裁决：Wilson 区间、最少人数、挑战规则"
+        },
+        {
+          "id": "resolve",
+          "path": "src/community.ts",
+          "needle": "export function resolveAnnotations",
+          "role": "implementation",
+          "reason": "全部断言种类的裁决（标签 / 分面单选 / 结果行整行原子）"
+        },
+        {
+          "id": "read",
+          "path": "src/community.ts",
+          "needle": "export function readCommunityExport",
+          "role": "implementation",
+          "reason": "导出验形：契约主次版本、摘要置空、坏条目逐条报"
+        },
+        {
+          "id": "ports",
+          "path": "src/community.ts",
+          "needle": "export function createCommunityPorts",
+          "role": "implementation",
+          "reason": "把导出装成文章 / 账本 / 绑定端口与结果行、记录"
+        },
+        {
+          "id": "service",
+          "path": "src/service.ts",
+          "needle": "community?: (OnsiteArticleSource",
+          "role": "caller",
+          "reason": "服务层按 community.apply 把社区记录并进图谱"
+        },
+        {
+          "id": "present",
+          "path": "src/present.ts",
+          "needle": "export function presentCommunityWork",
+          "role": "consumer",
+          "reason": "「这篇现在被说成什么」的人话"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Community-annotation.md",
+        "docs/wiki/Tagging-model.md",
+        "docs/tagging.md",
+        "docs/integration.md"
+      ],
+      "tests": [
+        "test/community.test.ts",
+        "test/community-service.test.ts",
+        "test/regression.test.ts",
+        "test/workref.test.ts",
+        "test/openalex.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/community.test.ts test/community-service.test.ts test/regression.test.ts test/workref.test.ts",
+          "scope": "离线：比例裁决与独立参考值对表、断言裁决、导出读回、端口、服务并入；不含真实平台 Action 与页面"
+        }
+      ],
+      "boundary": "引擎只提供契约、规则、读取与端口；不拉文件、不认识 GitHub、不托管账号。pending 不是账本立场；社区数据本身不出汇总菱形（reviewed 只有编辑层核验才为 true）。",
+      "kind": "interface",
+      "interface": {
+        "inputs": [
+          "EvidenceAnnotation[] 与 EvidenceCommunityPolicy；导出 manifest 与分片 JSON；服务设置 community.apply"
+        ],
+        "outputs": [
+          "EvidenceCommunityDecision[]；EvidenceCommunityExport 与 issues；OnsiteArticleSource / WorkTagSource / TagBindingStore 端口；记录与语境"
+        ],
+        "errors": [
+          "readCommunityExport 契约对不上 ⇒ ok:false；坏条目逐条报不抛；端口抛错 ⇒ 服务 unavailable"
+        ],
+        "compatibility": "只加法；不设 quorum、不配 community、community.apply=off 时与 0.5.0 逐字相同",
+        "failure_modes": {
+          "returned": [
+            "ok:false 与 issues 列表；pending 不出现在 resolveWorkTags 结果里"
+          ],
+          "thrown": [
+            "调用方违反类型契约可抛错；mergeWorkTagSources 任一来源抛错整体抛错"
+          ],
+          "unsupported": [
+            "引擎不拉导出、不校 sha256、不认识平台文件布局"
+          ]
+        }
+      },
+      "impact": [
+        "ledger-policy（quorum 字段）、synthesis-table（frame 键与 concept_ids）、host-ports（community 端口）、compatibility（契约、快照、设置）、settings-contract（community.* 三项）"
+      ],
+      "unknowns": [
+        "真实平台数据下的刷票与争议规模；OpenAlex 单实体计费；宿主实际接入效果"
+      ],
+      "reviewed_at": "2026-10-31",
+      "evidence": {
+        "implementation": "implemented",
+        "observations": [
+          {
+            "level": "offline-tested",
+            "reference": "test/community.test.ts",
+            "claim": "比例裁决与独立闭式参考值逐个对表；断言裁决、复录比对、导出读回、端口与合并",
+            "revision": "dc2398e033d37e1693bb75b946d41746982d53c5",
+            "observed_at": "2026-10-31"
+          },
+          {
+            "level": "offline-tested",
+            "reference": "test/community-service.test.ts",
+            "claim": "服务层 community.apply 三态与同 DOI 去重",
+            "revision": "dc2398e033d37e1693bb75b946d41746982d53c5",
+            "observed_at": "2026-10-31"
+          },
+          {
+            "level": "installed",
+            "reference": "scripts/check-package.mjs",
+            "claim": "0.6.0 安装包 CJS / ESM / TS 两种解析与端到端（本机 pnpm check）",
+            "revision": "dc2398e033d37e1693bb75b946d41746982d53c5",
+            "observed_at": "2026-10-31"
+          }
+        ]
+      },
+      "rules": [
+        {
+          "id": "pending-not-a-stance",
+          "statement": "pending 不转成账本立场，不进统计；只有 accepted / confirmed 计入",
+          "source_ids": [
+            "resolve",
+            "quorum"
+          ],
+          "tests": [
+            "test/community.test.ts"
+          ]
+        },
+        {
+          "id": "row-atomic",
+          "statement": "结果行整行原子：认可即盲复录整行并在容差内一致；不一致自动争议",
+          "source_ids": [
+            "resolve"
+          ],
+          "tests": [
+            "test/community.test.ts"
+          ]
+        },
+        {
+          "id": "present-only-default",
+          "statement": "宿主缺省只收「有」：merge 模式下任何非「有」的结论会去掉作者原标签",
+          "source_ids": [
+            "ports"
+          ],
+          "tests": [
+            "test/community.test.ts"
+          ]
+        }
+      ],
+      "locations": [
+        {
+          "id": "types",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceAnnotation {",
+          "role": "declaration",
+          "reason": "社区断言的契约形状（kind / op / subject / payload）",
+          "line": 1220,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
+        },
+        {
+          "id": "export-type",
+          "path": "src/types.ts",
+          "needle": "export interface EvidenceCommunityExport {",
+          "role": "contract",
+          "reason": "平台产、宿主消费的导出形状",
+          "line": 1365,
+          "sha256": "35b76b911e4032eeaac4943d91e214676477bf0d871ae5bf3d71dc3d6c0b257e"
+        },
+        {
+          "id": "quorum",
+          "path": "src/ledger.ts",
+          "needle": "export function assessQuorum",
+          "role": "implementation",
+          "reason": "比例裁决：Wilson 区间、最少人数、挑战规则",
+          "line": 61,
+          "sha256": "bc8307fa646a428e187548b732d3a0ce98da5ef267ca13f31ba674bfcb6662f3"
+        },
+        {
+          "id": "resolve",
+          "path": "src/community.ts",
+          "needle": "export function resolveAnnotations",
+          "role": "implementation",
+          "reason": "全部断言种类的裁决（标签 / 分面单选 / 结果行整行原子）",
+          "line": 113,
+          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+        },
+        {
+          "id": "read",
+          "path": "src/community.ts",
+          "needle": "export function readCommunityExport",
+          "role": "implementation",
+          "reason": "导出验形：契约主次版本、摘要置空、坏条目逐条报",
+          "line": 501,
+          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+        },
+        {
+          "id": "ports",
+          "path": "src/community.ts",
+          "needle": "export function createCommunityPorts",
+          "role": "implementation",
+          "reason": "把导出装成文章 / 账本 / 绑定端口与结果行、记录",
+          "line": 579,
+          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+        },
+        {
+          "id": "service",
+          "path": "src/service.ts",
+          "needle": "community?: (OnsiteArticleSource",
+          "role": "caller",
+          "reason": "服务层按 community.apply 把社区记录并进图谱",
+          "line": 94,
+          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+        },
+        {
+          "id": "present",
+          "path": "src/present.ts",
+          "needle": "export function presentCommunityWork",
+          "role": "consumer",
+          "reason": "「这篇现在被说成什么」的人话",
+          "line": 1329,
+          "sha256": "3db4f68c834bef2a68f9a601ca7f5c9176d60e7927889323fda1680197fe8bc5"
         }
       ]
     }

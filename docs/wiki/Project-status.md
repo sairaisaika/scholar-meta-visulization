@@ -44,6 +44,11 @@ SMV 原有 `docs/architecture.md`、`charts.md`、`integration.md`、`tagging.md
 
 这些判断来自实现函数；详见相应 Wiki 页的源码依据。
 
+## 2026-10-31 推进：社区标注
+
+SMV 基线 `dc2398e`（0.6.0）：引擎侧的社区标注全部落地（见 [TODO](TODO.md) R13 与两页设计的实现核对）。SMT 基线由本轮提交：仓里现在有配置、词表、数据占位、工作流、issue 表单、数据许可与 README / AGENTS，`scripts/` 与 `site/` 在实现；SMT 依赖 SMV 的发布安装包（`package.json` 钉 v0.6.0 的 release 链接），SMV 不依赖 SMT。
+三方边界：SMT 与宿主零直接接口，宿主只经引擎的 `readCommunityExport` / `createCommunityPorts` 消费静态导出。上文 2026-10-14 的「SMT 只有 README」描述是历史状态。
+
 ## 2026-10-17 工程推进
 
 当前源码新增结果式客户端（旧 data/null 保留），并修正 Windows 安装包验收；这不表示版本或部署已发布。研究与优先级见[工程研究](Engineering-research-2026-10.md)，逐项退出证据和剩余工作见[TODO](TODO.md)。SMT 仍不另起一套实现。

@@ -99,4 +99,17 @@ flowchart LR
 
 ## 实现核对
 
-状态：**设计（planned）**。实现落地后在此记录：契约字段与本页映射表逐项对照、`describeLadderGap` 文案与上表一致、回归快照是否变化、与 [Community-annotation](Community-annotation.md) 的裁决参数一致。
+状态：**引擎侧已实现（0.6.0，提交 dc2398e）；平台侧见 [Community-annotation](Community-annotation.md) 的实现核对。**
+
+| 计划 | 实现 | 差异 |
+|---|---|---|
+| L0 标签只选论文 | 不变：`tags` → `normalizeTag` → 绑定；社区标签经 `communityStateToWorkTagState` 进账本，`createCommunityPorts` 缺省只给 present | 无 |
+| L1 `design` → `study_type`，取值 ＝ 引擎常量 | 平台 `vocab/facets.json` 由引擎常量生成；`createCommunityPorts.articles` 把 accepted / confirmed 的 design 放进 `study_design` 再经 `intakeArticle` 验形 | 无 |
+| L2 行是原子，方向在行上 | `EvidenceAnnotationPayload` 的 `row` 整行；`resolveAnnotations` 的认可必须带整行复录；`createCommunityPorts.outcomes` 一行一个 `intakeOutcomeRows` 输入 | 无 |
+| 概念层后置解析 | `resolveConcepts` + `SynthesisContext.concept_ids`；`synthesisFrameKey` 有 id 用 id，无 id 的键逐字不变（synthesis 测试与回归快照未变） | 无 |
+| 层级只借外部树与 `broader` | 引擎只在 `EvidenceConcept.broader` 里搬运，不参与任何合并；页面导航在平台侧 | 无 |
+| `describeLadderGap` 文案 | 实现并有 `presentLadderGap`（中英）；「汇总还差几项」取 `assessPooling`，并注明分面闸另算 | 字段缺口只报最常缺的一个字段（表里每级一句），不逐字段列全 |
+| 映射表「`independence_verified` / `reviewed` 只有编辑层」 | `createCommunityPorts`：`reviewed = (verification === 'editor')`，独立性只来自编辑层 `independence` 断言 | 无 |
+| 自报显著性不问 | 社区表单无此字段；引擎端口不填 `claim` | 无 |
+
+回归快照：既有用例未变，新增一组社区标注用例。参数与 Community-annotation 一致（`DEFAULT_QUORUM_RULE` = 0.5 / 0.8 / 2 / 2，`DEFAULT_COMMUNITY_POLICY` 容差 0.5% / 0.005）。

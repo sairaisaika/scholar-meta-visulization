@@ -19,6 +19,7 @@ Generated positions; source wins over stale prose. Read only the relevant route.
 | client-diagnostics: 客户端结果与重试提示 | `src/client.ts:97` (implementation)<br>`src/client.ts:27` (declaration)<br>`src/client.ts:37` (implementation)<br>`src/client.ts:104` (consumer)<br>`src/client.ts:55` (implementation) | [Client-diagnostics.md](Client-diagnostics.md)<br>[TODO.md](TODO.md)<br>[Development-verification-2026-10.md](Development-verification-2026-10.md) |
 | synthesis-table: 多结局与复合数据证据表 | `src/synthesis.ts:11` (declaration)<br>`src/synthesis.ts:61` (implementation)<br>`src/synthesis.ts:110` (consumer) | [Outcome-synthesis.md](Outcome-synthesis.md)<br>[Publication-integration-handoff.md](Publication-integration-handoff.md) |
 | community-annotation: 社区标注平台与三层标签模型 | `src/workref.ts:27` (contract)<br>`src/openalex.ts:450` (contract)<br>`src/stats.ts:38` (contract)<br>`src/types.ts:1069` (declaration)<br>`src/ledger.ts:146` (contract)<br>`src/synthesis.ts:110` (consumer) | [Tagging-model.md](Tagging-model.md)<br>[Community-annotation.md](Community-annotation.md) |
+| community-engine: 社区标注的引擎实现：裁决、导出读取与宿主端口 | `src/types.ts:1220` (declaration)<br>`src/types.ts:1365` (contract)<br>`src/ledger.ts:61` (implementation)<br>`src/community.ts:113` (implementation)<br>`src/community.ts:501` (implementation)<br>`src/community.ts:579` (implementation)<br>`src/service.ts:94` (caller)<br>`src/present.ts:1329` (consumer) | [Community-annotation.md](Community-annotation.md)<br>[Tagging-model.md](Tagging-model.md) |
 
 ## Compound task maps
 

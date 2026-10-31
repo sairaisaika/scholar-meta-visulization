@@ -254,6 +254,20 @@
       "expected_routes": [
         "community-annotation"
       ]
+    },
+    {
+      "id": "q-community-resolve",
+      "query": "社区裁决函数 resolveAnnotations 在哪 怎么改复录要求",
+      "expected_routes": [
+        "community-engine"
+      ]
+    },
+    {
+      "id": "q-community-export-read",
+      "query": "宿主怎样读回社区导出 readCommunityExport createCommunityPorts",
+      "expected_routes": [
+        "community-engine"
+      ]
     }
   ],
   "task_map_cases": [

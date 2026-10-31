@@ -206,4 +206,22 @@ flowchart LR
 
 ## 实现核对
 
-状态：**设计（planned）**。实现落地后在此记录：M1–M13 逐项对照、SMT 仓实际布局与工作流、导出能被 `readCommunityExport` 读回的证据、宿主交接文件已交付、演示页真实数据状态。
+**引擎侧（SMV 0.6.0，提交 dc2398e）**：路由 `community-engine`。
+
+| # | 计划 | 实现 | 差异 |
+|---|---|---|---|
+| M1 | 契约加法 | 全部落地（`types.ts` 末尾「社区标注」各节；`EvidenceRecord.data_provenance?`；三条图注；三个设置项与组） | `EvidenceCommunityDecision` 多了 `value`、`independence?`；导出 issue 码去掉了 `shard_missing` / `shard_hash_mismatch`（引擎不校哈希，宿主拉文件时校） |
+| M2 | `LedgerPolicy.quorum` / `assessQuorum` / `resolveWorkTagsWithPending` | 落地；不设时逐字不变（tagging 测试未改） | 无 |
+| M3 | 独立参考对表 | `normalQuantile` 对 scipy 值；Wilson × z 对独立闭式实现（math.erf 二分反解）9 组 + 旋钮表 | 用的是独立闭式实现而不是 statsmodels（容器无该库） |
+| M4 | `community.ts` | `resolveAnnotations`、`matchReExtraction`、`resolveConcepts`、`publicWorkCard`、`readCommunityExport`、`createCommunityPorts`、`mergeWorkTagSources`，另加 `reconcileRows`（竞争值在导出时做，因为需要原始行）与 `communityStateToWorkTagState` | 竞争值从 `resolveAnnotations` 内部移到 `reconcileRows` |
+| M5 | frame 键与预览 | `synthesisFrameKey`、`summarizeFrames`、`previewFrameChange`；`concept_ids` / `timepoint_raw` | 无 |
+| M6 | `describeLadderGap` | 落地 | 见 Tagging-model 的核对 |
+| M7 | `OnsiteIntakeOptions.source` | 落地；审阅门槛只管 onsite | 无 |
+| M8 | 服务 `community` 端口 | 落地：`tags_and_records` 并入标签级与主题级图谱，同 DOI / 编号去重留社区记录；`tags_only` 由宿主 `mergeWorkTagSources`；端口抛错 ⇒ unavailable | 无 |
+| M9 | OpenAlex 名片与自动补全 | `fetchWorkCard`（三态）、`autocompleteWorks`、`workCardOf` 顶层导出；`isFreeOpenAlexPath` 未改（单实体计费待探针） | 无 |
+| M10–M12 | 导出、展示、词典、功能登记 | 落地；功能五项（`community_records` / `work_card` / `ladder_gap` / `frame_preview` / `community_export`） | 无 |
+| M13 | 闸 | CHANGELOG 0.6.0、API 快照（只增不删）、回归快照新增一组、接入指南 8 / 9 节、打标签文档第 9 节、README、两页 Wiki 与路由、`pnpm check` 本机全绿 | 首次推送的 CI `check` 在旧版导航索引快照上失败（`wiki_route.py --check` 的 `snapshot_stale`），本次提交重建索引 |
+
+**平台侧（SMT）**：骨架已就位——`config/`（裁决参数、角色、黑名单、种子）、`vocab/`（分面词表由引擎常量生成、概念词表起步、标签别名、绑定）、`data/` 占位、`.github/`（issue 表单、intake / export / sample / replay / check 工作流）、`LICENSE-DATA`、README / AGENTS；`scripts/` 与 `site/` 的实现回执见下方补记。
+
+**宿主**：交接文件已作为文件交给维护者（不进仓）；三方边界结论：SMT 与宿主零直接接口。演示页换真实数据（§真实数据）待 SMT 有导出后做（TODO R15）。

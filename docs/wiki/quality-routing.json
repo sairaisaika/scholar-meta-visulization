@@ -7,15 +7,15 @@
     "min_tasks": 10,
     "min_unknown": 2
   },
-  "task_count": 36,
+  "task_count": 38,
   "top1": {
-    "numerator": 34,
-    "denominator": 34,
+    "numerator": 36,
+    "denominator": 36,
     "rate": 1.0
   },
   "top2": {
-    "numerator": 34,
-    "denominator": 34,
+    "numerator": 36,
+    "denominator": 36,
     "rate": 1.0
   },
   "unknown_rejection": {
@@ -24,8 +24,8 @@
     "rate": 1.0
   },
   "location_success": {
-    "numerator": 36,
-    "denominator": 36,
+    "numerator": 38,
+    "denominator": 38,
     "rate": 1.0
   },
   "max_response_words": 449,
@@ -301,8 +301,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 402,
-      "response_bytes": 6588,
+      "response_words": 406,
+      "response_bytes": 6677,
       "candidate_count": 2,
       "truncated": false
     },
@@ -637,8 +637,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 149,
-      "response_bytes": 2456,
+      "response_words": 153,
+      "response_bytes": 2545,
       "candidate_count": 1,
       "truncated": false
     },
@@ -655,8 +655,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 149,
-      "response_bytes": 2456,
+      "response_words": 153,
+      "response_bytes": 2545,
       "candidate_count": 1,
       "truncated": false
     },
@@ -673,9 +673,46 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 149,
-      "response_bytes": 2456,
+      "response_words": 153,
+      "response_bytes": 2545,
       "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "q-community-resolve",
+      "query": "社区裁决函数 resolveAnnotations 在哪 怎么改复录要求",
+      "expected": [
+        "community-engine"
+      ],
+      "actual": [
+        "community-engine"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 179,
+      "response_bytes": 3385,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "q-community-export-read",
+      "query": "宿主怎样读回社区导出 readCommunityExport createCommunityPorts",
+      "expected": [
+        "community-engine"
+      ],
+      "actual": [
+        "community-engine",
+        "community-annotation"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 332,
+      "response_bytes": 5931,
+      "candidate_count": 2,
       "truncated": false
     }
   ],

@@ -60,3 +60,17 @@ API快照只新增intakeOutcomeRows与buildSynthesisTable；新增编辑侧featu
 - [release工作流39550396245](https://github.com/sairaisaika/scholar-meta-visulization/actions/runs/39550396245)：success，不据此声称发布了新版npm；本轮未改package版本。
 
 最后只读核对SMT工作树干净，仍只有README/LICENSE/AGENTS，当前AGENTS明确指向共享Wiki而无独立实现。网站仓完全未编辑。后续文档回执提交不改变上述已验证实现SHA。
+
+
+## 2026-10-31：0.6.0 社区标注
+
+基线 `ced31d5` → 实现提交 `dc2398e`。先写 Wiki 两页与计划路由，再实现，最后对照（见两页的「实现核对」）。
+
+| 检查 | 本轮观察 | 边界 |
+|---|---|---|
+| pnpm check（Linux 容器） | 完整通过：typecheck、typecheck:src、boundary、私有词闸（本机词表）、Jest 579 passed / 12 skipped、15 快照、build / 产物 / manifest、安装包（CJS / ESM / 两种 TS 解析 / 端到端）、demo | live 未跑（容器出不了网）；没有真实平台数据 |
+| 数值 | `normalQuantile` 对 scipy 1.17.1 参考值（误差 ≤ 3.3e-9）；`wilsonInterval(k, n, normalQuantile(0.9))` 对独立闭式实现 9 组 + 置信度旋钮表 | 独立实现是 math.erf 二分反解，不是 statsmodels |
+| API 快照 | 只新增（主入口 36 个名字、openalex 1 个） | 无删除 |
+| 行为快照 | 新增一组社区标注；既有九组未变 | 缺省配置下行为与 0.5.0 相同 |
+| Wiki | 新页两张、计划路由 `community-annotation` 与实现路由 `community-engine`、导航题 5 条；Python 9/9；结构 ready；导航 36/36 首选 | 登记题自测 |
+| CI | 首次推送 `check` 失败于 `tools/wiki_route.py --check` 的 `snapshot_stale`（旧版导航索引未重建）；本次提交 `wiki_route.py --build` 后重推 | release 要等 check 绿后才打 v0.6.0 |
