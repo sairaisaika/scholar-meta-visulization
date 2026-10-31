@@ -390,7 +390,7 @@ describe('⑥ 阶梯差距、frame 与人话', () => {
   })
   it('名片、裁决与作品的人话（中英）', () => {
     const v = presentWorkCard(card, { locale: 'zh' })
-    expect(v).toMatchObject({ title: card.title, meta: '2020 · A. Author、B. Author', type_text: '文献类型：论文', cited_text: '被引 31 次（衡量关注度，不是质量）', retracted_text: null })
+    expect(v).toMatchObject({ title: card.title, meta: '2020 · A. Author、B. Author', type_text: '文献类型：论文', cited_text: '被引 31 次（衡量关注度，不是质量）', retracted_text: null , venue: 'Journal of Affective Disorders（期刊）' })
     expect(v.type_hint).toContain('不是研究设计')
     expect(v.topics_text).toContain('Attention Deficit Hyperactivity Disorder')
     expect(presentWorkCard({ ...card, is_retracted: true, authors: ['A', 'B', 'C', 'D', 'E'] }, { locale: 'en' })).toMatchObject({ retracted_text: 'Retracted: excluded from all counts.', meta: '2020 · A, B, C et al.' })

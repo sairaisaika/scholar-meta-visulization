@@ -1259,7 +1259,7 @@ export function presentWorkCard(card: EvidenceWorkCard, opts: PresentOptions = {
   return {
     title: card.title,
     meta: formatMessage(c.m.text.card_meta, { year: card.year === null ? '—' : String(card.year), authors: authors || '—' }),
-    venue: card.venue ? (card.venue.type ? formatMessage(c.m.text.venue_with_type, { venue: card.venue.name, type: c.m.venueType[card.venue.type] ?? card.venue.type }) : card.venue.name) : null,
+    venue: card.venue ? (card.venue.type ? formatMessage(c.m.text.venue_with_type, { name: card.venue.name, type: c.m.venueType[card.venue.type] ?? card.venue.type }) : card.venue.name) : null,
     type_text: typeLabel ? formatMessage(c.m.text.card_type, { type: typeLabel }) : null,
     type_hint: c.m.text.card_type_hint,
     cited_text: card.cited_by_count === null ? null : formatMessage(c.m.text.card_cited, { n: c.int(card.cited_by_count) }),
