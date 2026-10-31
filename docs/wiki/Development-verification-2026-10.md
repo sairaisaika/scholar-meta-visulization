@@ -74,3 +74,5 @@ API快照只新增intakeOutcomeRows与buildSynthesisTable；新增编辑侧featu
 | 行为快照 | 新增一组社区标注；既有九组未变 | 缺省配置下行为与 0.5.0 相同 |
 | Wiki | 新页两张、计划路由 `community-annotation` 与实现路由 `community-engine`、导航题 5 条；Python 9/9；结构 ready；导航 36/36 首选 | 登记题自测 |
 | CI | 首次推送 `check` 失败于 `tools/wiki_route.py --check` 的 `snapshot_stale`（旧版导航索引未重建）；本次提交 `wiki_route.py --build` 后重推 | release 要等 check 绿后才打 v0.6.0 |
+
+平台仓（SMT）同日：`check` 工作流首轮失败于重放测试（CI 环境变量使 manifest 的 `repository` / `maintainers` 与夹具不同），修后通过；`export` 成功（Pages 未开，只构建）；`sample` 手动触发，真实取回 35 张名片与 207 条模型建议，分支由维护者会话并入 `main`，导出 35 篇、读回零问题。平台侧回执随 SMT 仓提交记录，不在本仓复制。

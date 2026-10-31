@@ -14,7 +14,7 @@
 - [ ] **R10 / P1：真实文章提取与核对**。先定允许读取的公开/授权全文、原文段落定位、提取器/模型版本、结构化候选/拒绝、双核对审核与研究/版本去重；建立按文章类型分层的标注语料，分别报字段正确率/出处正确率/缺失与拒绝率。无基准不得自动开放合成；不要把本轮合成样例算真实论文准确率。
 - [ ] **R11 / P2：复杂统计设计**。聚类/交叉/共享对照/重复量表的协方差或选择规则、复合结局公式与方差、率比/诊断准确性等专门模型；先独立方法核验与数值参照，不借other度量绕过。
 - [x] **R13 / P0：社区标注的引擎侧（0.6.0）**。契约加法、比例裁决（`assessQuorum`，Wilson + 最少人数 + 挑战规则，pending 不是立场）、`community.ts`（断言裁决 / 整行盲复录 / 导出读回 / 宿主端口 / 合并）、frame 键与预览、阶梯差距、服务 `community` 端口、OpenAlex 名片与自动补全、展示与词典、功能五项、独立参考对表与回归快照一组；本机 `pnpm check` 全绿，提交 dc2398e。见[标签模型](Tagging-model.md)与[社区标注平台](Community-annotation.md)的实现核对。
-- [ ] **R14 / P0：标注平台仓（SMT）**。骨架、`scripts/`（intake · export · sample · replay · check · redact · release-export，node:test 25 例含端到端）与 `site/`（静态标注页，Playwright 29 例）已提交到 SMT `main`，依赖钉 v0.6.0 release 安装包。剩余：维护者开 Pages（Source 选 GitHub Actions）；跑一次 `sample`；用一条真实 issue 走通入库 → 导出 → `readCommunityExport`；归档片读回。
+- [ ] **R14 / P0：标注平台仓（SMT）**。骨架、`scripts/`（intake · export · sample · replay · check · redact · release-export，node:test 25 例含端到端）与 `site/`（静态标注页，Playwright 29 例）已提交到 SMT `main`，依赖钉 v0.6.0 release 安装包。`sample` 已在 CI 真跑并并入（35 张名片 / 207 条模型建议，导出 35 篇）。剩余：维护者开 Pages（Source 选 GitHub Actions）并允许 Actions 创建 PR；用一条真实 issue 走通入库 → 导出 → `readCommunityExport`；归档片读回。
 - [ ] **R15 / P1：演示页与宿主接真实数据**。`build-demo` 在有 `COMMUNITY_EXPORT_URL` 时下载导出，失败退回夹具并挂横幅；宿主按交接文件接 `createCommunityPorts`。
 - [ ] **R16 / P2：OpenAlex 单实体 `/works/{id}` 计费探针**。`probe-openalex.mjs` 实测 `x-ratelimit-credits-used` 后再决定是否把它加进 `isFreeOpenAlexPath`。
 - [ ] **R12 / 接入方：文刊功能接线**。维护者将[交接文档](Publication-integration-handoff.md)交给网站开发会话；由其在自己分支处理权限/存储/审核/页面与运行验收。本轮没有改网站仓，避免覆盖并行工作。
