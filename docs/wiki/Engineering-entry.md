@@ -24,6 +24,7 @@ python tools/wiki.py list
 | HTTP / SDK 错误、路由 `public-api` | EvidenceService / ServiceResult → createEvidenceHandler → createEvidenceClient / guards | [公共读口](Interface-map.md#public-api) |
 | 标签归一、主题绑定 `tag-normalization` | normalizeTag / resolveTagBinding → 服务筛选 / 绑定 | [标签与主题](Interface-map.md#tag-normalization) |
 | 模型接口、交换包 `tagger-contribution` | EvidenceTagger → runTagger / validateTagContribution → 账本 | [模型贡献](Interface-map.md#tagger-contribution) |
+| 社区标注、分层标签、作品名片 `community-annotation` | parseWorkRef / WorkCardResolution / normalQuantile → resolveWorkTags（按层比例裁决）→ buildSynthesisTable | [标签模型](Tagging-model.md) · [社区标注平台](Community-annotation.md) |
 | 信任层级、审核规则 `ledger-policy` | LedgerPolicy → resolveWorkTags / checkAssertion / decideChangeRequest | [裁决规则](Interface-map.md#ledger-policy) |
 | 标签计数漏项、争议排除 `ledger-integration` | WorkTagSource → applyWorkTags → createEvidenceService | [标签应用](Interface-map.md#ledger-integration) |
 | 设置默认值、热更新 `settings-contract` | EVIDENCE_SETTINGS → validateSettings / createLiveSettings → 各入口 | [设置](Interface-map.md#settings-contract) |

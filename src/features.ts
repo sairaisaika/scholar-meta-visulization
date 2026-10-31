@@ -45,6 +45,31 @@ export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
     producer: main('synthesis', 'intakeOutcomeRows'), consumer: main('synthesis', 'buildSynthesisTable'),
   },
   {
+    id: 'community_records', audience: 'reader', route: 'map', payload: 'EvidenceRecord',
+    answers: '公开社区给这个标签 / 主题下的论文抄了哪些研究设计与数字（设置 community.apply 为 tags_and_records 时并进图谱；来源与出处分开印）',
+    producer: svc('getTagMap'), consumer: main('present', 'presentEvidenceMap'),
+  },
+  {
+    id: 'work_card', audience: 'author', route: null, payload: 'EvidenceWorkCard',
+    answers: '贴进来的 DOI / 编号 / 链接是哪一篇：书目、期刊、外部源的主题与关键词（只当标签建议的来源，不当标签）',
+    producer: { entry: 'scholar-meta/openalex', module: 'openalex', export: 'workCardOf' }, consumer: main('present', 'presentWorkCard'),
+  },
+  {
+    id: 'ladder_gap', audience: 'author', route: null, payload: 'EvidenceLadderGap',
+    answers: '加上这篇之后这个标签能画到哪一级、到再上一级还差几条带什么字段的记录、汇总还差几项',
+    producer: main('ladder', 'describeLadderGap'), consumer: main('present', 'presentLadderGap'),
+  },
+  {
+    id: 'frame_preview', audience: 'author', route: null, payload: 'EvidenceFrameChange',
+    answers: '同结局、同比较、同度量的那一框加上这篇之后有什么变化（级别、能不能汇总、条数、阻止原因）',
+    producer: main('synthesis', 'previewFrameChange'), consumer: main('present', 'presentFrameChange'),
+  },
+  {
+    id: 'community_export', audience: 'editor', route: null, payload: 'EvidenceCommunityWork',
+    answers: '一篇公开论文现在被社区说成什么：标签、研究设计、结果行各自的裁决、票数与区间、复录档、争议理由',
+    producer: main('community', 'readCommunityExport'), consumer: main('present', 'presentCommunityWork'),
+  },
+  {
     id: 'evidence_map', audience: 'reader', route: 'map', payload: 'EvidenceMapData',
     answers: '一个标签（或一个主题）下有哪些站内与站外研究，能诚实画到哪一级',
     producer: svc('getTagMap'), consumer: main('present', 'presentEvidenceMap'),

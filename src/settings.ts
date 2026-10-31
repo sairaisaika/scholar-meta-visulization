@@ -38,6 +38,9 @@ const DEFS: Record<EvidenceSettingKey, Omit<EvidenceSettingDef, 'key'>> = {
   'ledger.modelMinConfidence': { group: 'ledger', type: 'integer', min: 0, max: 100, default: 50, unit: 'percent', since: V, apply: 'live', scope: 'server' },
   'ledger.reviewTier': { group: 'ledger', type: 'enum', options: ['maintainer', 'editor', 'contributor'], default: 'editor', unit: null, since: V, apply: 'live', scope: 'server' },
   'ledger.apply': { group: 'ledger', type: 'enum', options: ['merge', 'ledger_only', 'off'], default: 'merge', unit: null, since: V, apply: 'live', scope: 'server' },
+  'community.apply': { group: 'community', type: 'enum', options: ['off', 'tags_only', 'tags_and_records'], default: 'off', unit: null, since: '0.6.0', apply: 'live', scope: 'server' },
+  'community.minVerification': { group: 'community', type: 'enum', options: ['single', 'double', 'editor'], default: 'double', unit: null, since: '0.6.0', apply: 'live', scope: 'server' },
+  'community.tagStates': { group: 'community', type: 'enum', options: ['present_only', 'with_negative'], default: 'present_only', unit: null, since: '0.6.0', apply: 'live', scope: 'server' },
 }
 
 /** 标签账本的策略取自设置（给 `createTagLedger({ policy: () => ledgerPolicyFromSettings(live.peek().values) })` 用）。 */

@@ -400,3 +400,95 @@ describe('OpenAlex · 下钻（0.4.0）：往里一层与作品细节', () => {
     expect('cites' in three).toBe(false)
   })
 })
+
+describe('OpenAlex · 单篇名片与标题搜索（0.6.0）', () => {
+  const urls = (f: jest.Mock) => f.mock.calls.map((c) => c[0] as string)
+  const client = (f: jest.Mock, log = jest.fn()) => createOpenAlexClient({ fetch: asFetch(f), log })
+  const work = {
+    id: 'https://openalex.org/W2741809807', doi: 'https://doi.org/10.1136/BMJ.L4898', ids: { pmid: 'https://pubmed.ncbi.nlm.nih.gov/31462531' },
+    title: '  RoB 2: a revised tool ', publication_year: 2019, type: 'article', language: 'en', cited_by_count: 12345, is_retracted: false,
+    authorships: [{ author: { display_name: 'A One' } }, { author: { display_name: 'B Two' } }, { author: {} }],
+    primary_location: { source: { id: 'https://openalex.org/S1', display_name: 'BMJ', type: 'journal', is_oa: false, issn_l: '0959-8138', host_organization_name: 'BMJ' } },
+    open_access: { is_oa: true, oa_url: 'https://www.bmj.com/content/366/bmj.l4898' },
+    topics: [{ id: 'https://openalex.org/T1', display_name: 'Topic 1' }, { id: 'https://openalex.org/T2', display_name: 'Topic 2' }],
+    keywords: [{ id: 'https://openalex.org/keywords/x', display_name: 'Risk of bias' }, { display_name: ' ' }],
+    mesh: [{ descriptor_name: 'Bias' }, { descriptor_name: 'Bias' }, { descriptor_name: 'Randomized Controlled Trials as Topic' }],
+    abstract_inverted_index: { Assessing: [0], risk: [1], of: [2], bias: [3], 'is': [4], essential: [5] },
+  }
+
+  it('DOI → 名片：编号归一、作者/主题/关键词/MeSH 去空去重、摘要从倒排索引拼回、单实体带 select', async () => {
+    const f = jest.fn().mockResolvedValue(res(200, work, { 'x-ratelimit-credits-used': '0' }))
+    const r = await client(f).fetchWorkCard({ kind: 'doi', value: '10.1136/bmj.l4898' })
+    expect(urls(f)[0]).toMatch(/^https:\/\/api\.openalex\.org\/works\/doi:10\.1136%2Fbmj\.l4898\?select=id,doi,ids,title/)
+    expect(r.kind).toBe('found')
+    if (r.kind !== 'found') return
+    expect(r.card).toEqual({
+      id: 'openalex:W2741809807', doi: '10.1136/bmj.l4898', pmid: '31462531', title: 'RoB 2: a revised tool', year: 2019,
+      authors: ['A One', 'B Two'],
+      venue: { id: 'openalex:S1', name: 'BMJ', type: 'journal', is_oa: false, issn_l: '0959-8138', publisher: 'BMJ' },
+      publication_type: 'article',
+      topics: [{ id: 'openalex:T1', display_name: 'Topic 1' }, { id: 'openalex:T2', display_name: 'Topic 2' }],
+      keywords: ['Risk of bias'], mesh: ['Bias', 'Randomized Controlled Trials as Topic'],
+      abstract: 'Assessing risk of bias is essential', language: 'en', cited_by_count: 12345, is_open_access: true,
+      oa_url: 'https://www.bmj.com/content/366/bmj.l4898', is_retracted: false,
+    })
+  })
+  it('W 编号与 PMID 各走自己的路径；404 是 not_found，其他失败与坏形状是 error（不是「没有」）', async () => {
+    const f = jest.fn()
+      .mockResolvedValueOnce(res(200, work))
+      .mockResolvedValueOnce(res(404, { error: 'not found' }))
+      .mockResolvedValueOnce(res(500, {}))
+      .mockResolvedValueOnce(res(200, { id: 'https://openalex.org/W1' }))
+      .mockRejectedValueOnce(new Error('offline'))
+    const c = client(f)
+    expect((await c.fetchWorkCard({ kind: 'openalex', value: 'W2741809807' })).kind).toBe('found')
+    expect(await c.fetchWorkCard({ kind: 'pmid', value: '31462531' })).toEqual({ kind: 'not_found' })
+    expect(await c.fetchWorkCard({ kind: 'doi', value: '10.1/x' })).toEqual({ kind: 'error' })
+    expect(await c.fetchWorkCard({ kind: 'doi', value: '10.1/y' })).toEqual({ kind: 'error' })
+    expect(await c.fetchWorkCard({ kind: 'doi', value: '10.1/z' })).toEqual({ kind: 'error' })
+    expect(urls(f)[0]).toContain('/works/W2741809807?select=')
+    expect(urls(f)[1]).toContain('/works/pmid:31462531?select=')
+  })
+  it('链接与标题不是一篇确定的论文 ⇒ not_found、不出网；编号形状不对也不出网', async () => {
+    const f = jest.fn()
+    const c = client(f)
+    expect(await c.fetchWorkCard({ kind: 'url', value: 'https://example.org/a' })).toEqual({ kind: 'not_found' })
+    expect(await c.fetchWorkCard({ kind: 'title', value: 'Some title' })).toEqual({ kind: 'not_found' })
+    expect(await c.fetchWorkCard({ kind: 'openalex', value: 'T123' })).toEqual({ kind: 'not_found' })
+    expect(f).not.toHaveBeenCalled()
+  })
+  it('超长摘要截断到 1500 字符并加省略号；缺摘要为 null', async () => {
+    const long = Object.fromEntries(Array.from({ length: 400 }, (_, i) => [`word${i}`, [i]]))
+    const f = jest.fn().mockResolvedValueOnce(res(200, { ...work, abstract_inverted_index: long })).mockResolvedValueOnce(res(200, { ...work, abstract_inverted_index: undefined }))
+    const c = client(f)
+    const a = await c.fetchWorkCard({ kind: 'openalex', value: 'W1' })
+    const b = await c.fetchWorkCard({ kind: 'openalex', value: 'W1' })
+    expect(a.kind === 'found' && a.card.abstract!.length).toBe(1500)
+    expect(a.kind === 'found' && a.card.abstract!.endsWith('…')).toBe(true)
+    expect(b.kind === 'found' && b.card.abstract).toBeNull()
+  })
+  it('标题搜索走 autocomplete（免费路径，预算用完也放行）；候选映射；问到了没有 ⇒ []；坏形状 ⇒ null；空串不出网', async () => {
+    const hits = { results: [
+      { id: 'https://openalex.org/W1', display_name: 'One', hint: 'A One, B Two', external_id: 'https://doi.org/10.1136/ONE', cited_by_count: 3, publication_year: 2020 },
+      { id: 'https://openalex.org/A9', display_name: 'An author, not a work' },
+      { id: 'https://openalex.org/W2', display_name: 'Two', hint: '  ' },
+    ] }
+    const f = jest.fn().mockResolvedValueOnce(res(200, hits)).mockResolvedValueOnce(res(200, { results: [] })).mockResolvedValueOnce(res(200, { nope: 1 }))
+    const c = createOpenAlexClient({ fetch: asFetch(f), log: jest.fn(), dailyCreditBudget: 0 })
+    expect(await c.autocompleteWorks('  cognitive   behavioural ')).toEqual([
+      { id: 'openalex:W1', title: 'One', hint: 'A One, B Two', doi: '10.1136/one', year: 2020, cited_by_count: 3 },
+      { id: 'openalex:W2', title: 'Two', hint: null, doi: null, year: null, cited_by_count: null },
+    ])
+    expect(urls(f)[0]).toBe('https://api.openalex.org/autocomplete/works?q=cognitive%20behavioural')
+    expect(await c.autocompleteWorks('x')).toEqual([])
+    expect(await c.autocompleteWorks('x')).toBeNull()
+    expect(await c.autocompleteWorks('   ')).toEqual([])
+    expect(f).toHaveBeenCalledTimes(3)
+  })
+  it('名片查询也受预算约束之外：单实体路径不免费时按预算拦（预算 0 ⇒ 直接 error，不出网）', async () => {
+    const f = jest.fn()
+    const c = createOpenAlexClient({ fetch: asFetch(f), log: jest.fn(), dailyCreditBudget: 0 })
+    expect(await c.fetchWorkCard({ kind: 'openalex', value: 'W1' })).toEqual({ kind: 'error' })
+    expect(f).not.toHaveBeenCalled()
+  })
+})

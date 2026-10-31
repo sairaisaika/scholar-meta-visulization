@@ -1,8 +1,8 @@
 {
   "manifest_version": 1,
   "id": "scholar-meta",
-  "version": "0.5.0",
-  "contract_version": "0.5.0",
+  "version": "0.6.0",
+  "contract_version": "0.6.0",
   "repository": "https://github.com/sairaisaika/scholar-meta-visulization",
   "changelog": "CHANGELOG.md",
   "entries": [
@@ -21,6 +21,31 @@
   "features": [
     {
       "id": "synthesis_table",
+      "audience": "editor",
+      "route": null
+    },
+    {
+      "id": "community_records",
+      "audience": "reader",
+      "route": "map"
+    },
+    {
+      "id": "work_card",
+      "audience": "author",
+      "route": null
+    },
+    {
+      "id": "ladder_gap",
+      "audience": "author",
+      "route": null
+    },
+    {
+      "id": "frame_preview",
+      "audience": "author",
+      "route": null
+    },
+    {
+      "id": "community_export",
       "audience": "editor",
       "route": null
     },
@@ -667,6 +692,108 @@
           "merge": "Merge: add and remove author tags per the ledger",
           "ledger_only": "Use ledger decisions only",
           "off": "Off (author tags only)"
+        }
+      }
+    },
+    {
+      "key": "community.apply",
+      "group": "community",
+      "type": "enum",
+      "options": [
+        "off",
+        "tags_only",
+        "tags_and_records"
+      ],
+      "default": "off",
+      "unit": null,
+      "since": "0.6.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "社区标注导出怎么用",
+        "en": "How the community annotation export is used"
+      },
+      "help": {
+        "zh": "接了社区标注导出才起作用。只有「有」（accepted / confirmed）的标签与核验过的数字会进统计；pending 的一律先不计入。",
+        "en": "Takes effect only when a community export is connected. Only present tags (accepted / confirmed) and verified numbers are counted; pending annotations are always left out."
+      },
+      "option_labels": {
+        "zh": {
+          "off": "不用",
+          "tags_only": "只把社区标签并进账本",
+          "tags_and_records": "社区记录也进标签级与主题级图谱"
+        },
+        "en": {
+          "off": "Off",
+          "tags_only": "Merge community tags into the ledger only",
+          "tags_and_records": "Community records also join tag- and topic-level maps"
+        }
+      }
+    },
+    {
+      "key": "community.minVerification",
+      "group": "community",
+      "type": "enum",
+      "options": [
+        "single",
+        "double",
+        "editor"
+      ],
+      "default": "double",
+      "unit": null,
+      "since": "0.6.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "社区数字至少要哪一档核验",
+        "en": "Minimum verification for community numbers"
+      },
+      "help": {
+        "zh": "抄错一位比没有更糟：缺省要第二个人盲复录一致（double）。编辑层提出或认可的算 editor。",
+        "en": "A misread digit is worse than no number: by default a second person must blindly re-extract the same values (double). Rows proposed or endorsed by editors count as editor."
+      },
+      "option_labels": {
+        "zh": {
+          "single": "一人抄录即可",
+          "double": "另一人盲复录一致",
+          "editor": "编辑层核验"
+        },
+        "en": {
+          "single": "One transcription is enough",
+          "double": "A second blind re-extraction agrees",
+          "editor": "Editor-tier verification"
+        }
+      }
+    },
+    {
+      "key": "community.tagStates",
+      "group": "community",
+      "type": "enum",
+      "options": [
+        "present_only",
+        "with_negative"
+      ],
+      "default": "present_only",
+      "unit": null,
+      "since": "0.6.0",
+      "apply": "live",
+      "scope": "server",
+      "label": {
+        "zh": "社区的「没有」「有争议」要不要一起用",
+        "en": "Also use community “absent” and “disputed”"
+      },
+      "help": {
+        "zh": "缺省只下发「有」：账本合并时任何非「有」的结论都会去掉作者自己打的标签，一张社区反对票不该有这种效力。",
+        "en": "By default only “present” is passed on: when the ledger merges, any non-present decision removes the author’s own tag, and a single community objection should not have that power."
+      },
+      "option_labels": {
+        "zh": {
+          "present_only": "只用「有」",
+          "with_negative": "连「没有」「有争议」一起用"
+        },
+        "en": {
+          "present_only": "Present only",
+          "with_negative": "Include absent and disputed"
         }
       }
     }

@@ -163,7 +163,7 @@ describe('④ 生效', () => {
   it('设置页视图：按组、带单位、生效方式、问题；认不出的键单列', () => {
     const v = validateSettings({ 'external.dailyCreditBudget': 100, 'external.sampleSize': 0, 'future.x': 1 })
     const form = presentSettingsForm(v.values, v.issues, { locale: 'zh' })
-    expect(form.groups.map((g) => g.title)).toEqual(['标签绑定', '外部文献库', '缓存', '站内文章', '共现图', '公开读口', '标签账本'])
+    expect(form.groups.map((g) => g.title)).toEqual(['标签绑定', '外部文献库', '缓存', '站内文章', '共现图', '公开读口', '标签账本', '社区标注'])
     const budget = form.groups[1].fields.find((f) => f.key === 'external.dailyCreditBudget')!
     expect(budget).toMatchObject({ value: 100, default: 5000, changed: true, unit_text: 'credit', apply_text: '改了立即生效', issue_text: null })
     const size = form.groups[1].fields.find((f) => f.key === 'external.sampleSize')!

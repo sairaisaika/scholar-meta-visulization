@@ -114,6 +114,11 @@ export interface OnsiteIntakeOptions {
   maxYear?: number
   /** 开了审阅门槛（0.4.0）：没有有效审阅时间的文章加一条 `awaiting_review`（只做标记，记录照出；计不计入看 `applyReviewGate`） */
   requireReview?: boolean
+  /**
+   * 记录自报的来源（0.6.0）：缺省 `onsite`（宿主自己的文章）；`community` ＝ 公开社区标注平台导出的作品——
+   * 同一套验形，只是 id 前缀与 `source` 不同，图上分开说、脚注分开印。审阅门槛只管 onsite。
+   */
+  source?: 'onsite' | 'community'
 }
 
 export interface IntakeResult {
@@ -380,9 +385,10 @@ export function intakeArticle(article: unknown, opts: OnsiteIntakeOptions = {}):
   }
   if (badPurpose) issues.push({ code: 'unknown_citation_function', field: 'references', action: 'field_cleared' })
 
+  const source = opts.source === 'community' ? 'community' : 'onsite'
   const record: EvidenceRecord = {
-    id: `onsite:${idRaw}`,
-    source: 'onsite',
+    id: `${source}:${idRaw}`,
+    source,
     external_id: idRaw,
     title,
     year,

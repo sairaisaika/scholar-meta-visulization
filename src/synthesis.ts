@@ -3,7 +3,8 @@
  * 宿主先按报告/结局拆行并用 intakeArticle 验形，再提供人工核对的语义上下文。
  * 缺上下文仍可列证据；只有语义与独立性闸均通过才调用现有数值合成。
  */
-import type { EvidenceRecord, EvidencePooling, EvidenceViewDecision } from './types'
+import type { EvidenceConcept, EvidenceFacetId, EvidenceFrame, EvidenceFrameChange, EvidenceRecord, EvidencePooling, EvidenceViewDecision } from './types'
+import { EVIDENCE_FACET_IDS } from './types'
 import { assessPooling, pickEvidenceView, poolEvidence } from './ladder'
 import { intakeArticle, type OnsiteIntakeOptions } from './onsite'
 
@@ -29,6 +30,13 @@ export interface SynthesisContext {
   independence_verified: boolean
   components?: readonly { label: string; value: number | null; unit: string; weight?: number | null }[]
   formula?: string
+  /**
+   * 0.6.0：语境解析到的受控概念（`resolveConcepts`，导出时做）。有 id 的分面在分面键里用 id 代替原文——
+   * 两个标注者措辞稍异的行因此同框；没有 id 的行键与以前逐字相同。
+   */
+  concept_ids?: Partial<Record<EvidenceFacetId, string>>
+  /** 0.6.0：原文的时点写法（`timepoint` 可能已被归一） */
+  timepoint_raw?: string
 }
 
 export interface SynthesisTable {
@@ -83,6 +91,19 @@ export function intakeOutcomeRows(article: unknown, outcomes: readonly unknown[]
 }
 
 /**
+ * 分面键（0.6.0 抽出来导出）：结局、人群、比较、时点、单位、分析口径、数据类型、研究设计、度量、方向。
+ * 语境解析到概念时（`concept_ids`）用概念 id 代替那一项的原文，其余照原文；没有语境的行各自成组。
+ */
+export function synthesisFrameKey(context: SynthesisContext | null, record: EvidenceRecord): string {
+  if (!context) return JSON.stringify(['unclassified', record.id])
+  const c = context.concept_ids ?? {}
+  return JSON.stringify([
+    c.outcome ?? context.outcome, c.population ?? context.population, c.comparison ?? context.comparison, c.timepoint ?? context.timepoint,
+    context.unit, context.analysis, context.kind, record.study_type, record.effect?.metric, record.effect?.higher_is_better,
+  ])
+}
+
+/**
  * 纯表格/分面视图模型，未增加 HTTP 路由。records 先走 intakeArticle/guards；本函数不做全文 NLP。
  * 使用精确的人工编码分组，标签同名/度量同名都不足以证明可比。
  */
@@ -117,9 +138,7 @@ export function buildSynthesisTable(records: readonly EvidenceRecord[], contexts
   })
   const groups = new Map<string, typeof rows>()
   rows.forEach(row => {
-    const c = row.context
-    const key = c ? JSON.stringify([c.outcome, c.population, c.comparison, c.timepoint, c.unit, c.analysis, c.kind, row.record.study_type, row.record.effect?.metric, row.record.effect?.higher_is_better])
-      : JSON.stringify(['unclassified', row.record.id])
+    const key = synthesisFrameKey(row.context, row.record)
     const group = groups.get(key) ?? []
     group.push(row)
     groups.set(key, group)
@@ -140,4 +159,79 @@ export function buildSynthesisTable(records: readonly EvidenceRecord[], contexts
       observations: rows.length, unidentified: rows.filter(r => !r.context).length },
     overall: null,
   }
+}
+
+// ── frame：有方法学意义的「组合」（0.6.0）────────────────────────────────────────────
+
+/** 把一张表的分面整理成 frame 列表（有语境的分面才算 frame；各自成组的无语境行不算）。 */
+export function summarizeFrames(
+  table: SynthesisTable,
+  meta: { topicsOf?: (recordId: string) => readonly string[]; tagsOf?: (recordId: string) => readonly string[]; concepts?: readonly EvidenceConcept[]; locale?: string } = {},
+): EvidenceFrame[] {
+  const byRecord = new Map(table.rows.map((r) => [r.record.id, r]))
+  const conceptLabel = (id: string): string | null => {
+    const c = meta.concepts?.find((x) => x.id === id)
+    if (!c) return null
+    const lang = (meta.locale ?? 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+    return c.label[lang] ?? c.label.en ?? Object.values(c.label)[0] ?? null
+  }
+  const out: EvidenceFrame[] = []
+  for (const f of table.facets) {
+    const rows = f.record_ids.map((id) => byRecord.get(id)).filter((r): r is NonNullable<typeof r> => !!r)
+    const first = rows.find((r) => r.context)
+    if (!first?.context) continue
+    const c = first.context
+    const ids = c.concept_ids ?? {}
+    const facets: EvidenceFrame['facets'] = {
+      outcome: ids.outcome ?? c.outcome, population: ids.population ?? c.population, comparison: ids.comparison ?? c.comparison,
+      timepoint: ids.timepoint ?? c.timepoint, unit: c.unit, analysis: c.analysis, kind: c.kind,
+    }
+    if (ids.intervention) facets.intervention = ids.intervention
+    const labels: NonNullable<EvidenceFrame['concept_labels']> = {}
+    for (const facet of EVIDENCE_FACET_IDS) {
+      const id = ids[facet]
+      const label = id ? conceptLabel(id) : null
+      if (label) labels[facet] = label
+    }
+    const records = rows.map((r) => r.record)
+    const topics = new Set<string>()
+    const tags = new Set<string>()
+    for (const r of records) {
+      for (const t of meta.topicsOf?.(r.id) ?? r.topic_ids) topics.add(t)
+      for (const t of meta.tagsOf?.(r.id) ?? []) tags.add(t)
+    }
+    out.push({
+      key: f.key,
+      facets,
+      ...(Object.keys(labels).length > 0 ? { concept_labels: labels } : {}),
+      study_type: records[0]?.study_type ?? null,
+      metric: records[0]?.effect?.metric ?? null,
+      higher_is_better: records[0]?.effect?.higher_is_better ?? null,
+      record_ids: [...f.record_ids],
+      works: new Set(rows.map((r) => r.context?.report_id ?? r.record.id)).size,
+      studies: new Set(rows.map((r) => r.context?.study_id ?? r.record.id)).size,
+      view: f.view,
+      pooling: f.pooling,
+      blockers: [...f.blockers].sort(),
+      topic_ids: [...topics].sort(),
+      tag_keys: [...tags].sort(),
+    })
+  }
+  return out.sort((a, b) => b.record_ids.length - a.record_ids.length || (a.key < b.key ? -1 : 1))
+}
+
+/** 「加上这篇之后」：逐 frame 列出前后的变化（新 frame、级别变了、能不能汇总变了、条数变了、阻止原因变了）。 */
+export function previewFrameChange(before: readonly EvidenceFrame[], after: readonly EvidenceFrame[]): EvidenceFrameChange[] {
+  const prev = new Map(before.map((f) => [f.key, f]))
+  const out: EvidenceFrameChange[] = []
+  for (const f of after) {
+    const b = prev.get(f.key) ?? null
+    const changed: EvidenceFrameChange['changed'] = []
+    if (!b || b.view.kind !== f.view.kind) changed.push('view')
+    if (!b || (b.pooling?.allowed ?? false) !== (f.pooling?.allowed ?? false)) changed.push('pooling')
+    if (!b || b.record_ids.length !== f.record_ids.length) changed.push('count')
+    if (!b || b.blockers.join('|') !== f.blockers.join('|')) changed.push('blockers')
+    out.push({ key: f.key, before: b, after: f, changed })
+  }
+  return out
 }

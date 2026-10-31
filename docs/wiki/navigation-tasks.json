@@ -233,6 +233,27 @@
       "expected_routes": [
         "synthesis-table"
       ]
+    },
+    {
+      "id": "q-community-platform",
+      "query": "社区打标签平台怎样用 GitHub 当数据库",
+      "expected_routes": [
+        "community-annotation"
+      ]
+    },
+    {
+      "id": "q-tag-hierarchy",
+      "query": "标签要不要分上级下级 分面标注怎样变成图",
+      "expected_routes": [
+        "community-annotation"
+      ]
+    },
+    {
+      "id": "q-work-card",
+      "query": "DOI 或链接 怎样认成哪篇论文 作品名片",
+      "expected_routes": [
+        "community-annotation"
+      ]
     }
   ],
   "task_map_cases": [

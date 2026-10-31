@@ -116,6 +116,12 @@ flowchart LR
 
 **最后：视图模型**（`present*`）。把数据变成可以直接画的东西：中英文案、百分比与区间、图注、出处脚注都算好；React、Vue、原生 DOM 或移动端组件只管排版。
 
+### ⑤ 谁都可以来打标签（0.6.0）
+
+除了宿主自己的文章与编辑，引擎还认一种数据：**公开社区的标注**——任何人给公开论文打的标签、说它是什么研究、从原文抄的一行数字（带出处），别人认可 / 不认可 / 盲复录。
+引擎提供契约、裁决规则（编辑层按一致 / 分歧，贡献者层按支持比例的置信区间；数字要两人独立一致）、导出读取与宿主端口；平台本身（GitHub 仓库当数据库、issue 入库、静态页）在独立的标注平台仓里。
+设计见 Wiki [标签模型](docs/wiki/Tagging-model.md) 与 [社区标注平台](docs/wiki/Community-annotation.md)；接法见接入指南第 9 节。
+
 ## 诚实规则
 
 | 规则 | 引擎怎么保证 |
@@ -136,7 +142,7 @@ flowchart LR
 
 ```bash
 # 编译好的安装包，挂在每个 GitHub release 上（npm、yarn 同样用这个链接）
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.5.0/scholar-meta-0.5.0.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.6.0/scholar-meta-0.6.0.tgz
 ```
 
 各版本见 [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases)，改动见 [CHANGELOG](CHANGELOG.md)。

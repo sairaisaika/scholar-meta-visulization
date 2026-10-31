@@ -28,7 +28,7 @@
  * 契约版本：本文件最近一次变化随的那个包版本。接入方拷贝本文件时据此核对（CHANGELOG 里必须有这一版的一节，
  * 破坏性改动写在那一节的「破坏性」下）。改本文件时把它改成将要发布的版本号（见 CONTRIBUTING.md 第三节）。
  */
-export const EVIDENCE_CONTRACT_VERSION = '0.5.0'
+export const EVIDENCE_CONTRACT_VERSION = '0.6.0'
 
 /** 文献来源。站内文章与站外文献在本层**同形**——这正是「加一个源 = 加一行」的前提。`onsite` = 宿主自己的文章（任何站点）。 */
 export type EvidenceSourceId =
@@ -38,6 +38,8 @@ export type EvidenceSourceId =
   | 'pubmed'
   | 'europe_pmc'
   | 'crossref'
+  /** 0.6.0：公开社区标注平台的导出（任何人给公开论文打的标签与抄录的数字，按比例与区间裁决） */
+  | 'community'
 
 /**
  * 主题尺度阶梯。当前实现取 OpenAlex 的真四级（2026-09-22 实测：domains 4 · fields 26 · subfields 252 · topics 4516；
@@ -219,6 +221,8 @@ export interface EvidenceRecord {
    * 只有开了审阅门槛（设置 `onsite.reviewGate`）时引擎才看它：没有 ⇒ 照常发表，只是暂不计入标签与研究图谱。外部记录不带。
    */
   reviewed_at?: string | null
+  /** 数值的出处（0.6.0 加法；社区记录带：谁抄的、几人复核、从哪抄）。站内与外部记录不带 */
+  data_provenance?: EvidenceDataProvenance | null
 }
 
 /**
@@ -611,6 +615,10 @@ export const EVIDENCE_CAVEATS = [
   'disputed_tags_excluded',    // 有争议的标签暂不计入
   // ↓ 0.4.0 加法
   'primary_location_only',     // 期刊按主要发表位置算：同一篇的预印本、机构库版本不另算；能免费读的版本可能在别处
+  // ↓ 0.6.0 加法（社区标注）
+  'community_annotated',       // 字段来自公开社区标注（多人按比例与区间裁决），未经本站编辑核验
+  'single_extraction',         // 数值只有一人抄录、未经独立复录
+  'community_pending_excluded', // 有些社区标注的支持还不够，暂不计入
 ] as const
 export type EvidenceCaveat = (typeof EVIDENCE_CAVEATS)[number]
 
@@ -844,6 +852,8 @@ export interface EvidenceWorkTag {
   last_changed: string
   /** 这个结论由哪个修改申请审核通过而定（null＝按层级立场定的）。经审核的结论同级不能直接推翻，要再提申请 */
   request_id?: string | null
+  /** 0.6.0：这一级按**比例**裁决时（见 `LedgerPolicy.quorum`）实际进入区间计算的票；按层级一致 / 分歧裁决的为 null 或不带 */
+  quorum?: EvidenceQuorum | null
 }
 
 export const EVIDENCE_CHANGE_REQUEST_STATUSES = ['open', 'accepted', 'rejected', 'withdrawn'] as const
@@ -895,7 +905,7 @@ export interface EvidenceContributionIssue { code: EvidenceContributionIssueCode
 // 新版本加了设置项 ⇒ 接入方同步（升级依赖）后，新条目自动出现在设置页、带着缺省值直接生效；旧值里认不出的键忽略，不报错。
 // 设置只同步**数据**；代码只随依赖升级、构建、测试进来，绝不在运行时从网上取代码执行。
 
-export const EVIDENCE_SETTING_GROUPS = ['binding', 'external', 'cache', 'onsite', 'graph', 'http', 'ledger'] as const
+export const EVIDENCE_SETTING_GROUPS = ['binding', 'external', 'cache', 'onsite', 'graph', 'http', 'ledger', 'community'] as const
 export type EvidenceSettingGroup = (typeof EVIDENCE_SETTING_GROUPS)[number]
 
 /** 全部设置项与它们的值类型（键永不改名；废弃的键只标记，不删除）。 */
@@ -923,6 +933,12 @@ export interface EvidenceSettings {
   'ledger.modelMinConfidence': number
   'ledger.reviewTier': 'maintainer' | 'editor' | 'contributor'
   'ledger.apply': 'merge' | 'ledger_only' | 'off'
+  /** 0.6.0：社区标注导出怎么用——`off` 不用；`tags_only` 只把社区标签并进账本（宿主自己 merge）；`tags_and_records` 社区记录也进标签级 / 主题级图谱 */
+  'community.apply': 'off' | 'tags_only' | 'tags_and_records'
+  /** 0.6.0：社区抄录的数字至少要到哪一档核验才计入（`single` 一人抄 · `double` 另一人盲复录一致 · `editor` 编辑层） */
+  'community.minVerification': 'single' | 'double' | 'editor'
+  /** 0.6.0：社区的「没有」「有争议」要不要一起下发（缺省只下发「有」，免得一张反对票删掉作者自己打的标签） */
+  'community.tagStates': 'present_only' | 'with_negative'
 }
 export type EvidenceSettingKey = keyof EvidenceSettings
 
@@ -1031,3 +1047,329 @@ export interface EvidenceIntakeIssue {
   field: string
   action: 'record_dropped' | 'field_cleared' | 'value_adjusted' | 'flagged'
 }
+
+// ── 社区标注（0.6.0 加法）────────────────────────────────────────────────────────
+// 任何人都可以给公开论文打标签、给已有标签投「有 / 没有」；有写权限的维护者直接改。
+// 判据只看**支持比例**（带置信区间），不写死人数；结论分维护者定的与社区定的两类，图上分开说。
+
+/** 用户贴进来的东西认成什么：DOI · OpenAlex 编号（W…）· PubMed 编号 · 认不出编号的链接 · 当作标题去查 */
+export const EVIDENCE_WORK_REF_KINDS = ['doi', 'openalex', 'pmid', 'url', 'title'] as const
+export type EvidenceWorkRefKind = (typeof EVIDENCE_WORK_REF_KINDS)[number]
+export interface EvidenceWorkRef {
+  kind: EvidenceWorkRefKind
+  /** doi：归一化（小写、不带前缀）；openalex：`W…`；pmid：数字串；url：http(s) 地址；title：压过空白的原文 */
+  value: string
+}
+
+/**
+ * 一篇作品的「名片」：认出是哪一篇、打标签时要看的信息。外部源有就给，没有的为 null / 空数组。
+ * `topics` / `keywords` / `mesh` 是外部源或索引员给的分类，只当**标签建议的来源**，不直接当标签；
+ * `publication_type` 是出版物形态，**不是研究设计**（研究设计只能由人读原文后申报）。
+ */
+export interface EvidenceWorkCard {
+  /** `openalex:W…`；外部源里查不到时为 null */
+  id: string | null
+  /** 归一化 DOI（小写、不带前缀） */
+  doi: string | null
+  pmid: string | null
+  title: string
+  year: number | null
+  /** 前几位作者 */
+  authors: string[]
+  venue: EvidenceVenue | null
+  /** 出版物形态（article / review / preprint…），不是研究设计 */
+  publication_type: string | null
+  /** 外部源给这篇分的主题（主主题在前） */
+  topics: EvidenceTopicRef[]
+  /** 外部源的关键词（OpenAlex 由主题推出、按与标题摘要的相似度筛过） */
+  keywords: string[]
+  /** PubMed 的 MeSH 主题词（只有 PubMed 收录的作品才有） */
+  mesh: string[]
+  /** 摘要（外部源有就给；截断到 1500 字符）——给标注者看原文说了什么，引擎不从里面抽数 */
+  abstract: string | null
+  language: string | null
+  cited_by_count: number | null
+  is_open_access: boolean | null
+  oa_url: string | null
+  is_retracted: boolean
+}
+
+// ── 分面、概念与比例裁决（0.6.0 加法）────────────────────────────────────────────────
+// 社区标注分三层：L0 主题标签（只决定选哪批论文）· L1 分面（研究设计等封闭小词表，决定级别下限）·
+// L2 结果行（效应 + 结局语境 + 方向 + 出处，决定上限）。层级不由用户造：外部主题树 + 维护者维护的概念词表 `broader`。
+// 设计全文见 docs/wiki/Tagging-model.md 与 Community-annotation.md。
+
+/** 结局语境的分面：概念词表按它分文件；`SynthesisContext.concept_ids` 按它给键 */
+export const EVIDENCE_FACET_IDS = ['outcome', 'population', 'intervention', 'comparison', 'timepoint'] as const
+export type EvidenceFacetId = (typeof EVIDENCE_FACET_IDS)[number]
+
+/** 受控概念（标注平台 `vocab/concepts/<facet>.jsonl` 一行；随导出下发）。`broader` 只导航与计数，永不参与数值合并。 */
+export interface EvidenceConcept {
+  /** `c:<facet>/<slug>` */
+  id: string
+  facet: EvidenceFacetId
+  /** 语言码 → 显示名 */
+  label: Record<string, string>
+  /** 同义写法（归一后比较）；标注者用别名写的语境，导出时解析到这个概念 */
+  aliases: string[]
+  broader: string[]
+  /** 可核对的外部 id（如 `mesh` → `D003863`）；不导入整部词表 */
+  mappings?: Record<string, string>
+  /** 结局概念的缺省数据类型与方向——只作表单默认值，行上仍要人确认 */
+  default_kind?: 'continuous' | 'binary' | 'ordinal' | 'rate' | 'survival' | 'correlation' | 'qualitative' | 'composite' | 'metadata' | null
+  default_higher_is_better?: boolean | null
+  status: 'active' | 'deprecated' | 'orphan'
+  replaced_by?: string | null
+}
+
+/**
+ * 比例裁决规则：只在 `tier` 这一层启用（缺省 contributor）——这一层的人互不认识、人数不定，层级规则的「一致 / 分歧」不够用。
+ * 支持比例 k / n 的 Wilson 区间（置信度 `confidence`，两侧）整体高于门槛 ⇒ accepted；整体低于 ⇒ rejected；跨门槛且两边都有人 ⇒ disputed；其余 ⇒ pending。
+ * `min_independent`：至少几个独立账号表态才可能 accepted / rejected；`min_disputers`：反对人数少于它时反对票不入 n，只标「被挑战」。
+ */
+export interface EvidenceQuorumRule {
+  tier: EvidenceTrustTier
+  /** 门槛，缺省 0.5 */
+  threshold: number
+  /** 两侧置信度，缺省 0.8（下界 > 门槛等价于单侧 90%） */
+  confidence: number
+  /** 缺省 2 */
+  min_independent: number
+  /** 缺省 2 */
+  min_disputers: number
+}
+
+/** 一次比例裁决实际进入区间计算的票与结果；读者能据此复算 */
+export interface EvidenceQuorum {
+  /** 入 n 的票数 ＝ add + remove（不含 unsure、不含未达 min_disputers 的挑战者） */
+  n: number
+  add: number
+  remove: number
+  unsure: number
+  /** 反对人数少于 min_disputers、没有入 n 的反对者 */
+  challengers: number
+  challenged: boolean
+  share: number | null
+  ci_low: number | null
+  ci_high: number | null
+  z: number
+  threshold: number
+  confidence: number
+  min_independent: number
+}
+
+/**
+ * 社区裁决的六种状态：confirmed / removed 由编辑或维护者层按层级规则定；accepted / rejected / disputed / pending 由贡献者层按比例定。
+ * 只有 confirmed 与 accepted 计入统计；pending 不转成账本立场（账本「没说」）。
+ */
+export const EVIDENCE_COMMUNITY_STATES = ['confirmed', 'removed', 'accepted', 'rejected', 'disputed', 'pending'] as const
+export type EvidenceCommunityState = (typeof EVIDENCE_COMMUNITY_STATES)[number]
+
+/** 数字抄录的核验档：`single` 一人抄 · `double` 另一人盲复录在容差内一致 · `editor` 编辑层提出或认可 */
+export const EVIDENCE_VERIFICATIONS = ['single', 'double', 'editor'] as const
+export type EvidenceVerification = (typeof EVIDENCE_VERIFICATIONS)[number]
+
+/** 断言的种类：标签 · 分面 · 结果行 · 评议（认可 / 不认可 / 不确定）· 绑定 · 独立性 · 偏倚评估（后三种只收编辑层） */
+export const EVIDENCE_ANNOTATION_KINDS = ['tag', 'facet', 'row', 'review', 'binding', 'independence', 'appraisal'] as const
+export type EvidenceAnnotationKind = (typeof EVIDENCE_ANNOTATION_KINDS)[number]
+export const EVIDENCE_ANNOTATION_OPS = ['add', 'remove', 'endorse', 'dispute', 'unsure', 'set'] as const
+export type EvidenceAnnotationOp = (typeof EVIDENCE_ANNOTATION_OPS)[number]
+
+/** 结果行的人工语境输入（字段与 `SynthesisContext` 同名；`reviewed` / `independence_verified` / `dependence_id` 不在这里——由编辑层的 independence 断言给） */
+export interface EvidenceRowContextInput {
+  row_id: string
+  outcome: string
+  comparison: string
+  population: string
+  timepoint: string
+  unit: string
+  analysis: string
+  kind: 'continuous' | 'binary' | 'ordinal' | 'rate' | 'survival' | 'correlation' | 'qualitative' | 'composite' | 'metadata'
+  /** 原文位置（表格 / 页码 / 段落） */
+  locator: string
+  /** 提议的研究键（试验注册号 / 主报告键）；缺省 ＝ 作品键 */
+  study_id?: string | null
+  /** 原文的时点写法 */
+  timepoint_raw?: string | null
+}
+export interface EvidenceRowEffectInput {
+  metric: EvidenceEffectMetric
+  value: number | null
+  ci_low: number | null
+  ci_high: number | null
+  n: number | null
+  p_value: number | null
+  higher_is_better: boolean | null
+}
+
+export type EvidenceAnnotationPayload =
+  | { kind: 'tag'; tag: string }
+  | { kind: 'facet'; facet: string; value: string; locator?: string | null }
+  /** 整行原子：语境 + 效应 + 方向一起提、一起认 */
+  | { kind: 'row'; context: EvidenceRowContextInput; effect: EvidenceRowEffectInput | null; direction: EvidenceDirection | null; higher_is_better_reason?: string | null }
+  /** 评议：对行的认可必须带整行盲复录 `re_extraction`；`peeked` ＝ 复录时看过原值（仍计票，不计独立复录） */
+  | { kind: 'review'; reason: string | null; re_extraction?: { effect: EvidenceRowEffectInput | null; direction: EvidenceDirection | null } | null; peeked?: boolean }
+  | { kind: 'binding'; topic: { id: string; display_name: string } | null }
+  | { kind: 'independence'; study_id: string; dependence_id: string; independence_verified: boolean; note: string | null }
+  | { kind: 'appraisal'; tool: EvidenceRobTool; overall: EvidenceRobJudgement; source: string }
+
+/**
+ * 一条社区断言（标注平台的 JSONL 一行）。只追加，不改不删；改主意就是一条新断言（`supersedes` 指向自己上一条）。
+ * `by.id` 用公开账号的稳定 id（如 `gh:<数字 id>`），`by.tier` 由入库方按鉴权现算并冻结，正文自称一律不信。
+ */
+export interface EvidenceAnnotation {
+  id: string
+  /** ISO 时间（入库时刻） */
+  at: string
+  /** 作品键：`doi:<小写>` · `openalex:W…` · `pmid:<n>` */
+  work_id: string
+  kind: EvidenceAnnotationKind
+  op: EvidenceAnnotationOp
+  /** `tag:<tag_key>` · `facet:<facet_id>` · `row:<row_id>` · `binding:<tag_key>`；评议与独立性的 subject ＝ 被评对象 */
+  subject: string
+  by: EvidenceTagActor
+  payload: EvidenceAnnotationPayload
+  note: string | null
+  source: { issue?: number | null; comment?: number | null; commit?: string | null; sample?: string | null; form?: string | null }
+  supersedes: string | null
+}
+
+/** 社区裁决的参数（平台配置随导出下发；引擎按它裁决，宿主据此复算） */
+export interface EvidenceCommunityPolicy {
+  quorum: EvidenceQuorumRule
+  row: { require_re_extraction: boolean; tolerance: { relative: number; absolute: number } }
+  min_tier: Partial<Record<'binding' | 'independence' | 'appraisal', EvidenceTrustTier>>
+  model_min_confidence: number
+}
+
+export const EVIDENCE_COMMUNITY_ISSUES = ['missing_locator', 'competing_value', 'extraction_conflict', 'needs_re_extraction', 'insufficient_tier'] as const
+export type EvidenceCommunityIssue = (typeof EVIDENCE_COMMUNITY_ISSUES)[number]
+
+/** 一个 subject（标签 / 分面 / 行 / 绑定）在一篇作品上的裁决 */
+export interface EvidenceCommunityDecision {
+  work_id: string
+  subject: string
+  kind: EvidenceAnnotationKind
+  state: EvidenceCommunityState
+  decided_by: EvidenceTrustTier
+  /** 各层「每个断言者最新立场」的计数（含挑战者；模型层只记不算） */
+  support: Partial<Record<EvidenceTrustTier, { add: number; remove: number }>>
+  /** 比例裁决的层才有 */
+  quorum: EvidenceQuorum | null
+  /** 行才有 */
+  verification: EvidenceVerification | null
+  /** 行：独立盲复录一致的人数 */
+  re_extractions: number
+  /** 生效的那条断言（分面是胜出值的最新 add；行是提出它的那条） */
+  effective_id: string | null
+  /** 分面胜出的值 / 行的输入（原样） */
+  value: string | null
+  issues: EvidenceCommunityIssue[]
+  /** 分面有分歧时各值的票 */
+  alternatives?: Array<{ value: string; votes: number }>
+  /** 编辑层对这一行的独立性判定（行才有） */
+  independence?: { study_id: string; dependence_id: string; independence_verified: boolean } | null
+  last_changed: string
+  /** 不认可的理由（去重、截断） */
+  reasons: string[]
+}
+
+/** 数值的出处：谁抄的、几人复核、从哪抄（随社区记录下发） */
+export interface EvidenceDataProvenance extends EvidenceProvenance {
+  locator: string | null
+  verification: EvidenceVerification
+  decided_by: EvidenceTrustTier
+}
+
+// ── frame：有方法学意义的「组合」（0.6.0 加法）──────────────────────────────────────
+/** 一个分面键元组下的证据：同结局、同比较、同时点、同单位、同分析口径、同设计、同度量、同方向 */
+export interface EvidenceFrame {
+  /** `synthesisFrameKey` 的键 */
+  key: string
+  facets: Partial<Record<EvidenceFacetId | 'unit' | 'analysis' | 'kind', string>>
+  /** 解析到概念时的显示名 */
+  concept_labels?: Partial<Record<EvidenceFacetId, string>>
+  study_type: string | null
+  metric: EvidenceEffectMetric | null
+  higher_is_better: boolean | null
+  record_ids: string[]
+  works: number
+  studies: number
+  view: EvidenceViewDecision
+  pooling: EvidencePooling | null
+  /** 阻止汇总的原因（`buildSynthesisTable` 的 issues 与 `assessPooling` 的理由） */
+  blockers: string[]
+  topic_ids: string[]
+  tag_keys: string[]
+}
+export interface EvidenceFrameChange {
+  key: string
+  before: EvidenceFrame | null
+  after: EvidenceFrame
+  changed: Array<'view' | 'pooling' | 'count' | 'blockers'>
+}
+
+/** 「到下一级还差什么」：给标注者看的钩子，不改判据 */
+export interface EvidenceLadderGap {
+  current: EvidenceViewKind
+  /** 把草稿记录加进来之后能到哪一级；没有草稿为 null */
+  with_draft: EvidenceViewKind | null
+  /** 比 with_draft（或 current）更高的紧邻一级；已在最高级为 null */
+  next: EvidenceViewKind | null
+  /** 到 next 还差几条带哪个字段的记录 */
+  missing: Array<{ field: 'direction' | 'n' | 'p_value' | 'value' | 'ci'; count: number }>
+  /** 汇总菱形：`assessPooling` 的判定与到 5 项还差几项；分面闸另算 */
+  pooling: { allowed: boolean; reason: EvidencePoolingReason; studies: number; need: number } | null
+}
+
+// ── 社区导出（标注平台产、宿主与演示页消费）────────────────────────────────────────────
+export interface EvidenceCommunityExportManifest {
+  /** 产出时用的契约版本；读取方只接受同一主次版本 */
+  contract: string
+  export_version: 1
+  generated_at: string
+  source_commit: string | null
+  /** 脚注里的来源名 */
+  label: string
+  license: 'CC0-1.0'
+  repository: string
+  policy: EvidenceCommunityPolicy
+  facet_vocab: Record<string, { values: string[]; maps_to: 'study_type' | null; locator_required: boolean }>
+  concepts_version: string
+  /** 维护者的公开登录名，仅页面文案用 */
+  maintainers: string[]
+  shards: Array<{ path: string; bytes: number; sha256: string; works: number }>
+  counts: { works: number; assertions: number; contributors: number; accepted: number; pending: number; disputed: number; frames: number }
+}
+export interface EvidenceCommunityRow {
+  row_id: string
+  input: Extract<EvidenceAnnotationPayload, { kind: 'row' }>
+  /** 导出时解析到的概念 id（按分面） */
+  concept_ids?: Partial<Record<EvidenceFacetId, string>>
+  decision: EvidenceCommunityDecision
+}
+export interface EvidenceCommunityWork {
+  work_id: string
+  /** 同一篇的其他键（`openalex:W…`、`pmid:…`） */
+  aliases: string[]
+  /** 名片快照；`abstract` 恒 null（读取方核对） */
+  card: EvidenceWorkCard | null
+  /** 只含 present / absent / disputed；pending 不在这里 */
+  tags: EvidenceWorkTag[]
+  pending: Array<{ subject: string; decision: EvidenceCommunityDecision }>
+  facets: Record<string, { value: string; decision: EvidenceCommunityDecision; locators: string[] }>
+  rows: EvidenceCommunityRow[]
+  unsure: number
+  updated_at: string
+}
+export interface EvidenceCommunityExport {
+  manifest: EvidenceCommunityExportManifest
+  works: EvidenceCommunityWork[]
+  /** 编辑层的绑定（kind 只会是 curated / rejected） */
+  bindings: EvidenceTagBinding[]
+  concepts: EvidenceConcept[]
+  frames: EvidenceFrame[]
+}
+export const EVIDENCE_COMMUNITY_EXPORT_ISSUES = ['not_an_object', 'contract_mismatch', 'bad_manifest', 'bad_work', 'bad_state', 'abstract_not_allowed', 'duplicate_work', 'too_many_works', 'bad_binding', 'bad_concept'] as const
+export type EvidenceCommunityExportIssueCode = (typeof EVIDENCE_COMMUNITY_EXPORT_ISSUES)[number]
+export interface EvidenceCommunityExportIssue { code: EvidenceCommunityExportIssueCode; path: string }

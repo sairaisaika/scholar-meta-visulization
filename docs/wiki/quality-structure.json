@@ -355,10 +355,38 @@
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
+    },
+    {
+      "id": "community-annotation",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 6,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
+      "plan_coverage": {
+        "numerator": 6,
+        "denominator": 6
+      },
+      "engineering": null,
+      "gaps": []
     }
   ],
-  "route_count": 14,
-  "structural_average": 98.93,
+  "route_count": 15,
+  "structural_average": 99.0,
   "structural_minimum": 85,
   "required_per_route": 85,
   "diagram_coverage": {
@@ -383,9 +411,9 @@
       "architecture": 1,
       "data-model": 1,
       "deployment": 1,
-      "flow": 2,
-      "sequence": 1,
-      "state-machine": 1
+      "flow": 3,
+      "sequence": 2,
+      "state-machine": 2
     },
     "missing_kinds": [],
     "not_applicable": [],

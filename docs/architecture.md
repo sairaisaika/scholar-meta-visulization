@@ -35,6 +35,11 @@
 | 功能 | 谁看 | 两端之间流的契约 | 生产端 | 消费端 | 读口 |
 |---|---|---|---|---|---|
 | `synthesis_table` | 编辑 | `EvidenceRecord` | `intakeOutcomeRows`（上下文为编辑配置） | `buildSynthesisTable` | —（纯函数，多结局分面；不新增读口） |
+| `community_records` | 读者 | `EvidenceRecord` | `service.getTagMap` / `getNodeMap`（接了社区端口且设置 `community.apply` 为 `tags_and_records` 时，社区作品作为 `source: 'community'` 的记录并入） | `presentEvidenceMap` | 随 `/map` |
+| `work_card` | 作者 | `EvidenceWorkCard` | `workCardOf`（`createOpenAlexClient().fetchWorkCard` 取单篇作品后转成名片） | `presentWorkCard` | —（标注平台的页面与 Action） |
+| `ladder_gap` | 作者 | `EvidenceLadderGap` | `describeLadderGap` | `presentLadderGap` | —（标注页的预览） |
+| `frame_preview` | 作者 | `EvidenceFrameChange` | `previewFrameChange`（`summarizeFrames` 前后两份） | `presentFrameChange` | —（同上） |
+| `community_export` | 编辑 | `EvidenceCommunityWork` | `readCommunityExport`（社区导出验形） | `presentCommunityWork` | —（标注平台的页面；宿主用 `createCommunityPorts` 装进端口） |
 | `evidence_map` | 读者 | `EvidenceMapData` | `service.getTagMap` | `presentEvidenceMap` | `GET /map?tag=` |
 | `node_map` | 读者 | `EvidenceMapData` | `service.getNodeMap` | `presentEvidenceMap` | `GET /map?level=&id=` |
 | `node_children` | 读者 | `EvidenceTopic` | `service.getNodeMap`（外部树经 `ExternalEvidenceSource.children`；主题往里是编辑绑到它的站内标签） | `presentNodeChildren` | 随 `/map?level=&id=` |

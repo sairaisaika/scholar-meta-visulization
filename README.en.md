@@ -120,6 +120,12 @@ External works carry no effect sizes, so forest plots rely on numbers declared b
 
 **Last: view models** (`present*`). They turn the data into something ready to draw: text in Chinese and English, proportions with intervals, caveats and source footnotes are all computed; your React, Vue, plain DOM or mobile components only lay them out.
 
+### ⑤ Anyone can tag (0.6.0)
+
+Besides the host's own articles and editors, the engine understands one more kind of data: **public community annotation** — tags anyone gives a public paper, what kind of study it is, a row of numbers transcribed from the paper (with its location), and other people's endorsements, disputes and blind re-extractions.
+The engine provides the contract, the decision rules (editor tiers by agreement / disagreement; the contributor tier by the confidence interval of the share of support; numbers need two independent matching transcriptions), the export reader and host ports; the platform itself (a GitHub repository as the database, issue intake, a static page) lives in a separate repository.
+See the wiki pages [Tagging-model](docs/wiki/Tagging-model.md) and [Community-annotation](docs/wiki/Community-annotation.md), and section 9 of the integration guide.
+
 ## Guarantees
 
 | Rule | How the engine enforces it |
@@ -140,7 +146,7 @@ Method and references: [docs/tags.md](docs/tags.md) (Chinese).
 
 ```bash
 # Prebuilt package attached to every GitHub release (works the same with npm and yarn)
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.5.0/scholar-meta-0.5.0.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.6.0/scholar-meta-0.6.0.tgz
 ```
 
 All versions are on [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases); changes are in the [CHANGELOG](CHANGELOG.md).

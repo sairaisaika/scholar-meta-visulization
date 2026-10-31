@@ -22,6 +22,10 @@ import type {
   EvidenceCitationDeclarer, EvidenceCitationFunction, EvidenceCitationPurpose, EvidenceEdge, EvidenceStudyDesign,
 } from './types'
 import { EVIDENCE_CITATION_DECLARERS, EVIDENCE_CITATION_FUNCTIONS, EVIDENCE_STUDY_DESIGNS } from './types'
+import type {
+  EvidenceCommunityDecision, EvidenceCommunityWork, EvidenceFrame, EvidenceFrameChange, EvidenceLadderGap, EvidenceQuorum, EvidenceWorkCard,
+} from './types'
+import { pointEstimate } from './effects'
 import { groupTags, normalizeTag } from './tags'
 import { robBand, summarizeRiskOfBias } from './appraisal'
 import type { EvidenceRobBand } from './appraisal'
@@ -1195,6 +1199,8 @@ export interface WorkTagRowView {
   text: string
   /** 各级立场，比如「编辑 +2 / −0 · 模型 +1 / −1」 */
   support_text: string
+  /** 0.6.0：这一级按比例裁决时的票与区间（读者能复算）；按层级一致 / 分歧裁决的为 null */
+  quorum_text: string | null
 }
 
 /** 一篇论文的生效标签（有争议的排前面，方便审核）。 */
@@ -1211,7 +1217,211 @@ export function presentWorkTags(tags: readonly EvidenceWorkTag[], opts: PresentO
     support_text: Object.entries(t.support)
       .map(([tier, s]) => `${c.m.trustTier[tier as keyof typeof c.m.trustTier]} +${s!.add} / −${s!.remove}`)
       .join(' · '),
+    // 0.6.0：这一级按比例裁决时，把票与区间也说一句（读者能复算）
+    quorum_text: t.quorum ? quorumText(t.quorum, c) : null,
   }))
+}
+
+// ── 社区标注（0.6.0）────────────────────────────────────────────────────────────────
+
+const quorumText = (q: EvidenceQuorum, c: Ctx): string => {
+  if (q.n === 0) return c.m.text.community_quorum_none
+  const base = formatMessage(c.m.text.community_quorum, {
+    add: c.int(q.add), remove: c.int(q.remove), n: c.int(q.n), share: q.share === null ? '—' : c.pct(q.share),
+    confidence: c.pct(q.confidence), low: q.ci_low === null ? '—' : c.pct(q.ci_low), high: q.ci_high === null ? '—' : c.pct(q.ci_high), threshold: c.pct(q.threshold),
+  })
+  return q.challenged ? `${base}${c.m.text.clause_sep}${formatMessage(c.m.text.community_challenged, { n: c.int(q.challengers) })}` : base
+}
+
+export interface WorkCardView {
+  title: string
+  /** 「2019 · A One, B Two」 */
+  meta: string
+  venue: string | null
+  /** 「文献类型：论文」 + 一句「这不是研究设计」 */
+  type_text: string | null
+  type_hint: string
+  cited_text: string | null
+  topics_text: string | null
+  keywords_text: string | null
+  mesh_text: string | null
+  retracted_text: string | null
+  open_access: boolean | null
+  oa_url: string | null
+  abstract: string | null
+}
+
+/** 一篇作品的名片：给标注者看的书目与外部源的分类（分类只是建议的来源，不是标签）。 */
+export function presentWorkCard(card: EvidenceWorkCard, opts: PresentOptions = {}): WorkCardView {
+  const c = context(opts)
+  const authors = card.authors.length > 3 ? formatMessage(c.m.text.authors_more, { list: joinList(card.authors.slice(0, 3), c) }) : joinList(card.authors, c)
+  const typeLabel = card.publication_type ? (c.m.bucket.publication_type?.[card.publication_type] ?? card.publication_type) : null
+  return {
+    title: card.title,
+    meta: formatMessage(c.m.text.card_meta, { year: card.year === null ? '—' : String(card.year), authors: authors || '—' }),
+    venue: card.venue ? (card.venue.type ? formatMessage(c.m.text.venue_with_type, { venue: card.venue.name, type: c.m.venueType[card.venue.type] ?? card.venue.type }) : card.venue.name) : null,
+    type_text: typeLabel ? formatMessage(c.m.text.card_type, { type: typeLabel }) : null,
+    type_hint: c.m.text.card_type_hint,
+    cited_text: card.cited_by_count === null ? null : formatMessage(c.m.text.card_cited, { n: c.int(card.cited_by_count) }),
+    topics_text: card.topics.length > 0 ? formatMessage(c.m.text.card_topics, { list: joinList(card.topics.map((t) => t.display_name), c) }) : null,
+    keywords_text: card.keywords.length > 0 ? formatMessage(c.m.text.card_keywords, { list: joinList(card.keywords, c) }) : null,
+    mesh_text: card.mesh.length > 0 ? formatMessage(c.m.text.card_mesh, { list: joinList(card.mesh, c) }) : null,
+    retracted_text: card.is_retracted ? c.m.text.card_retracted : null,
+    open_access: card.is_open_access,
+    oa_url: card.oa_url,
+    abstract: card.abstract,
+  }
+}
+
+export interface CommunityDecisionView {
+  subject: string
+  kind: string
+  kind_text: string
+  state: EvidenceCommunityDecision['state']
+  state_text: string
+  /** 进统计的只有 accepted / confirmed */
+  counted: boolean
+  /** 「有（社区认可），由贡献者定」 */
+  text: string
+  quorum_text: string | null
+  verification_text: string | null
+  re_extractions_text: string | null
+  issues_text: string[]
+  reasons_text: string | null
+  value: string | null
+  alternatives_text: string | null
+}
+
+/** 一条社区裁决的人话（页面上的 chip 与详情）。 */
+export function presentCommunityDecision(d: EvidenceCommunityDecision, opts: PresentOptions = {}): CommunityDecisionView {
+  const c = context(opts)
+  return {
+    subject: d.subject,
+    kind: d.kind,
+    kind_text: c.m.annotationKind[d.kind],
+    state: d.state,
+    state_text: c.m.communityState[d.state],
+    counted: d.state === 'accepted' || d.state === 'confirmed',
+    text: formatMessage(c.m.text.community_decided, { state: c.m.communityState[d.state], tier: c.m.trustTier[d.decided_by] }),
+    quorum_text: d.quorum ? quorumText(d.quorum, c) : null,
+    verification_text: d.verification ? formatMessage(c.m.text.community_verification, { verification: c.m.verification[d.verification] }) : null,
+    re_extractions_text: d.kind === 'row' ? formatMessage(c.m.text.community_re_extractions, { n: c.int(d.re_extractions) }) : null,
+    issues_text: d.issues.map((i) => c.m.communityIssue[i]),
+    reasons_text: d.reasons.length > 0 ? formatMessage(c.m.text.community_reasons, { list: joinList(d.reasons, c) }) : null,
+    value: d.value,
+    alternatives_text: d.alternatives && d.alternatives.length > 1 ? joinList(d.alternatives.map((a) => `${a.value} ×${c.int(a.votes)}`), c) : null,
+  }
+}
+
+export interface CommunityWorkView {
+  work_id: string
+  card: WorkCardView | null
+  /** 已有结论的标签（账本形状），外加待定的 */
+  tags: WorkTagRowView[]
+  pending: CommunityDecisionView[]
+  facets: Array<{ facet: string; text: string; decision: CommunityDecisionView; locators: string[] }>
+  rows: Array<{ row_id: string; text: string; decision: CommunityDecisionView }>
+  pending_hint: string
+  unsure: number
+}
+
+/** 「这篇现在被说成什么」：名片 + 标签 + 分面 + 结果行，各带裁决的人话。 */
+export function presentCommunityWork(work: EvidenceCommunityWork, opts: PresentOptions = {}): CommunityWorkView {
+  const c = context(opts)
+  const rowText = (r: EvidenceCommunityWork['rows'][number]): string => {
+    const ctx = r.input.context
+    const e = r.input.effect
+    const base = { outcome: ctx.outcome, comparison: ctx.comparison, timepoint: ctx.timepoint, locator: ctx.locator }
+    const v = e ? pointEstimate(e as never) : null
+    if (!e || v === null) return formatMessage(c.m.text.row_no_effect, { ...base, direction: r.input.direction ? c.m.direction[r.input.direction] : '—' })
+    const decimals = e.ci_low !== null && e.ci_high !== null ? effectDecimals(e.metric, e.ci_low, e.ci_high) : 2
+    const interval = e.ci_low !== null && e.ci_high !== null ? ` [${c.fixed(e.ci_low, decimals)}, ${c.fixed(e.ci_high, decimals)}]` : ''
+    return formatMessage(c.m.text.row_summary, { ...base, metric: c.m.metric[e.metric], value: c.fixed(v, decimals), interval, n: e.n !== null ? `${c.m.text.parts_sep}n = ${c.int(e.n)}` : '' })
+  }
+  return {
+    work_id: work.work_id,
+    card: work.card ? presentWorkCard(work.card, opts) : null,
+    tags: presentWorkTags(work.tags, opts),
+    pending: work.pending.map((p) => presentCommunityDecision(p.decision, opts)),
+    facets: Object.entries(work.facets).sort(([a], [b]) => (a < b ? -1 : 1)).map(([facet, f]) => ({
+      facet,
+      text: formatMessage(c.m.text.facet_value, { facet, value: facet === 'design' ? (c.m.studyDesign[f.value as keyof typeof c.m.studyDesign] ?? f.value) : f.value }),
+      decision: presentCommunityDecision(f.decision, opts),
+      locators: f.locators,
+    })),
+    rows: [...work.rows].sort((a, b) => (a.row_id < b.row_id ? -1 : 1)).map((r) => ({ row_id: r.row_id, text: rowText(r), decision: presentCommunityDecision(r.decision, opts) })),
+    pending_hint: c.m.text.community_pending_hint,
+    unsure: work.unsure,
+  }
+}
+
+export interface LadderGapView {
+  current_text: string
+  with_draft_text: string | null
+  /** 「再往上一级是…：还差 n 条带方向的记录」；已是最高级时是那一句 */
+  next_text: string
+  pooling_text: string | null
+}
+
+/** 「到下一级还差什么」的人话（给标注页的预览）。 */
+export function presentLadderGap(gap: EvidenceLadderGap, current: { usable: number; total: number } | null, opts: PresentOptions = {}): LadderGapView {
+  const c = context(opts)
+  const view = (k: EvidenceLadderGap['current']) => c.m.view[k].split(/[：:]/)[0]!
+  const next = gap.next
+    ? `${formatMessage(c.m.text.ladder_next, { view: view(gap.next) })}${gap.missing.map((m) => formatMessage(c.m.text.ladder_missing, { count: c.int(m.count), field: c.m.ladderField[m.field] })).join(c.m.text.list_sep) || '—'}`
+    : c.m.text.ladder_top
+  const pooling = gap.pooling
+    ? gap.pooling.allowed ? formatMessage(c.m.text.ladder_pooling_ok, { studies: c.int(gap.pooling.studies) })
+      : gap.pooling.reason === 'too_few_studies' ? formatMessage(c.m.text.ladder_pooling_need, { need: c.int(gap.pooling.need), studies: c.int(gap.pooling.studies) })
+      : formatMessage(c.m.text.ladder_pooling_blocked, { reason: c.m.pooling[gap.pooling.reason] })
+    : null
+  return {
+    current_text: formatMessage(c.m.text.ladder_current, { view: view(gap.current), usable: current ? c.int(current.usable) : '—', total: current ? c.int(current.total) : '—' }),
+    with_draft_text: gap.with_draft ? formatMessage(c.m.text.ladder_with_draft, { view: view(gap.with_draft) }) : null,
+    next_text: next,
+    pooling_text: pooling,
+  }
+}
+
+export interface FrameView {
+  key: string
+  title: string
+  count_text: string
+  view_text: string
+  blockers_text: string | null
+  can_pool: boolean
+}
+
+/** frame 列表的人话：标题（结局 · 比较 · 时点）、几篇几项几条、能画到哪一级、为什么不能汇总。 */
+export function presentFrames(frames: readonly EvidenceFrame[], opts: PresentOptions = {}): FrameView[] {
+  const c = context(opts)
+  return frames.map((f) => ({
+    key: f.key,
+    title: frameTitle(f, c),
+    count_text: formatMessage(c.m.text.frame_count, { works: c.int(f.works), studies: c.int(f.studies), records: c.int(f.record_ids.length) }),
+    view_text: c.m.view[f.view.kind].split(/[：:]/)[0]!,
+    blockers_text: f.blockers.length > 0 ? formatMessage(c.m.text.frame_blockers, { list: joinList(f.blockers, c) }) : null,
+    can_pool: !!f.pooling?.allowed,
+  }))
+}
+
+const frameTitle = (f: EvidenceFrame, c: Ctx) => formatMessage(c.m.text.frame_title, {
+  outcome: f.concept_labels?.outcome ?? f.facets.outcome ?? '—', comparison: f.concept_labels?.comparison ?? f.facets.comparison ?? '—',
+  timepoint: f.concept_labels?.timepoint ?? f.facets.timepoint ?? '—',
+  design: f.study_type ? (c.m.studyDesign[f.study_type as keyof typeof c.m.studyDesign] ?? f.study_type) : '—', metric: f.metric ? c.m.metric[f.metric] : '—',
+})
+
+/** 「加上这篇之后」：每个 frame 一句——新 frame、级别变了、不变。 */
+export function presentFrameChange(changes: readonly EvidenceFrameChange[], opts: PresentOptions = {}): Array<{ key: string; text: string; changed: EvidenceFrameChange['changed'] }> {
+  const c = context(opts)
+  const view = (f: EvidenceFrame) => c.m.view[f.view.kind].split(/[：:]/)[0]!
+  return changes.map((ch) => {
+    const title = frameTitle(ch.after, c)
+    if (!ch.before) return { key: ch.key, text: formatMessage(c.m.text.frame_new, { title, view: view(ch.after) }), changed: ch.changed }
+    if (ch.changed.length === 0) return { key: ch.key, text: formatMessage(c.m.text.frame_unchanged, { title, view: view(ch.after) }), changed: ch.changed }
+    const what = joinList(ch.changed.map((w) => (w === 'view' ? view(ch.after) : w === 'pooling' ? (ch.after.pooling?.allowed ? c.m.pooling.ok : c.m.pooling[ch.after.pooling?.reason ?? 'not_applicable']) : w === 'count' ? formatMessage(c.m.text.frame_count, { works: c.int(ch.after.works), studies: c.int(ch.after.studies), records: c.int(ch.after.record_ids.length) }) : (ch.after.blockers.length > 0 ? formatMessage(c.m.text.frame_blockers, { list: joinList(ch.after.blockers, c) }) : '—'))), c)
+    return { key: ch.key, text: formatMessage(c.m.text.frame_changed, { title, before: view(ch.before), after: view(ch.after), what }), changed: ch.changed }
+  })
 }
 
 const joinList = (items: readonly string[], c: Ctx) => items.join(c.locale.startsWith('zh') ? '、' : ', ')

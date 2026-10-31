@@ -382,6 +382,14 @@ export const openalex = createOpenAlexClient({ apiKey: () => process.env.OPENALE
 
 ## 8. 升级
 
+### 从 0.5 到 0.6
+
+- 只有加法：作品引用与名片（`EvidenceWorkRef` / `EvidenceWorkCard`）、比例裁决（`LedgerPolicy.quorum`、`EvidenceWorkTag.quorum`）、社区断言与裁决、frame 与阶梯差距、社区导出的契约；
+  `EvidenceSourceId` 多了 `community`；`EvidenceRecord.data_provenance?`；三条图注、三个设置项与设置组 `community`。
+- 不设 `quorum`、不配 `community` 端口、设置 `community.apply` 为缺省 `off` 时，服务层与账本的输出与 0.5.0 相同。
+- `presentWorkTags` 每行多 `quorum_text`。自己写词典的：多了 `communityState`、`verification`、`facet`、`annotationKind`、`communityIssue`、`exportIssue`、`ladderField` 七节和一组 `text` 模板——类型会指出哪些没写。
+- 自己实现外部源的：不受影响。想让读者贴 DOI 看名片的：`createOpenAlexClient().fetchWorkCard(parseWorkRef(input))`（三态，404 是 `not_found` 不是失败）。
+
 ### 从 0.4 到 0.5
 
 - 只有加法：引用边可以带 `purpose`（`EvidenceCitationPurpose`；新常量 `EVIDENCE_CITATION_FUNCTIONS`、`EVIDENCE_CITATION_DECLARERS`）、
@@ -415,3 +423,33 @@ export const openalex = createOpenAlexClient({ apiKey: () => process.env.OPENALE
 - `EvidenceCaveat` 从 dimensions.ts 挪进了契约，从 `scholar-meta` 主入口导入不受影响。
 - 信天翁级现在真的要求精确 p（`effect.p_value`）；汇总另要求同一结局方向与同一研究设计。
 - 其余都是加法：可选字段、联合成员、新入口。
+
+## 9. 接社区标注导出（可选，0.6.0）
+
+公开的标注平台把裁决发成一份静态导出（清单 + 作品分片，CC0）。宿主**自己**拉文件、校 sha256、缓存、定时刷新（失败保留上一份——失败不等于空），
+引擎只负责验形与装配，不拉文件、不认识任何平台：
+
+```ts
+import { readCommunityExport, createCommunityPorts, mergeWorkTagSources } from 'scholar-meta'
+import { createEvidenceService } from 'scholar-meta/service'
+
+const parsed = readCommunityExport(manifestJson, shardJsons)          // 契约主次版本对不上 ⇒ ok: false；坏条目逐条报在 issues，不抛
+if (parsed.ok) {
+  const community = createCommunityPorts(parsed.value, { tagStates: 'present_only', minVerification: 'double' })
+  service = createEvidenceService({
+    onsite, bindings,
+    workTags: mergeWorkTagSources([hostLedger, community.workTags]),   // 宿主账本优先（先到先得）
+    community: community.articles,                                     // 设置 community.apply = tags_and_records 时社区记录进图谱
+    settings,
+  })
+}
+```
+
+| 设置 | 缺省 | 含义 |
+|---|---|---|
+| `community.apply` | `off` | `tags_only`：只把社区标签并进账本（宿主用 `mergeWorkTagSources`）；`tags_and_records`：社区记录也进标签级与主题级图谱，与外部示例同一篇时留社区记录 |
+| `community.minVerification` | `double` | 社区抄的数字至少要第二个人盲复录一致才进记录（传给 `createCommunityPorts`） |
+| `community.tagStates` | `present_only` | 只把「有」交给账本合并——merge 模式下任何非「有」的结论都会去掉作者原标签 |
+
+规则：pending 不是立场，不进统计；`reviewed` 只有编辑层核验的行才为 true，`independence_verified` 只由编辑层的独立性断言置 true——社区抄录本身不出汇总菱形；
+记录带 `source: 'community'`、`data_provenance`（谁抄的、几人复核、从哪抄）与导出清单里的许可，脚注分开印。文章页可以放一条到平台页面的深链让读者去标注，不需要别的接口。

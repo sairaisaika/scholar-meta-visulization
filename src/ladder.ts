@@ -26,6 +26,7 @@
 
 import type {
   EvidenceDowngradeReason,
+  EvidenceLadderGap,
   EvidencePooledEstimate,
   EvidencePooling,
   EvidencePoolingSensitivity,
@@ -173,4 +174,52 @@ function poolCore(records: readonly EvidenceRecord[]): EvidencePooling {
 /** 视图阶梯与契约常量同源自查（给测试用，也给未来加视图的人一个即时反馈）。 */
 export function viewLadderMatchesContract(): boolean {
   return EVIDENCE_VIEWS.map((v) => v.kind).join(',') === EVIDENCE_VIEW_LADDER.join(',')
+}
+
+// ── 到下一级还差什么（0.6.0）────────────────────────────────────────────────────────
+// 给标注者看的钩子：不改判据，只把 `EVIDENCE_VIEWS` 各级「要求什么」反过来数——「再有几条带哪个字段的记录就能到上一级」。
+
+/** 各级缺的字段：按记录逐个看它离这一级的要求还差哪个字段（一条记录只记第一个缺的） */
+const MISSING_FIELD: Record<Exclude<EvidenceViewKind, 'gap_map'>, (r: EvidenceRecord) => 'direction' | 'n' | 'p_value' | 'value' | 'ci' | null> = {
+  direction: (r) => (hasDirection(r) ? null : 'direction'),
+  albatross: (r) => (!hasDirection(r) ? 'direction' : !hasN(r) ? 'n' : !hasExactP(r) ? 'p_value' : null),
+  estimates: (r) => (hasEffect(r) ? null : 'value'),
+  forest: (r) => (!hasEffect(r) ? 'value' : hasVariance(r) ? null : 'ci'),
+}
+
+/**
+ * 当前这批记录能画到哪一级、加上一条草稿能到哪一级、到再上一级还差几条带什么字段的记录；汇总那一句另算
+ * （`assessPooling` 的判定与到 5 项还差几项——分面闸、独立性、审核不在这里，页面要另外说）。
+ */
+export function describeLadderGap(records: readonly EvidenceRecord[], draft?: EvidenceRecord | null): EvidenceLadderGap {
+  const current = pickEvidenceView(records).kind
+  const withDraft = draft ? [...records, draft] : records
+  const reached = draft ? pickEvidenceView(withDraft).kind : null
+  const from = reached ?? current
+  const i = EVIDENCE_VIEW_LADDER.indexOf(from)
+  const next = i > 0 ? EVIDENCE_VIEW_LADDER[i - 1] : null
+  const missing: EvidenceLadderGap['missing'] = []
+  if (next) {
+    const spec = EVIDENCE_VIEWS.find((v) => v.kind === next)!
+    const usable = withDraft.filter(spec.accepts).length
+    const need = Math.max(spec.minRecords, 1) - usable
+    if (need > 0) {
+      // 离这一级最近的几条差什么：没有任何记录时，缺的就是这一级的第一个字段
+      const probe = MISSING_FIELD[next as Exclude<EvidenceViewKind, 'gap_map'>]
+      const fields = withDraft.map(probe).filter((f): f is NonNullable<typeof f> => f !== null)
+      const counts = new Map<NonNullable<ReturnType<typeof probe>>, number>()
+      for (const f of fields) counts.set(f, (counts.get(f) ?? 0) + 1)
+      const first = next === 'direction' ? 'direction' : next === 'albatross' ? 'direction' : next === 'estimates' ? 'value' : 'ci'
+      const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? first
+      missing.push({ field: top, count: need })
+    }
+  }
+  const pooling = withDraft.some(hasEffect) ? assessPooling(withDraft) : null
+  return {
+    current,
+    with_draft: reached,
+    next,
+    missing,
+    pooling: pooling ? { allowed: pooling.allowed, reason: pooling.reason, studies: pooling.studies, need: Math.max(0, MIN_STUDIES_FOR_POOLING - pooling.studies) } : null,
+  }
 }

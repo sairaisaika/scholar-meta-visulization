@@ -30,5 +30,6 @@ Scholar Meta 把论文标签、可追溯的标签裁决、主题绑定与研究�
 [工程研究与下一阶段计划](Engineering-research-2026-10.md) · [开发 TODO](TODO.md)
 
 - [多结局与复合指标](Outcome-synthesis.md)
+- [标签模型：一条标注怎样变成一张图](Tagging-model.md) · [社区标注平台：GitHub 当数据库，引擎当裁判](Community-annotation.md)
 - [文刊功能交接（给网站会话）](Publication-integration-handoff.md)
 - [OpenAlex当前合约](OpenAlex-contract-2026-10.md)

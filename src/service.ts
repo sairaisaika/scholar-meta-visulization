@@ -36,7 +36,7 @@ import {
 } from './onsite'
 import type { IntakeResult, TagGraphOptions } from './onsite'
 import { wilsonInterval } from './stats'
-import { fnv1a, sampleDois } from './doi'
+import { fnv1a, normalizeDoi, sampleDois } from './doi'
 import { createMemoryCache, EXTERNAL_LEVELS } from './ports'
 import { defaultSettings, isLiveSettings, settingsReader } from './settings'
 import { applyWorkTags } from './ledger'
@@ -85,6 +85,13 @@ export interface EvidenceServiceOptions {
    * 取不到 ⇒ `certainty: null`（UI 说「这次没取到」）。不给 ⇒ 不下发这个字段。
    */
   certainty?: CertaintySource | null
+  /**
+   * 可选：公开社区标注平台的导出（0.6.0），装成站内文章端口的同形实现（`createCommunityPorts(...).articles`）。
+   * 设置 `community.apply` 为 `tags_and_records` 时，社区作品作为 `source: 'community'` 的记录并进标签级与主题级图谱
+   * （同一套验形与阶梯；与外部示例同一篇时留社区记录、丢外部示例）；`tags_only` / `off` 时服务层不动它——
+   * 社区标签并进账本由宿主用 `mergeWorkTagSources` 自己做。计数层与共现图不收社区记录。
+   */
+  community?: (OnsiteArticleSource & { label?: string; license?: string }) | null
   cache?: EvidenceCache | null
   /** 站内文章在脚注里的来源名（宿主的站名 / 栏目名） */
   onsiteLabel?: string
@@ -211,6 +218,7 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       graph: { minSupport: eff['graph.minSupport'], maxNodes: eff['graph.maxNodes'] },
       ledgerApply: eff['ledger.apply'],
       reviewGate: eff['onsite.reviewGate'],
+      communityApply: eff['community.apply'],
     }
   }
   type Cfg = ReturnType<typeof toCfg>
@@ -277,6 +285,37 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       if (ledger.disputed) tagCaveats.push('disputed_tags_excluded')
     }
     return { records, references: out.references, purposes: out.purposes, tagCaveats, pending }
+  }
+  /**
+   * 社区记录（0.6.0）：接了社区端口且设置为 `tags_and_records` 才取；同一套验形，`source: 'community'`。
+   * 端口抛错 ⇒ 抛给 guard（这次 unavailable，不拿一半数据凑图）。
+   */
+  async function communityRecords(c: Cfg, tagKeys: readonly string[]): Promise<EvidenceRecord[]> {
+    const src = opts.community
+    if (!src || c.communityApply !== 'tags_and_records' || tagKeys.length === 0) return []
+    const rows = await src.listArticles({ tagKeys })
+    const out = intakeArticles(Array.isArray(rows) ? rows : [], {
+      source: 'community', source_label: src.label ?? 'Community annotations', license: src.license ?? 'CC0-1.0', retrieved_at: now().toISOString(),
+    })
+    if (out.issues.length > 0) log('[evidence.community] intake issues', { articles: out.issues.length })
+    const want = new Set(tagKeys)
+    return out.records.filter((r) => recordTagKeys(r).some((k) => want.has(k)))
+  }
+  /** 外部示例里与社区记录同一篇的（DOI 或 OpenAlex 编号相同）丢掉：同一篇只出现一次，社区记录带着人抄的字段，信息更多 */
+  const dedupeExternal = (external: readonly EvidenceRecord[], community: readonly EvidenceRecord[]): EvidenceRecord[] => {
+    if (community.length === 0) return [...external]
+    // DOI 两边都归一（入库存的是 doi.org 链接形式，外部源给的也是）；OpenAlex 编号按作品键比
+    const keys = new Set<string>()
+    for (const r of community) {
+      const d = normalizeDoi(r.doi)
+      if (d) keys.add(`doi:${d}`)
+      const m = /^community:(openalex:w\d+)/i.exec(r.id)
+      if (m) keys.add(m[1]!.toLowerCase())
+    }
+    return external.filter((r) => {
+      const d = normalizeDoi(r.doi)
+      return !(d && keys.has(`doi:${d}`)) && !keys.has(r.id.toLowerCase())
+    })
   }
   /** 开了审阅门槛才下发「还有几篇在等」 */
   const pendingField = <K extends string>(key: K, pending: number | undefined) =>
@@ -388,7 +427,8 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
       if (binding?.topic_id) {
         siblings = ((await curatedKeysForTopic(binding.topic_id)) ?? []).filter((k) => k !== key).map((k) => tagNode(k, k, binding!.topic_id, null))
       }
-      const records = [...onsite, ...external]
+      const community = await communityRecords(c, [key])
+      const records = [...onsite, ...community, ...dedupeExternal(external, community)]
       const certainty = await certaintyFor(opts.certainty, { level: 'tag', id: key })
       return ok<EvidenceMapData>({
         level: 'tag',
@@ -438,7 +478,8 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
             .sort((x, y) => (y.works_count ?? 0) - (x.works_count ?? 0) || (x.external_id < y.external_id ? -1 : x.external_id > y.external_id ? 1 : 0))
         }
       }
-      const records = [...onsite, ...(s ?? [])]
+      const community = await communityRecords(c, keys)
+      const records = [...onsite, ...community, ...dedupeExternal(s ?? [], community)]
       const certainty = await certaintyFor(opts.certainty, { level, id: topicId })
       return ok<EvidenceMapData>({
         level,

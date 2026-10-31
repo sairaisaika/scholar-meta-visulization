@@ -43,7 +43,7 @@
  * （宿主往往把它原样展示给读者，好让人复打核对）；这把 key 同时是 openalex.org 账号的登录凭据。
  */
 
-import type { EvidenceRecord, EvidenceTagBindingConfidence, EvidenceTopic, EvidenceScaleLevel, EvidenceVenue } from './types'
+import type { EvidenceRecord, EvidenceTagBindingConfidence, EvidenceTopic, EvidenceScaleLevel, EvidenceVenue, EvidenceWorkCard, EvidenceWorkRef } from './types'
 import { scopeFilter } from './dimensions'
 import type { ExternalEvidenceSource, ExternalTopicCandidate } from './ports'
 import { fetchEvidenceCounts } from './openalex-counts'
@@ -104,7 +104,8 @@ export function isFreeOpenAlexPath(path: string): boolean {
   return path.startsWith('/autocomplete/') || /^\/topics\/T\d+$/.test(path)
 }
 
-type GetJson = (path: string) => Promise<{ json: unknown; credits: number } | null>
+/** `allow404`：把 404 当「查到了、没有这篇」交给调用方（`json: null, status: 404`），不当失败；其余非 2xx 仍是 null */
+type GetJson = (path: string, attempt?: number, allow404?: boolean) => Promise<{ json: unknown; credits: number; status?: number } | null>
 interface Ctx { getJson: GetJson; log: NonNullable<OpenAlexOptions['log']> }
 
 interface RawNamed { id?: unknown; display_name?: unknown }
@@ -441,6 +442,117 @@ function venueOf(location: unknown): EvidenceVenue | null {
   }
 }
 
+// ── 单篇作品与标题搜索（0.6.0，社区打标签的入口）────────────────────────────────────────
+// 用户贴一个 DOI / W 编号 / PMID，取这一篇的「名片」（`/works/doi:…`、`/works/W…`、`/works/pmid:…`，单实体 0 credit）；
+// 只有标题或认不出编号的链接时，用 `/autocomplete/works?q=…`（**0 credit**，不走 10 credits 的 search）列候选让用户挑。
+
+/** 单篇作品查询的三态：`found` 找到了 · `not_found` 问到了、没有这篇（404）· `error` 这次没问成（不是「没有」）。 */
+export type WorkCardResolution =
+  | { kind: 'found'; card: EvidenceWorkCard }
+  | { kind: 'not_found' }
+  | { kind: 'error' }
+
+/** 名片要的列（单实体也支持 `select`）。`abstract_inverted_index` 还原成摘要给标注者读，不从里面抽数。 */
+const WORK_CARD_SELECT = 'id,doi,ids,title,publication_year,type,authorships,primary_location,open_access,topics,keywords,mesh,cited_by_count,language,abstract_inverted_index,is_retracted'
+const ABSTRACT_MAX = 1500
+
+/** OpenAlex 的倒排索引 → 摘要原文（按位置排序拼回），超长截断；形状不对 ⇒ null。 */
+function abstractOf(inverted: unknown): string | null {
+  if (!inverted || typeof inverted !== 'object') return null
+  const slots: string[] = []
+  for (const [word, positions] of Object.entries(inverted as Record<string, unknown>)) {
+    if (!Array.isArray(positions)) continue
+    for (const p of positions) if (typeof p === 'number' && p >= 0 && p < 5000) slots[p] = word
+  }
+  const text = slots.filter((w) => typeof w === 'string').join(' ').trim()
+  if (!text) return null
+  return text.length > ABSTRACT_MAX ? `${text.slice(0, ABSTRACT_MAX - 1)}…` : text
+}
+
+const stringList = (v: unknown, pick: (x: Record<string, unknown>) => unknown, max: number): string[] =>
+  (Array.isArray(v) ? v : [])
+    .map((x) => (x && typeof x === 'object' ? pick(x as Record<string, unknown>) : null))
+    .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    .map((s) => s.trim())
+    .slice(0, max)
+
+/** 一个作品响应（OpenAlex 的 work 对象）→ 名片；缺 id 或标题 ⇒ null（当形状不对）。顶层导出：标注平台的 Action 与浏览器页都用它。 */
+export function workCardOf(raw: unknown): EvidenceWorkCard | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const id = shortId(typeof r.id === 'string' ? r.id : null)
+  const title = typeof r.title === 'string' && r.title.trim() ? r.title.trim() : null
+  if (!id || !title) return null
+  const ids = (r.ids && typeof r.ids === 'object' ? r.ids : {}) as Record<string, unknown>
+  const pmidRaw = typeof ids.pmid === 'string' ? ids.pmid : null
+  const pmid = pmidRaw ? (/(\d{1,9})\/?$/.exec(pmidRaw)?.[1] ?? null) : null
+  const oa = (r.open_access && typeof r.open_access === 'object' ? r.open_access : {}) as Record<string, unknown>
+  return {
+    id: `openalex:${id}`,
+    doi: normalizeDoi(typeof r.doi === 'string' ? r.doi : null),
+    pmid,
+    title,
+    year: typeof r.publication_year === 'number' ? r.publication_year : null,
+    authors: stringList(r.authorships, (a) => (a.author as { display_name?: unknown } | undefined)?.display_name, 8),
+    venue: venueOf(r.primary_location),
+    publication_type: typeof r.type === 'string' ? r.type : null,
+    topics: (Array.isArray(r.topics) ? r.topics : []).map(named).filter((t): t is { id: string; name: string } => t !== null)
+      .slice(0, 5).map((t) => ({ id: `openalex:${t.id}`, display_name: t.name })),
+    keywords: stringList(r.keywords, (k) => k.display_name, 10),
+    mesh: [...new Set(stringList(r.mesh, (m) => m.descriptor_name, 30))],
+    abstract: abstractOf(r.abstract_inverted_index),
+    language: typeof r.language === 'string' ? r.language : null,
+    cited_by_count: typeof r.cited_by_count === 'number' ? r.cited_by_count : null,
+    is_open_access: typeof oa.is_oa === 'boolean' ? oa.is_oa : null,
+    oa_url: safeHttpUrl(oa.oa_url),
+    is_retracted: r.is_retracted === true,
+  }
+}
+
+/** 单篇作品的名片。只认 DOI / OpenAlex / PMID 三种引用；链接与标题不是一篇确定的论文，直接 `not_found`（先用 `autocompleteWorks` 挑）。 */
+async function fetchWorkCard({ getJson }: Ctx, ref: EvidenceWorkRef): Promise<WorkCardResolution> {
+  const path = ref.kind === 'doi' ? `/works/doi:${encodeURIComponent(ref.value)}`
+    : ref.kind === 'openalex' && /^W\d+$/.test(ref.value) ? `/works/${ref.value}`
+    : ref.kind === 'pmid' && /^\d{1,9}$/.test(ref.value) ? `/works/pmid:${ref.value}`
+    : null
+  if (!path) return { kind: 'not_found' }
+  const out = await getJson(`${path}?select=${WORK_CARD_SELECT}`, 0, true)
+  if (!out) return { kind: 'error' }
+  if (out.status === 404) return { kind: 'not_found' }
+  const card = workCardOf(out.json)
+  return card ? { kind: 'found', card } : { kind: 'error' }
+}
+
+/** 标题搜索的一条候选（自动补全给的几列；`hint` 是作者串）。 */
+export interface OpenAlexWorkHit { id: string; title: string; hint: string | null; doi: string | null; year: number | null; cited_by_count: number | null }
+
+/** 按标题（或任何文字）找作品：`/autocomplete/works`，0 credit；最多 10 条。问不成 ⇒ null；问到了没有 ⇒ `[]`。 */
+async function autocompleteWorks({ getJson }: Ctx, q: string, limit = 10): Promise<OpenAlexWorkHit[] | null> {
+  const text = q.trim().replace(/\s+/g, ' ').slice(0, 300)
+  if (!text) return []
+  const out = await getJson(`/autocomplete/works?q=${encodeURIComponent(text)}`)
+  if (!out) return null
+  const results = (out.json as { results?: unknown }).results
+  if (!Array.isArray(results)) return null
+  const hits: OpenAlexWorkHit[] = []
+  for (const raw of results) {
+    if (!raw || typeof raw !== 'object') continue
+    const r = raw as Record<string, unknown>
+    const id = shortId(typeof r.id === 'string' ? r.id : null)
+    if (!id || !/^W\d+$/.test(id) || typeof r.display_name !== 'string') continue
+    hits.push({
+      id: `openalex:${id}`,
+      title: r.display_name,
+      hint: typeof r.hint === 'string' && r.hint.trim() ? r.hint.trim() : null,
+      doi: normalizeDoi(typeof r.external_id === 'string' ? r.external_id : null),
+      year: typeof r.publication_year === 'number' ? r.publication_year : null,
+      cited_by_count: typeof r.cited_by_count === 'number' ? r.cited_by_count : null,
+    })
+    if (hits.length >= Math.min(Math.max(limit, 1), 10)) break
+  }
+  return hits
+}
+
 // ── 全量计数 ────────────────────────────────────────────────────────────────
 // 一次 group_by 与「被引最高 25 篇」同样 1 credit，给的却是全量分布——系统的主粒度从此是**格子**。
 // 实测要点（2026-09-23 本机真打）：
@@ -557,7 +669,7 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
     return spent
   }
 
-  const getJson = async (path: string, attempt = 0): Promise<{ json: unknown; credits: number } | null> => {
+  const getJson: GetJson = async (path, attempt = 0, allow404 = false) => {
     const budget = (await provided())['external.dailyCreditBudget']
       ?? (typeof opts.dailyCreditBudget === 'function' ? opts.dailyCreditBudget() : opts.dailyCreditBudget)
     if (budget !== undefined && !isFreeOpenAlexPath(path) && spentToday() >= budget) {
@@ -599,8 +711,9 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
         }
         clearTimeout(timer)
         await sleep(wait)
-        return getJson(path, attempt + 1)
+        return getJson(path, attempt + 1, allow404)
       }
+      if (res.status === 404 && allow404) return { json: null, credits, status: 404 }
       if (!res.ok) {
         log('[evidence.openalex] non-ok', { path, status: res.status, attempt })
         return null
@@ -630,6 +743,10 @@ export function createOpenAlexClient(opts: OpenAlexOptions = {}, settings?: Sett
     fetchWorksForNode: async (level: OpenAlexLevel, externalId: string, limit?: number) => fetchWorksForNode(ctx, level, externalId, await worksLimit(limit)),
     suggestTopicsForTag: (tag: string, limit?: number) => suggestTopicsForTag(ctx, tag, limit),
     fetchPrimaryTopicsForDois: (dois: readonly string[]) => fetchPrimaryTopicsForDois(ctx, dois),
+    /** 单篇作品的名片（0.6.0；DOI / W 编号 / PMID，单实体 0 credit；三态） */
+    fetchWorkCard: (ref: EvidenceWorkRef) => fetchWorkCard(ctx, ref),
+    /** 按标题找作品（0.6.0；自动补全 0 credit） */
+    autocompleteWorks: (q: string, limit?: number) => autocompleteWorks(ctx, q, limit),
     /** 今天（UTC）已经花掉的 credit（本实例内） */
     creditsSpentToday: () => spentToday(),
     groupByWorks: (filter: string, groupBy: string) => groupByWorks(ctx, filter, groupBy),

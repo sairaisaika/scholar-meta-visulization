@@ -17,6 +17,12 @@ import {
   presentArticleContext, presentCitations, presentEvidenceMap, presentNodeChildren, presentRecordFacets, presentRiskOfBiasSummary, presentView, presentWorks,
 } from '../src/present'
 import { poolRandomEffects, wilsonInterval } from '../src/stats'
+import { createCommunityPorts, readCommunityExport, resolveAnnotations, DEFAULT_COMMUNITY_POLICY } from '../src/community'
+import { describeLadderGap } from '../src/ladder'
+import { buildSynthesisTable, previewFrameChange, summarizeFrames } from '../src/synthesis'
+import { presentCommunityDecision, presentCommunityWork, presentFrameChange, presentLadderGap } from '../src/present'
+import type { EvidenceAnnotation, EvidenceCommunityExport, EvidenceTagActor } from '../src/types'
+import { EVIDENCE_CONTRACT_VERSION } from '../src/types'
 import { createEvidenceService } from '../src/service'
 import { createMemoryBindingStore, createMemoryCertaintySource, createMemoryOnsiteSource } from '../src/ports'
 import type { ExternalEvidenceSource } from '../src/ports'
@@ -274,5 +280,61 @@ describe('行为回归快照', () => {
       kinds: presentWorks(map.data, { locale }).map((w) => [w.id, w.kind_text]),
     })
     expect(stable({ edges: map.data.edges, zh: views('zh'), en: views('en') })).toMatchSnapshot()
+  })
+
+  it('社区标注（0.6.0）：固定的一批断言 → 裁决（比例、挑战、盲复录、分面单选）；导出读回 → 端口 → 记录、阶梯差距、frame 变化与中英文案', () => {
+    const W = 'doi:10.1000/community.1'
+    const p = (id: string, tier: EvidenceTagActor['tier']): EvidenceTagActor => ({ kind: 'person', id, tier })
+    const [c1, c2, c3, ed] = [p('gh:1', 'contributor'), p('gh:2', 'contributor'), p('gh:3', 'contributor'), p('gh:9', 'editor')]
+    let n = 0
+    const a = (by: EvidenceTagActor, kind: EvidenceAnnotation['kind'], op: EvidenceAnnotation['op'], subject: string, payload: EvidenceAnnotation['payload']): EvidenceAnnotation =>
+      ({ id: `a_${++n}`, at: `2026-10-${String(10 + n).padStart(2, '0')}T00:00:00Z`, work_id: W, kind, op, subject, by, payload, note: null, source: { issue: n }, supersedes: null })
+    const row = { kind: 'row' as const, context: { row_id: 'o1', outcome: 'Insomnia severity', comparison: 'CBT-I vs waitlist', population: 'adults', timepoint: '8 weeks', unit: 'ISI points', analysis: 'unadjusted', kind: 'continuous' as const, locator: 'Table 2' },
+      effect: { metric: 'md' as const, value: -5.2, ci_low: -7.1, ci_high: -3.3, n: 120, p_value: 0.0001, higher_is_better: false }, direction: null }
+    const annotations = [
+      a(c1, 'tag', 'add', 'tag:insomnia', { kind: 'tag', tag: 'Insomnia' }), a(c2, 'review', 'endorse', 'tag:insomnia', { kind: 'review', reason: null }),
+      a(c3, 'review', 'dispute', 'tag:insomnia', { kind: 'review', reason: 'This is about sleep apnoea' }),
+      a(c1, 'tag', 'add', 'tag:cbt-i', { kind: 'tag', tag: 'CBT-I' }),
+      a(c1, 'facet', 'add', 'facet:design', { kind: 'facet', facet: 'design', value: 'rct', locator: 'Methods' }),
+      a(c2, 'facet', 'add', 'facet:design', { kind: 'facet', facet: 'design', value: 'rct', locator: 'Abstract' }),
+      a(c3, 'facet', 'add', 'facet:design', { kind: 'facet', facet: 'design', value: 'non_randomised_controlled', locator: 'Methods' }),
+      a(c1, 'row', 'add', 'row:o1', row),
+      a(c2, 'review', 'endorse', 'row:o1', { kind: 'review', reason: null, re_extraction: { effect: { ...row.effect, value: -5.21 }, direction: null }, peeked: false }),
+      a(ed, 'independence', 'set', 'row:o1', { kind: 'independence', study_id: 'isrctn:1', dependence_id: 'isrctn:1', independence_verified: true, note: null }),
+      a(c1, 'tag', 'add', 'tag:sleep', { kind: 'tag', tag: 'Sleep' }), a(ed, 'review', 'dispute', 'tag:sleep', { kind: 'review', reason: 'too broad' }),
+    ]
+    const decisions = resolveAnnotations(annotations)
+    const byKey = Object.fromEntries(decisions.map((d) => [d.subject, d]))
+    const rowDecision = byKey['row:o1']!
+    const work = {
+      work_id: W, aliases: [], card: { id: null, doi: '10.1000/community.1', pmid: null, title: 'CBT-I for adult insomnia: a randomised trial', year: 2021, authors: ['A. Author', 'B. Author'], venue: null, publication_type: 'article', topics: [], keywords: ['Insomnia'], mesh: [], abstract: null, language: 'en', cited_by_count: 12, is_open_access: true, oa_url: 'https://example.org/oa.pdf', is_retracted: false },
+      tags: [
+        { tag_key: 'insomnia', label: 'Insomnia', state: 'present', decided_by: 'contributor', support: byKey['tag:insomnia']!.support, last_changed: byKey['tag:insomnia']!.last_changed, request_id: null, quorum: byKey['tag:insomnia']!.quorum },
+        { tag_key: 'sleep', label: 'Sleep', state: 'absent', decided_by: 'editor', support: byKey['tag:sleep']!.support, last_changed: byKey['tag:sleep']!.last_changed, request_id: null },
+      ],
+      pending: [{ subject: 'tag:cbt-i', decision: byKey['tag:cbt-i']! }],
+      facets: { design: { value: 'rct', decision: byKey['facet:design']!, locators: ['Methods', 'Abstract'] } },
+      rows: [{ row_id: 'o1', input: row, decision: rowDecision }],
+      unsure: 0, updated_at: AT,
+    }
+    const manifest = {
+      contract: EVIDENCE_CONTRACT_VERSION, export_version: 1, generated_at: AT, source_commit: 'fixed', label: 'Community annotations', license: 'CC0-1.0', repository: 'https://example.org/repo',
+      policy: DEFAULT_COMMUNITY_POLICY, facet_vocab: { design: { values: ['rct'], maps_to: 'study_type', locator_required: true } }, concepts_version: '1', maintainers: [], shards: [],
+      counts: { works: 1, assertions: annotations.length, contributors: 3, accepted: 3, pending: 1, disputed: 0, frames: 1 },
+    }
+    const read = readCommunityExport(manifest, [[work]])
+    if (!read.ok) throw new Error('export unreadable')
+    const ports = createCommunityPorts(read.value)
+    const { records, contexts, issues } = ports.records()
+    const table = buildSynthesisTable(records, contexts)
+    const frames = summarizeFrames(table, { tagsOf: () => ['insomnia'] })
+    const gap = describeLadderGap([], records[0] ?? null)
+    expect(stable({
+      decisions, issues, records, frames,
+      change: previewFrameChange([], frames),
+      gap,
+      zh: { work: presentCommunityWork(read.value.works[0]!, { locale: 'zh' }), gap: presentLadderGap(gap, { usable: 0, total: 0 }, { locale: 'zh' }), change: presentFrameChange(previewFrameChange([], frames), { locale: 'zh' }) },
+      en: { decisions: decisions.map((d) => presentCommunityDecision(d, { locale: 'en' })), gap: presentLadderGap(gap, { usable: 0, total: 0 }, { locale: 'en' }) },
+    })).toMatchSnapshot()
   })
 })

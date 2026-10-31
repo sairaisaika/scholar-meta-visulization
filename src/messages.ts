@@ -15,6 +15,7 @@ import type {
   EvidenceChangeRequestStatus, EvidenceContributionIssueCode, EvidenceLedgerRefusal, EvidencePluginSecretKey, EvidenceTrustTier,
   EvidenceWorkTagState, EvidenceRobTool, EvidenceRobJudgement, EvidenceCertaintyLevel, EvidenceCertaintyDowngrade, EvidenceCertaintyUpgrade,
   EvidenceCitationDeclarer, EvidenceCitationFunction,
+  EvidenceCommunityState, EvidenceVerification, EvidenceFacetId, EvidenceAnnotationKind, EvidenceCommunityIssue, EvidenceCommunityExportIssueCode,
 } from './types'
 import type { ShareReliability } from './stats'
 import type { EvidenceRobBand } from './appraisal'
@@ -108,6 +109,41 @@ export interface EvidenceMessageTemplates {
   ctx_none: string
   ctx_scope_note: string
   ctx_citations_note: string
+  /** 社区标注（0.6.0）：名片、比例裁决、复录、阶梯差距、frame 变化 */
+  card_meta: string
+  card_type: string
+  card_type_hint: string
+  card_retracted: string
+  card_cited: string
+  card_topics: string
+  card_keywords: string
+  card_mesh: string
+  community_decided: string
+  community_quorum: string
+  community_quorum_none: string
+  community_challenged: string
+  community_pending_hint: string
+  community_verification: string
+  community_re_extractions: string
+  community_reasons: string
+  facet_value: string
+  row_summary: string
+  row_no_effect: string
+  ladder_current: string
+  ladder_with_draft: string
+  ladder_next: string
+  ladder_missing: string
+  ladder_top: string
+  ladder_pooling_need: string
+  ladder_pooling_blocked: string
+  ladder_pooling_ok: string
+  frame_title: string
+  frame_count: string
+  frame_blockers: string
+  frame_none: string
+  frame_new: string
+  frame_changed: string
+  frame_unchanged: string
 }
 
 export interface EvidenceMessageCatalog {
@@ -170,6 +206,14 @@ export interface EvidenceMessageCatalog {
   studyDesignMeaning: Record<EvidenceStudyDesign, string>
   /** 出版物形态的白话（外部源的原文是开放词表：这里没有的不给说明；0.5.0） */
   publicationTypeMeaning: Record<string, string>
+  /** 社区标注（0.6.0）：裁决状态、复录档、分面、断言种类、裁决问题、导出读取问题、阶梯差的字段、来源名 */
+  communityState: Record<EvidenceCommunityState, string>
+  verification: Record<EvidenceVerification, string>
+  facet: Record<EvidenceFacetId, string>
+  annotationKind: Record<EvidenceAnnotationKind, string>
+  communityIssue: Record<EvidenceCommunityIssue, string>
+  exportIssue: Record<EvidenceCommunityExportIssueCode, string>
+  ladderField: Record<'direction' | 'n' | 'p_value' | 'value' | 'ci', string>
   text: EvidenceMessageTemplates
 }
 
@@ -281,6 +325,9 @@ const zh: EvidenceMessageCatalog = {
     model_decided_tags: '有些标签是模型打的、还没有人确认过；人工审核之后数字可能会变。',
     disputed_tags_excluded: '审核意见不一致的标签暂不计入，定下来之后再算。',
     primary_location_only: '期刊按主要发表位置算：同一篇的预印本、机构库版本不另算；能免费读的版本可能在别处。',
+    community_annotated: '这些字段来自公开的社区标注（多人按支持比例与置信区间裁决），未经本站编辑核验。',
+    single_extraction: '这个数值只有一人抄录、还没有第二个人独立复录。',
+    community_pending_excluded: '有些社区标注的支持还不够，暂不计入。',
   },
   external: {
     matched: '已对应到外部文献库的主题。',
@@ -405,8 +452,20 @@ const zh: EvidenceMessageCatalog = {
       label: '账本结论怎么用到统计上', help: '只有「有」计入统计；有争议的一律先不计入。服务接了账本才起作用。',
       options: { merge: '合并：作者的标签按账本增删', ledger_only: '只用账本的结论', off: '不用（只看作者的标签）' },
     },
+    'community.apply': {
+      label: '社区标注导出怎么用', help: '接了社区标注导出才起作用。只有「有」（accepted / confirmed）的标签与核验过的数字会进统计；pending 的一律先不计入。',
+      options: { off: '不用', tags_only: '只把社区标签并进账本', tags_and_records: '社区记录也进标签级与主题级图谱' },
+    },
+    'community.minVerification': {
+      label: '社区数字至少要哪一档核验', help: '抄错一位比没有更糟：缺省要第二个人盲复录一致（double）。编辑层提出或认可的算 editor。',
+      options: { single: '一人抄录即可', double: '另一人盲复录一致', editor: '编辑层核验' },
+    },
+    'community.tagStates': {
+      label: '社区的「没有」「有争议」要不要一起用', help: '缺省只下发「有」：账本合并时任何非「有」的结论都会去掉作者自己打的标签，一张社区反对票不该有这种效力。',
+      options: { present_only: '只用「有」', with_negative: '连「没有」「有争议」一起用' },
+    },
   },
-  settingGroup: { binding: '标签绑定', external: '外部文献库', cache: '缓存', onsite: '站内文章', graph: '共现图', http: '公开读口', ledger: '标签账本' },
+  settingGroup: { binding: '标签绑定', external: '外部文献库', cache: '缓存', onsite: '站内文章', graph: '共现图', http: '公开读口', ledger: '标签账本', community: '社区标注' },
   settingIssue: {
     not_an_object: '设置不是一个对象，全部用缺省值。',
     unknown_key: '当前版本不认识这个设置（可能来自更新的版本），已忽略；升级后会自动生效。',
@@ -506,6 +565,22 @@ const zh: EvidenceMessageCatalog = {
     other: '其他设计：它能回答什么，要看原文的方法部分。',
   },
   publicationTypeMeaning: PUBLICATION_TYPE_MEANINGS_ZH,
+  communityState: {
+    confirmed: '有（编辑确认）', removed: '没有（编辑确认）', accepted: '有（社区认可）', rejected: '没有（社区否决）',
+    disputed: '有争议（不计入，等审核）', pending: '待定（支持还不够，不计入）',
+  },
+  verification: { single: '一人抄录', double: '两人独立一致', editor: '编辑核验' },
+  facet: { outcome: '结局', population: '人群', intervention: '干预', comparison: '比较', timepoint: '时点' },
+  annotationKind: { tag: '标签', facet: '分面', row: '结果行', review: '评议', binding: '主题绑定', independence: '独立性', appraisal: '偏倚评估' },
+  communityIssue: {
+    missing_locator: '没写原文出处，先不计入', competing_value: '同一处有两个不同的数值，先都不计入', extraction_conflict: '复录的数值与原抄录不一致',
+    needs_re_extraction: '还差一次独立复录', insufficient_tier: '层级不够，不能做这种断言',
+  },
+  exportIssue: {
+    not_an_object: '不是对象', contract_mismatch: '契约版本对不上（只接受同一主次版本）', bad_manifest: '清单形状不对', bad_work: '作品条目形状不对',
+    bad_state: '裁决状态认不出', abstract_not_allowed: '导出里不许带摘要', duplicate_work: '同一作品出现两次', too_many_works: '作品太多', bad_binding: '绑定形状不对', bad_concept: '概念形状不对',
+  },
+  ladderField: { direction: '方向', n: '样本量', p_value: '精确 p 值', value: '点估计', ci: '95% 区间' },
   text: {
     footnote: '来源：{source}（{license}），取数于 {date}',
     query: '查询：{query}',
@@ -586,6 +661,40 @@ const zh: EvidenceMessageCatalog = {
     ctx_none: '这一批里没有和它有引用关系的作品。',
     ctx_scope_note: '只看这一批里的引用：不在这里的文章引用了它、或被它引用，都没有算进来。',
     ctx_citations_note: '被引次数衡量的是关注度，不是研究质量；它随时间累积，发表早的天然多。',
+    card_meta: '{year} · {authors}',
+    card_type: '文献类型：{type}',
+    card_type_hint: '这是出版物形态，不是研究设计——是不是随机试验要读原文的方法部分。',
+    card_retracted: '已撤稿：不进任何统计。',
+    card_cited: '被引 {n} 次（衡量关注度，不是质量）',
+    card_topics: '文献库分的主题：{list}',
+    card_keywords: '文献库的关键词：{list}',
+    card_mesh: 'MeSH 主题词：{list}',
+    community_decided: '{state}，由{tier}定',
+    community_quorum: '{add} 人说有、{remove} 人说没有（{n} 人计票）：支持 {share}，{confidence} 区间 {low}–{high}，门槛 {threshold}',
+    community_quorum_none: '还没有人计票',
+    community_challenged: '另有 {n} 人反对，人数未达计票门槛，已列入维护者队列',
+    community_pending_hint: '你这条入库后先是「待定」：要再有人认可（数字要盲复录一致）或编辑确认，才计入统计。',
+    community_verification: '核验：{verification}',
+    community_re_extractions: '独立复录一致：{n} 人',
+    community_reasons: '不认可的理由：{list}',
+    facet_value: '{facet} ＝ {value}',
+    row_summary: '{outcome} · {comparison} · {timepoint}：{metric} {value}{interval}{n}（{locator}）',
+    row_no_effect: '{outcome} · {comparison} · {timepoint}：只有方向（{direction}），没有数值（{locator}）',
+    ladder_current: '现在能画到：{view}（{usable} / {total} 条可用）',
+    ladder_with_draft: '加上这篇（计入后）：{view}',
+    ladder_next: '再往上一级是{view}：',
+    ladder_missing: '还差 {count} 条带{field}的记录',
+    ladder_top: '已经是最高一级。',
+    ladder_pooling_need: '要出汇总菱形，同一度量、带区间的研究还差 {need} 项（现在 {studies} 项）；之后还要过同结局、同比较、独立性与审核这几道闸。',
+    ladder_pooling_blocked: '现在不能汇总：{reason}',
+    ladder_pooling_ok: '数值条件已满足（{studies} 项）；汇总还要过同结局、同比较、独立性与审核这几道闸。',
+    frame_title: '{outcome} · {comparison} · {timepoint}（{design} · {metric}）',
+    frame_count: '{works} 篇作品 · {studies} 项研究 · {records} 条结果',
+    frame_blockers: '不能汇总：{list}',
+    frame_none: '还没有能并框的结果行。',
+    frame_new: '新 frame：{title}——{view}',
+    frame_changed: '{title}：{before} → {after}（{what}）',
+    frame_unchanged: '{title}：不变（{view}）',
   },
 }
 
@@ -650,6 +759,9 @@ const en: EvidenceMessageCatalog = {
     model_decided_tags: 'Some tags were assigned by a model and not yet confirmed by a person; counts may change after review.',
     disputed_tags_excluded: 'Tags that reviewers disagree on are left out until the disagreement is settled.',
     primary_location_only: 'Journals are counted by primary location: preprints and repository copies of the same work are not counted separately, and the free version may be hosted elsewhere.',
+    community_annotated: 'These fields come from public community annotation (decided by share of support with a confidence interval), not verified by this site’s editors.',
+    single_extraction: 'This value was transcribed by one person and has not yet been independently re-extracted.',
+    community_pending_excluded: 'Some community annotations do not yet have enough support and are left out.',
   },
   external: {
     matched: 'Matched to a topic in the external literature database.',
@@ -775,8 +887,20 @@ const en: EvidenceMessageCatalog = {
       label: 'How ledger decisions reach the counts', help: 'Only present tags are counted; disputed tags are always left out. Takes effect only when the service has a ledger.',
       options: { merge: 'Merge: add and remove author tags per the ledger', ledger_only: 'Use ledger decisions only', off: 'Off (author tags only)' },
     },
+    'community.apply': {
+      label: 'How the community annotation export is used', help: 'Takes effect only when a community export is connected. Only present tags (accepted / confirmed) and verified numbers are counted; pending annotations are always left out.',
+      options: { off: 'Off', tags_only: 'Merge community tags into the ledger only', tags_and_records: 'Community records also join tag- and topic-level maps' },
+    },
+    'community.minVerification': {
+      label: 'Minimum verification for community numbers', help: 'A misread digit is worse than no number: by default a second person must blindly re-extract the same values (double). Rows proposed or endorsed by editors count as editor.',
+      options: { single: 'One transcription is enough', double: 'A second blind re-extraction agrees', editor: 'Editor-tier verification' },
+    },
+    'community.tagStates': {
+      label: 'Also use community “absent” and “disputed”', help: 'By default only “present” is passed on: when the ledger merges, any non-present decision removes the author’s own tag, and a single community objection should not have that power.',
+      options: { present_only: 'Present only', with_negative: 'Include absent and disputed' },
+    },
   },
-  settingGroup: { binding: 'Tag binding', external: 'External index', cache: 'Cache', onsite: 'On-site articles', graph: 'Tag graph', http: 'Public API', ledger: 'Tag ledger' },
+  settingGroup: { binding: 'Tag binding', external: 'External index', cache: 'Cache', onsite: 'On-site articles', graph: 'Tag graph', http: 'Public API', ledger: 'Tag ledger', community: 'Community annotation' },
   settingIssue: {
     not_an_object: 'Settings are not an object; all defaults are used.',
     unknown_key: 'This version does not know this setting (it may come from a newer version); ignored until you upgrade.',
@@ -877,6 +1001,22 @@ const en: EvidenceMessageCatalog = {
     other: 'Another design: see its methods section for what it can answer.',
   },
   publicationTypeMeaning: PUBLICATION_TYPE_MEANINGS_EN,
+  communityState: {
+    confirmed: 'Present (editor confirmed)', removed: 'Absent (editor confirmed)', accepted: 'Present (community accepted)', rejected: 'Absent (community rejected)',
+    disputed: 'Disputed (left out until reviewed)', pending: 'Pending (not enough support yet; left out)',
+  },
+  verification: { single: 'Single transcription', double: 'Two independent agree', editor: 'Editor verified' },
+  facet: { outcome: 'Outcome', population: 'Population', intervention: 'Intervention', comparison: 'Comparison', timepoint: 'Timepoint' },
+  annotationKind: { tag: 'Tag', facet: 'Facet', row: 'Result row', review: 'Review', binding: 'Topic binding', independence: 'Independence', appraisal: 'Risk of bias' },
+  communityIssue: {
+    missing_locator: 'No source location given; left out for now', competing_value: 'Two different values for the same slot; both left out', extraction_conflict: 'Re-extracted values differ from the original',
+    needs_re_extraction: 'One independent re-extraction still needed', insufficient_tier: 'Tier too low for this kind of assertion',
+  },
+  exportIssue: {
+    not_an_object: 'Not an object', contract_mismatch: 'Contract version mismatch (same major.minor required)', bad_manifest: 'Malformed manifest', bad_work: 'Malformed work entry',
+    bad_state: 'Unknown decision state', abstract_not_allowed: 'Abstracts are not allowed in the export', duplicate_work: 'Work listed twice', too_many_works: 'Too many works', bad_binding: 'Malformed binding', bad_concept: 'Malformed concept',
+  },
+  ladderField: { direction: 'direction', n: 'sample size', p_value: 'exact p-value', value: 'point estimate', ci: '95% interval' },
   text: {
     footnote: 'Source: {source} ({license}), retrieved {date}',
     query: 'Query: {query}',
@@ -957,6 +1097,40 @@ const en: EvidenceMessageCatalog = {
     ctx_none: 'No work in this batch cites it or is cited by it.',
     ctx_scope_note: 'Only citations within this batch are shown; links to works not listed here are not counted.',
     ctx_citations_note: 'Citation counts measure attention, not quality, and build up over time, so older works naturally have more.',
+    card_meta: '{year} · {authors}',
+    card_type: 'Publication type: {type}',
+    card_type_hint: 'This is the publication type, not the study design — whether it is a randomised trial is in the methods section.',
+    card_retracted: 'Retracted: excluded from all counts.',
+    card_cited: 'Cited {n} times (a measure of attention, not quality)',
+    card_topics: 'Index topics: {list}',
+    card_keywords: 'Index keywords: {list}',
+    card_mesh: 'MeSH headings: {list}',
+    community_decided: '{state}, decided by {tier}',
+    community_quorum: '{add} say present, {remove} say absent ({n} counted): support {share}, {confidence} interval {low}–{high}, threshold {threshold}',
+    community_quorum_none: 'No votes counted yet',
+    community_challenged: '{n} more objected but below the counting threshold; queued for maintainers',
+    community_pending_hint: 'Your submission starts as “pending”: it is counted only after another person endorses it (numbers need a matching blind re-extraction) or an editor confirms it.',
+    community_verification: 'Verification: {verification}',
+    community_re_extractions: 'Independent re-extractions agreeing: {n}',
+    community_reasons: 'Reasons for disputing: {list}',
+    facet_value: '{facet} = {value}',
+    row_summary: '{outcome} · {comparison} · {timepoint}: {metric} {value}{interval}{n} ({locator})',
+    row_no_effect: '{outcome} · {comparison} · {timepoint}: direction only ({direction}), no numbers ({locator})',
+    ladder_current: 'Can currently show: {view} ({usable} / {total} usable)',
+    ladder_with_draft: 'With this paper (once counted): {view}',
+    ladder_next: 'The next level up is {view}:',
+    ladder_missing: '{count} more record(s) with a {field} needed',
+    ladder_top: 'Already at the highest level.',
+    ladder_pooling_need: 'For a summary diamond, {need} more studies with the same metric and an interval are needed ({studies} now); same outcome, same comparison, independence and review gates still apply.',
+    ladder_pooling_blocked: 'Pooling is not possible now: {reason}',
+    ladder_pooling_ok: 'Numeric conditions met ({studies} studies); pooling still has to pass the same-outcome, same-comparison, independence and review gates.',
+    frame_title: '{outcome} · {comparison} · {timepoint} ({design} · {metric})',
+    frame_count: '{works} works · {studies} studies · {records} results',
+    frame_blockers: 'Cannot pool: {list}',
+    frame_none: 'No result rows share a frame yet.',
+    frame_new: 'New frame: {title} — {view}',
+    frame_changed: '{title}: {before} → {after} ({what})',
+    frame_unchanged: '{title}: unchanged ({view})',
   },
 }
 

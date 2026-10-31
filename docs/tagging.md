@@ -212,6 +212,31 @@ return Response.json({ accepted: v.items.length, issues: presentContributionIssu
 | 大站 | 每次写账本后，把 `workTags(workId)` 的结果物化成一张表；服务的 `workTags` 端口读表，不必每次从断言日志重算 |
 | 审计 | 断言与申请都不删；模型断言带 `model_version`，申请带理由与审核说明 |
 
+## 9. 公开社区的比例裁决（0.6.0）
+
+宿主自己的账本里，编辑与贡献者都是认识的人：同级一致就生效、分歧就争议，够用。公开的标注平台（任何 GitHub 账号都能来）不一样——
+贡献者层人数不定、互不认识，于是这一层改按**比例**裁决，其余层级规则照旧：
+
+```ts
+import { assessQuorum, resolveWorkTags, DEFAULT_QUORUM_RULE } from 'scholar-meta'
+const tags = resolveWorkTags(assertions, { ...DEFAULT_LEDGER_POLICY, quorum: DEFAULT_QUORUM_RULE })
+```
+
+| 规则 | 做法 |
+|---|---|
+| 只在一层启用 | `quorum.tier`（缺省 contributor）；编辑 / 维护者层仍按「一致 / 分歧」 |
+| 支持比例 | k / n 的 Wilson 区间（两侧 `confidence`，缺省 0.8；下界 > 门槛等价于单侧 90%）整体高于门槛 0.5 ⇒ accepted；整体低于 ⇒ rejected；跨门槛且两边都有人 ⇒ disputed；其余 ⇒ pending |
+| 最少人数 | `min_independent`（缺省 2）：一个人说有只是 pending |
+| 挑战规则 | 反对人数少于 `min_disputers`（缺省 2）时反对票**不入 n**，只标 `challenged`——一个新账号不能把 2:0 的 accepted 打成 disputed |
+| pending | **不是账本立场**：`resolveWorkTags` 不输出它，`resolveWorkTagsWithPending` 单列给页面与任务板 |
+
+算例（z ≈ 1.2816）：1:0 → pending；2:0 → [0.549, 1] accepted；4:1 → [0.514, 0.938] accepted；1:1 → disputed；1:4 → [0.062, 0.486] rejected；7:3 → [0.497, 0.846] disputed。
+
+社区断言不只有标签：研究设计（分面）、从原文抄的一行数字（结果行）、对别人标注的认可 / 不认可。`resolveAnnotations` 对它们用同一套规则，再加三条：
+**结果行是整行原子**（认可必须带整行盲复录，容差内一致才算一票；不一致自动变成不认可）；行要 accepted 还得有第二个人独立复录一致（`verification: double`）或编辑层认可；
+没写原文出处的研究设计 / 数字最多到 pending。平台把裁决发成静态导出，宿主用 `readCommunityExport` + `createCommunityPorts` 装进端口（接入指南第 9 节）。
+设计全文见 Wiki：[标签模型](wiki/Tagging-model.md)、[社区标注平台](wiki/Community-annotation.md)。
+
 ## 函数一览
 
 | 角色 | 函数 |
@@ -221,4 +246,5 @@ return Response.json({ accepted: v.items.length, issues: presentContributionIssu
 | 裁决与规则 | `resolveWorkTags` · `checkAssertion` · `openChangeRequest` · `decideChangeRequest` · `withdrawChangeRequest` |
 | 门面与存储 | `createTagLedger` · `createMemoryTagLedgerStore` · `ledgerPolicyFromSettings` |
 | 用到统计上 | `applyWorkTags` · 服务选项 `workTags` |
+| 公开社区（0.6.0） | `assessQuorum` · `resolveWorkTagsWithPending` · `resolveAnnotations` · `matchReExtraction` · `reconcileRows` · `readCommunityExport` · `createCommunityPorts` · `mergeWorkTagSources` · `presentCommunityWork` |
 | 视图模型 | `presentTagSuggestions` · `presentWorkTags` · `presentChangeRequests` · `presentContributionIssues` |

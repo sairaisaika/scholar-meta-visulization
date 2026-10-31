@@ -19,11 +19,12 @@
  * 【门面】`createTagLedger`：作品 id 一律过 `normalizeWorkId`（同一篇论文只有一个键）；与自己现有立场相同的断言不重复写。
  */
 import type {
-  EvidenceCaveat, EvidenceChangeRequestStatus, EvidenceLedgerRefusal, EvidenceTagActor, EvidenceTagAssertion, EvidenceTagChangeRequest,
-  EvidenceTrustTier, EvidenceWorkTag,
+  EvidenceCaveat, EvidenceChangeRequestStatus, EvidenceLedgerRefusal, EvidenceQuorum, EvidenceQuorumRule, EvidenceTagActor, EvidenceTagAssertion,
+  EvidenceTagChangeRequest, EvidenceTrustTier, EvidenceWorkTag,
 } from './types'
 import { EVIDENCE_TRUST_TIERS } from './types'
 import { normalizeTag } from './tags'
+import { normalQuantile, wilsonInterval } from './stats'
 import { normalizeWorkId } from './tagging'
 import type { TagSuggestionView } from './tagging'
 
@@ -34,9 +35,53 @@ export interface LedgerPolicy {
   modelMinConfidence: number
   /** 审核修改申请的最低层级 */
   reviewTier: EvidenceTrustTier
+  /**
+   * 0.6.0：在某一层（缺省 contributor）改用**比例**裁决而不是「一致 / 分歧」——公开社区里这一层的人互不认识、人数不定。
+   * 不设 ⇒ 行为与 0.5.0 逐字相同。规则见 `assessQuorum`。
+   */
+  quorum?: EvidenceQuorumRule
 }
 
 export const DEFAULT_LEDGER_POLICY: LedgerPolicy = { tierOrder: EVIDENCE_TRUST_TIERS, modelMinConfidence: 0.5, reviewTier: 'editor' }
+
+/** 比例裁决的缺省参数：贡献者层、门槛 0.5、两侧 80%（下界 > 门槛 ≈ 单侧 90%）、至少 2 个独立账号、反对要 ≥ 2 人才计票。 */
+export const DEFAULT_QUORUM_RULE: EvidenceQuorumRule = { tier: 'contributor', threshold: 0.5, confidence: 0.8, min_independent: 2, min_disputers: 2 }
+
+export type QuorumState = 'accepted' | 'rejected' | 'disputed' | 'pending'
+
+/**
+ * 比例裁决：支持比例 k / n 的 Wilson 区间（两侧 `confidence`）整体高于门槛 ⇒ accepted；整体低于 ⇒ rejected；
+ * 跨门槛且两边都有人 ⇒ disputed；其余（人还太少）⇒ pending。
+ *   · `min_independent`：n 不到它，不可能 accepted / rejected；
+ *   · `min_disputers`：反对人数不到它，反对票**不入 n**，只记成「挑战者」（`challenged: true`，进维护者队列）——
+ *     不然一个新账号就能把 2:0 的 accepted 打成 disputed（2:1 的 80% 区间是 [0.321, 0.894]）；
+ *   · `unsure` 不入 n，只记数。
+ * 参数不合法（门槛不在 (0,1)、置信度不在 (0,1)、人数不是非负整数）按缺省值算，不抛错。
+ */
+export function assessQuorum(votes: { add: number; remove: number; unsure?: number }, rule: EvidenceQuorumRule = DEFAULT_QUORUM_RULE): { state: QuorumState; quorum: EvidenceQuorum } {
+  const threshold = rule.threshold > 0 && rule.threshold < 1 ? rule.threshold : DEFAULT_QUORUM_RULE.threshold
+  const confidence = rule.confidence > 0 && rule.confidence < 1 ? rule.confidence : DEFAULT_QUORUM_RULE.confidence
+  const minIndependent = Number.isInteger(rule.min_independent) && rule.min_independent >= 0 ? rule.min_independent : DEFAULT_QUORUM_RULE.min_independent
+  const minDisputers = Number.isInteger(rule.min_disputers) && rule.min_disputers >= 0 ? rule.min_disputers : DEFAULT_QUORUM_RULE.min_disputers
+  const add = Math.max(0, Math.floor(votes.add))
+  const rawRemove = Math.max(0, Math.floor(votes.remove))
+  const unsure = Math.max(0, Math.floor(votes.unsure ?? 0))
+  const challenged = rawRemove > 0 && rawRemove < minDisputers
+  const remove = challenged ? 0 : rawRemove
+  const n = add + remove
+  const z = normalQuantile(0.5 + confidence / 2)
+  const ci = n > 0 ? wilsonInterval(add, n, z) : null
+  const quorum: EvidenceQuorum = {
+    n, add, remove, unsure, challengers: challenged ? rawRemove : 0, challenged,
+    share: n > 0 ? add / n : null, ci_low: ci?.low ?? null, ci_high: ci?.high ?? null,
+    z, threshold, confidence, min_independent: minIndependent,
+  }
+  let state: QuorumState = 'pending'
+  if (ci && n >= minIndependent && ci.low > threshold) state = 'accepted'
+  else if (ci && n >= minIndependent && ci.high < threshold) state = 'rejected'
+  else if (add > 0 && remove > 0) state = 'disputed'
+  return { state, quorum }
+}
 
 const rankOf = (policy: LedgerPolicy) => {
   const order = new Map(policy.tierOrder.map((t, i) => [t, i]))
@@ -45,9 +90,16 @@ const rankOf = (policy: LedgerPolicy) => {
 const actorKey = (a: EvidenceTagActor) => `${a.kind}:${a.id}`
 const later = (a: EvidenceTagAssertion, b: EvidenceTagAssertion) => a.at > b.at || (a.at === b.at && a.id > b.id)
 
-/** 一篇论文的全部断言 → 每个标签的生效结论（按标签键排序）。 */
-export function resolveWorkTags(assertions: readonly EvidenceTagAssertion[], policy: LedgerPolicy = DEFAULT_LEDGER_POLICY): EvidenceWorkTag[] {
+/** 待定的标签：比例裁决还没到门槛，带着当前的票给页面与任务板看 */
+export interface PendingWorkTag extends Omit<EvidenceWorkTag, 'state'> { quorum: EvidenceQuorum }
+
+/**
+ * 一篇论文的全部断言 → 生效结论 + 待定标签（0.6.0）。待定的只在设了 `policy.quorum` 时才会有；
+ * 社区标注平台的导出用它把 pending 单列，宿主账本一般只用 `resolveWorkTags`。
+ */
+export function resolveWorkTagsWithPending(assertions: readonly EvidenceTagAssertion[], policy: LedgerPolicy = DEFAULT_LEDGER_POLICY): { tags: EvidenceWorkTag[]; pending: PendingWorkTag[] } {
   const rank = rankOf(policy)
+  const pending: PendingWorkTag[] = []
   const byTag = new Map<string, Map<string, EvidenceTagAssertion>>()
   for (const a of assertions) {
     const perActor = byTag.get(a.tag_key) ?? new Map<string, EvidenceTagAssertion>()
@@ -72,13 +124,27 @@ export function resolveWorkTags(assertions: readonly EvidenceTagAssertion[], pol
     const s = support[top]!
     // 这一级有经审核通过的立场 ⇒ 最近的那条说了算（审核就是这一级解决分歧的办法）；否则意见不一即争议
     const reviewed = stances.find((a) => a.by.tier === top && a.request_id !== null)
+    const label = (stances.find((a) => a.op === 'add') ?? stances[0]!).tag_label
+    const base = { tag_key, label, decided_by: top, support, last_changed: stances[0]!.at, request_id: reviewed?.request_id ?? null }
+    // 0.6.0：这一级按比例裁决（公开社区的贡献者层）——没有经审核的立场时才用；pending ＝ 账本没说，不出现在结论里
+    if (!reviewed && policy.quorum && top === policy.quorum.tier) {
+      const q = assessQuorum({ add: s.add, remove: s.remove }, policy.quorum)
+      if (q.state === 'pending') { pending.push({ ...base, quorum: q.quorum }); continue }
+      out.push({ ...base, state: q.state === 'accepted' ? 'present' : q.state === 'rejected' ? 'absent' : 'disputed', quorum: q.quorum })
+      continue
+    }
     const state = reviewed
       ? (reviewed.op === 'add' ? 'present' : 'absent')
       : s.add > 0 && s.remove > 0 ? 'disputed' : s.add > 0 ? 'present' : 'absent'
-    const label = (stances.find((a) => a.op === 'add') ?? stances[0]!).tag_label
-    out.push({ tag_key, label, state, decided_by: top, support, last_changed: stances[0]!.at, request_id: reviewed?.request_id ?? null })
+    out.push({ ...base, state })
   }
-  return out.sort((a, b) => (a.tag_key < b.tag_key ? -1 : 1))
+  const byKey = (a: { tag_key: string }, b: { tag_key: string }) => (a.tag_key < b.tag_key ? -1 : 1)
+  return { tags: out.sort(byKey), pending: pending.sort(byKey) }
+}
+
+/** 一篇论文的全部断言 → 每个标签的生效结论（按标签键排序）。比例裁决为 pending 的标签不在结果里（账本「没说」）。 */
+export function resolveWorkTags(assertions: readonly EvidenceTagAssertion[], policy: LedgerPolicy = DEFAULT_LEDGER_POLICY): EvidenceWorkTag[] {
+  return resolveWorkTagsWithPending(assertions, policy).tags
 }
 
 /**

@@ -6,7 +6,7 @@
  *   ④ REML τ² = 直接数值最大化限制似然（scipy.optimize）得到的值；HKSJ（q ≥ 1）区间、t(k−2) 预测区间、I²。
  */
 import {
-  wilsonInterval, shareReliability, studentTQuantile, studentTCdf, poolRandomEffects, tau2Reml, Z_95,
+  wilsonInterval, shareReliability, studentTQuantile, studentTCdf, poolRandomEffects, tau2Reml, normalQuantile, Z_95,
   MIN_N_FOR_SHARE,
 } from '../src/stats'
 
@@ -41,6 +41,22 @@ describe('比例可靠性', () => {
   it('n = 30、p = 0.5 时区间宽 0.337 ⇒ 标注；n = 120 ⇒ ok', () => {
     expect(shareReliability(15, 30)).toBe('wide_interval')
     expect(shareReliability(50, 120)).toBe('ok')
+  })
+})
+
+describe('标准正态分位数（scipy.stats.norm.ppf 参考值，scipy 1.17.1）', () => {
+  it.each([
+    [0.8, 0.8416212335729143], [0.9, 1.2815515655446004], [0.95, 1.6448536269514722], [0.975, 1.959963984540054],
+    [0.99, 2.3263478740408408], [0.995, 2.5758293035489004], [0.999, 3.090232306167813],
+    [0.0001, -3.7190164854556804], [0.02425, -1.972961051311885], [0.97575, 1.972961051311885],
+  ])('Φ⁻¹(%s)', (p, z) => close(normalQuantile(p), z, 5e-9))
+  it('对称；越界回 NaN；97.5% 分位数与 Z_95 一致', () => {
+    close(normalQuantile(0.3), -normalQuantile(0.7), 1e-12)
+    expect(normalQuantile(0.5)).toBe(0)
+    expect(normalQuantile(0)).toBeNaN()
+    expect(normalQuantile(1)).toBeNaN()
+    expect(normalQuantile(NaN)).toBeNaN()
+    close(normalQuantile(0.975), Z_95, 5e-9)
   })
 })
 

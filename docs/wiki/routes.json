@@ -1,2226 +1,2431 @@
 {
-  "schema_version": 2,
-  "project": "Scholar Meta SMV / SMT",
-  "routes": [
+ "schema_version": 2,
+ "project": "Scholar Meta SMV / SMT",
+ "routes": [
+  {
+   "id": "external-source",
+   "title": "外部文献源端口",
+   "aliases": [
+    "外部源端口",
+    "文献源",
+    "换数据源",
+    "新增数据源",
+    "ExternalEvidenceSource"
+   ],
+   "sources": [
     {
-      "id": "external-source",
-      "title": "外部文献源端口",
-      "aliases": [
-        "外部源端口",
-        "文献源",
-        "换数据源",
-        "新增数据源",
-        "ExternalEvidenceSource"
-      ],
-      "sources": [
-        {
-          "path": "src/ports.ts",
-          "needle": "export interface ExternalEvidenceSource",
-          "id": "s1",
-          "role": "declaration",
-          "reason": "export interface ExternalEvidenceSource"
-        },
-        {
-          "path": "src/openalex.ts",
-          "needle": "export function createOpenAlexSource",
-          "id": "s2",
-          "role": "implementation",
-          "reason": "export function createOpenAlexSource"
-        },
-        {
-          "path": "src/openalex-counts.ts",
-          "needle": "export async function fetchEvidenceCounts",
-          "id": "s3",
-          "role": "implementation",
-          "reason": "export async function fetchEvidenceCounts"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "s4",
-          "role": "implementation",
-          "reason": "export function createEvidenceService"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#external-source",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Provider-contract-matrix.md"
-      ],
-      "tests": [
-        "test/service.test.ts",
-        "test/openalex.test.ts",
-        "test/openalex-counts.test.ts",
-        "test/integration.test.ts",
-        "test/provider-contract.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/service.test.ts test/openalex.test.ts test/openalex-counts.test.ts test/integration.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "null failure is not an empty result; optional capabilities must degrade; mock tests do not verify a live provider.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "tag/limit 或 level/externalId/scope"
-        ],
-        "outputs": [
-          "候选主题、节点包、示例作品；可选 children/counts/topicsForDois"
-        ],
-        "errors": [
-          "null 是未取到；[] 是成功空；partial 是不完整"
-        ],
-        "failure_modes": {
-          "returned": [
-            "null 是未取到；[] 是成功空；partial 是不完整"
-          ],
-          "thrown": [
-            "自定义适配器可拒绝 Promise；不能从端口声明推断被捕获"
-          ],
-          "unsupported": [
-            "可选 counts 缺失时计数不可用；缺 children 时不带 children"
-          ]
-        },
-        "compatibility": "新增能力保持可选；不把外部 JSON 暴露成引擎契约"
-      },
-      "rules": [
-        {
-          "id": "external-source-invariant",
-          "statement": "外部失败不充当零研究；不完整节点包不写长缓存",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4"
-          ],
-          "tests": [
-            "test/service.test.ts",
-            "test/openalex.test.ts",
-            "test/openalex-counts.test.ts",
-            "test/integration.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "service 图谱/计数、guards、前端空态与图注"
-      ],
-      "unknowns": [
-        "真实 provider 连通性与自定义适配器异常需另验"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/ports.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
+     "path": "src/ports.ts",
+     "needle": "export interface ExternalEvidenceSource",
+     "id": "s1",
+     "role": "declaration",
+     "reason": "export interface ExternalEvidenceSource"
     },
     {
-      "id": "external-transport",
-      "title": "外部请求与预算",
-      "aliases": [
-        "外部请求",
-        "超时",
-        "重试",
-        "限流",
-        "预算",
-        "OpenAlexOptions"
-      ],
-      "sources": [
-        {
-          "path": "src/openalex.ts",
-          "needle": "export interface OpenAlexOptions",
-          "id": "s1",
-          "role": "declaration",
-          "reason": "export interface OpenAlexOptions"
-        },
-        {
-          "path": "src/openalex.ts",
-          "needle": "export function createOpenAlexClient",
-          "id": "s2",
-          "role": "implementation",
-          "reason": "export function createOpenAlexClient"
-        },
-        {
-          "path": "src/openalex.ts",
-          "needle": "export function isFreeOpenAlexPath",
-          "id": "s3",
-          "role": "implementation",
-          "reason": "export function isFreeOpenAlexPath"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        },
-        {
-          "id": "request",
-          "path": "src/openalex.ts",
-          "needle": "const getJson = async (path: string, attempt = 0)",
-          "role": "implementation",
-          "reason": "请求、预算、429 重试、计费和超时的内部接缝",
-          "edit_for": [
-            "请求、预算、429 重试、计费和超时的内部接缝"
-          ],
-          "visibility": "internal"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#external-transport",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md",
-        "docs/wiki/OpenAlex-contract-2026-10.md"
-      ],
-      "tests": [
-        "test/openalex.test.ts",
-        "test/openalex-counts.test.ts",
-        "test/settings.test.ts",
-        "test/openalex-paging.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/openalex.test.ts test/openalex-counts.test.ts test/settings.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Budget is per instance per UTC day; no implemented global budget or cancellation port is implied.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "OpenAlexOptions、请求路径、注入 fetch 和预算"
-        ],
-        "outputs": [
-          "JSON 适配后的主题/作品/计数或 null"
-        ],
-        "errors": [
-          "预算耗尽、非成功响应、网络/超时与坏 JSON 返回 null"
-        ],
-        "failure_modes": {
-          "returned": [
-            "预算耗尽、非成功响应、网络/超时与坏 JSON 返回 null"
-          ],
-          "thrown": [
-            "预算/密钥等宿主回调部分在请求 try 外；不承诺全部回调异常转换 null"
-          ],
-          "unsupported": [
-            "无全局硬预算、调用方取消端口或任意错误自动重试"
-          ]
-        },
-        "compatibility": "维持注入 fetch、密钥仅服务端和零运行时依赖"
-      },
-      "rules": [
-        {
-          "id": "external-transport-invariant",
-          "statement": "预算是实例内 UTC 日已记录消耗；仅 429 按上限重试",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3"
-          ],
-          "tests": [
-            "test/openalex.test.ts",
-            "test/openalex-counts.test.ts",
-            "test/settings.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "外部源、设置读取、缓存失败语义和宿主额度协调"
-      ],
-      "unknowns": [
-        "共享全局预算、真实429压力与复杂嵌套分组仍未保证"
-      ],
-      "reviewed_at": "2026-10-21",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/openalex.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
+     "path": "src/openalex.ts",
+     "needle": "export function createOpenAlexSource",
+     "id": "s2",
+     "role": "implementation",
+     "reason": "export function createOpenAlexSource"
     },
     {
-      "id": "host-ports",
-      "title": "宿主依赖与注入",
-      "aliases": [
-        "依赖接口",
-        "依赖注入",
-        "宿主端口",
-        "缓存接口",
-        "数据库接口"
-      ],
-      "sources": [
-        {
-          "path": "src/ports.ts",
-          "needle": "export interface OnsiteArticleSource",
-          "id": "s1",
-          "role": "declaration",
-          "reason": "export interface OnsiteArticleSource"
-        },
-        {
-          "path": "src/ports.ts",
-          "needle": "export interface TagBindingStore",
-          "id": "s2",
-          "role": "declaration",
-          "reason": "export interface TagBindingStore"
-        },
-        {
-          "path": "src/ports.ts",
-          "needle": "export interface EvidenceCache",
-          "id": "s3",
-          "role": "declaration",
-          "reason": "export interface EvidenceCache"
-        },
-        {
-          "path": "src/ports.ts",
-          "needle": "export interface WorkTagSource",
-          "id": "s4",
-          "role": "declaration",
-          "reason": "export interface WorkTagSource"
-        },
-        {
-          "path": "src/ports.ts",
-          "needle": "export interface CertaintySource",
-          "id": "s5",
-          "role": "declaration",
-          "reason": "export interface CertaintySource"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export interface EvidenceServiceOptions",
-          "id": "s6",
-          "role": "declaration",
-          "reason": "export interface EvidenceServiceOptions"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        },
-        {
-          "id": "factory",
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "role": "implementation",
-          "reason": "宿主端口的装配、缓存降级和读取实现"
-        },
-        {
-          "id": "cache-flow",
-          "path": "src/service.ts",
-          "needle": "async function cached<T>",
-          "role": "implementation",
-          "reason": "缓存命中、并发合并、null/partial 写回与异常降级",
-          "edit_for": [
-            "缓存命中、并发合并、null/partial 写回与异常降级"
-          ],
-          "visibility": "internal"
-        },
-        {
-          "id": "records",
-          "path": "src/service.ts",
-          "needle": "async function onsiteRecords(",
-          "role": "implementation",
-          "reason": "文章验形、账本应用、标签与审阅筛选顺序",
-          "edit_for": [
-            "文章验形、账本应用、标签与审阅筛选顺序"
-          ],
-          "visibility": "internal"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#host-ports",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md"
-      ],
-      "tests": [
-        "test/ports.test.ts",
-        "test/service.test.ts",
-        "test/sync.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/ports.test.ts test/service.test.ts test/sync.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Host persistence, authorization and transactions are not supplied by in-memory adapters.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "文章查询、绑定键、缓存键/TTL、作品键与评级范围"
-        ],
-        "outputs": [
-          "文章行、绑定、缓存值、账本结论与评级"
-        ],
-        "errors": [
-          "绑定 get 的 null 表示无绑定；cache undefined 表示 miss；评级 null 与 [] 区分"
-        ],
-        "failure_modes": {
-          "returned": [
-            "绑定 get 的 null 表示无绑定；cache undefined 表示 miss；评级 null 与 [] 区分"
-          ],
-          "thrown": [
-            "缓存 get/set 异常在 cached 中降级；文章/账本拒绝由上层路径处理"
-          ],
-          "unsupported": [
-            "不提供真实数据库、身份鉴权或多实例一致性"
-          ]
-        },
-        "compatibility": "优先由宿主替换实现；新增引擎能力才扩展端口"
-      },
-      "rules": [
-        {
-          "id": "host-ports-invariant",
-          "statement": "文章召回须包含账本新增标签；账本失败不能等于空账本",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4",
-            "s5",
-            "s6"
-          ],
-          "tests": [
-            "test/ports.test.ts",
-            "test/service.test.ts",
-            "test/sync.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "createEvidenceService、召回查询、缓存键/失效和宿主存储"
-      ],
-      "unknowns": [
-        "真实存储事务和宿主身份来源未验证"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/ports.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
+     "path": "src/openalex-counts.ts",
+     "needle": "export async function fetchEvidenceCounts",
+     "id": "s3",
+     "role": "implementation",
+     "reason": "export async function fetchEvidenceCounts"
     },
     {
-      "id": "public-api",
-      "title": "服务 HTTP 与客户端",
-      "aliases": [
-        "外部接口",
-        "公共接口",
-        "HTTP 错误",
-        "HTTP",
-        "SDK",
-        "客户端错误",
-        "读口"
-      ],
-      "sources": [
-        {
-          "path": "src/service.ts",
-          "needle": "export interface EvidenceService {",
-          "id": "s1",
-          "role": "declaration",
-          "reason": "export interface EvidenceService {"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export type ServiceResult<",
-          "id": "s2",
-          "role": "declaration",
-          "reason": "export type ServiceResult<"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export type ServiceError =",
-          "id": "s3",
-          "role": "declaration",
-          "reason": "export type ServiceError ="
-        },
-        {
-          "path": "src/http.ts",
-          "needle": "export function createEvidenceHandler",
-          "id": "s4",
-          "role": "implementation",
-          "reason": "export function createEvidenceHandler"
-        },
-        {
-          "path": "src/http.ts",
-          "needle": "export const EVIDENCE_ROUTES =",
-          "id": "s5",
-          "role": "implementation",
-          "reason": "export const EVIDENCE_ROUTES ="
-        },
-        {
-          "path": "src/client.ts",
-          "needle": "export function createEvidenceClient",
-          "id": "s6",
-          "role": "consumer",
-          "reason": "export function createEvidenceClient"
-        },
-        {
-          "path": "src/client.ts",
-          "needle": "export const EVIDENCE_CLIENT_ROUTES =",
-          "id": "s7",
-          "role": "implementation",
-          "reason": "export const EVIDENCE_CLIENT_ROUTES ="
-        },
-        {
-          "id": "sdk-request",
-          "path": "src/client.ts",
-          "needle": "const get = async <T>",
-          "role": "implementation",
-          "reason": "SDK请求、状态及验形失败返回null",
-          "edit_for": [
-            "SDK请求、状态及验形失败返回null"
-          ],
-          "visibility": "internal"
-        },
-        {
-          "id": "response",
-          "path": "src/http.ts",
-          "needle": "const done = <T>",
-          "role": "implementation",
-          "reason": "服务结果转换为HTTP状态、正文和缓存头",
-          "edit_for": [
-            "服务结果转换为HTTP状态、正文和缓存头"
-          ],
-          "visibility": "internal"
-        },
-        {
-          "id": "service-guard",
-          "path": "src/service.ts",
-          "needle": "const guard = async <T>",
-          "role": "implementation",
-          "reason": "服务方法异常转 unavailable",
-          "edit_for": [
-            "服务方法异常转 unavailable"
-          ],
-          "visibility": "internal"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#public-api",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md",
-        "docs/wiki/Client-diagnostics.md"
-      ],
-      "tests": [
-        "test/http.test.ts",
-        "test/integration.test.ts",
-        "test/features.test.ts",
-        "test/api-surface.test.ts",
-        "test/client-result.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "四个 GET/HEAD 读口参数和 EvidenceClientOptions"
-        ],
-        "outputs": [
-          "service 返回 ServiceResult；HTTP 返回数据/状态；旧 SDK data/null，新结果式工厂见 client-diagnostics"
-        ],
-        "errors": [
-          "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
-        ],
-        "failure_modes": {
-          "returned": [
-            "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
-          ],
-          "thrown": [
-            "业务分发异常由 handler catch 返回 500；设置读取另有 catch 回缺省；宿主 log 自身抛错可拒绝 Promise"
-          ],
-          "unsupported": [
-            "无编辑/账本写入路由或自动版本握手；SDK 不自动重试"
-          ]
-        },
-        "compatibility": "保留旧 SDK data/null；改错误模型同步服务、HTTP、guard 和消费端"
-      },
-      "rules": [
-        {
-          "id": "public-api-invariant",
-          "statement": "unavailable 与成功空结果必须分开；失败 HTTP no-store",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4",
-            "s5",
-            "s6",
-            "s7"
-          ],
-          "tests": [
-            "test/http.test.ts",
-            "test/integration.test.ts",
-            "test/features.test.ts",
-            "test/api-surface.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "HTTP 状态映射、客户端、guards、features、安装包链路"
-      ],
-      "unknowns": [
-        "真实宿主挂载、权限与公开缓存适用性未验证"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/service.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "s4",
+     "role": "implementation",
+     "reason": "export function createEvidenceService"
     },
     {
-      "id": "tag-normalization",
-      "title": "标签归一与主题绑定",
-      "aliases": [
-        "标签归一",
-        "标签接口",
-        "主题绑定",
-        "同义词",
-        "标签键"
-      ],
-      "sources": [
-        {
-          "path": "src/tags.ts",
-          "needle": "export function normalizeTag",
-          "id": "s1",
-          "role": "implementation",
-          "reason": "export function normalizeTag"
-        },
-        {
-          "path": "src/tags.ts",
-          "needle": "export function resolveTagBinding",
-          "id": "s2",
-          "role": "implementation",
-          "reason": "export function resolveTagBinding"
-        },
-        {
-          "path": "src/tags.ts",
-          "needle": "export function createCuratedBinding",
-          "id": "s3",
-          "role": "implementation",
-          "reason": "export function createCuratedBinding"
-        },
-        {
-          "path": "src/tags.ts",
-          "needle": "export const MACHINE_BINDING_POLICIES",
-          "id": "s4",
-          "role": "implementation",
-          "reason": "export const MACHINE_BINDING_POLICIES"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        },
-        {
-          "path": "src/tags.ts",
-          "needle": "export function normalizeTag",
-          "id": "contract",
-          "role": "declaration",
-          "reason": "函数公开签名或契约常量"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#tag-normalization",
-        "docs/wiki/Interface-improvement-plan.md"
-      ],
-      "tests": [
-        "test/tags.test.ts",
-        "test/service.test.ts",
-        "test/onsite.test.ts",
-        "test/regression.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/tags.test.ts test/service.test.ts test/onsite.test.ts test/regression.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Normalization is not semantic synonym merging; changing stored keys requires a migration plan.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "标签原文、编辑绑定、机器匹配与策略"
-        ],
-        "outputs": [
-          "归一键或 null、curated/rejected/machine 绑定结果"
-        ],
-        "errors": [
-          "非法标签归一 null；机器失败与 no_match 不同"
-        ],
-        "failure_modes": {
-          "returned": [
-            "非法标签归一 null；机器失败与 no_match 不同"
-          ],
-          "thrown": [
-            "纯函数不提供宿主 IO 异常处理；依赖执行路径另核对"
-          ],
-          "unsupported": [
-            "不翻译、不语义合并；无历史键自动迁移"
-          ]
-        },
-        "compatibility": "变归一规则必须设计历史键迁移和冲突策略"
-      },
-      "rules": [
-        {
-          "id": "tag-normalization-invariant",
-          "statement": "编辑确认或否决优先机器候选；机器出处保留未确认",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4",
-            "contract"
-          ],
-          "tests": [
-            "test/tags.test.ts",
-            "test/service.test.ts",
-            "test/onsite.test.ts",
-            "test/regression.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "查询索引、绑定、账本 tag_key、缓存、共现与历史断言"
-      ],
-      "unknowns": [
-        "历史存储迁移工具未实现"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/tags.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
-    },
-    {
-      "id": "tagger-contribution",
-      "title": "模型标签接口与贡献包",
-      "aliases": [
-        "模型接口",
-        "模型贡献",
-        "交换包",
-        "贡献包",
-        "EvidenceTagger"
-      ],
-      "sources": [
-        {
-          "path": "src/tagging.ts",
-          "needle": "export interface EvidenceTagger {",
-          "id": "s1",
-          "role": "declaration",
-          "reason": "export interface EvidenceTagger {"
-        },
-        {
-          "path": "src/tagging.ts",
-          "needle": "export async function runTagger",
-          "id": "s2",
-          "role": "implementation",
-          "reason": "export async function runTagger"
-        },
-        {
-          "path": "src/tagging.ts",
-          "needle": "export function validateTagContribution",
-          "id": "s3",
-          "role": "implementation",
-          "reason": "export function validateTagContribution"
-        },
-        {
-          "path": "src/tagging.ts",
-          "needle": "export function buildTagContribution",
-          "id": "s4",
-          "role": "implementation",
-          "reason": "export function buildTagContribution"
-        },
-        {
-          "path": "src/tagging.ts",
-          "needle": "export function normalizeWorkId",
-          "id": "s5",
-          "role": "implementation",
-          "reason": "export function normalizeWorkId"
-        },
-        {
-          "path": "src/ledger.ts",
-          "needle": "export function createTagLedger",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        },
-        {
-          "id": "sanitize",
-          "path": "src/tagging.ts",
-          "needle": "function sanitizeSuggestions(",
-          "role": "implementation",
-          "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则",
-          "edit_for": [
-            "模型与贡献包共用的清洗、门槛、去重、计数规则"
-          ],
-          "visibility": "internal"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#tagger-contribution",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md"
-      ],
-      "tests": [
-        "test/tagging.test.ts",
-        "test/sync.test.ts",
-        "test/api-surface.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/tagging.test.ts test/sync.test.ts test/api-surface.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Model suggestions are not resolved tags; contribution validation does not authenticate the sender.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "EvidenceTagger/input、词表、置信门槛、交换包"
-        ],
-        "outputs": [
-          "归一/去重后的建议与 dropped；贡献包与验形结果"
-        ],
-        "errors": [
-          "模型 null/抛错由 runTagger 返回 null；空 suggestions 成功"
-        ],
-        "failure_modes": {
-          "returned": [
-            "模型 null/抛错由 runTagger 返回 null；空 suggestions 成功"
-          ],
-          "thrown": [
-            "runTagger 仅捕获 tag(input) 的拒绝；后续清洗、vocabulary 或模型元数据 getter 的异常不在该 catch；账本存储异常另处理"
-          ],
-          "unsupported": [
-            "贡献包不认证身份；词表基线不代表第三方模型质量"
-          ]
-        },
-        "compatibility": "保留模型版本和贡献包版本；新增诊断需兼容旧包"
-      },
-      "rules": [
-        {
-          "id": "tagger-contribution-invariant",
-          "statement": "vocabulary null 是开放、[] 是禁用全部；null confidence 不因数值门槛被剔除",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4",
-            "s5"
-          ],
-          "tests": [
-            "test/tagging.test.ts",
-            "test/sync.test.ts",
-            "test/api-surface.test.ts"
-          ]
-        },
-        {
-          "id": "shared-sanitizer",
-          "statement": "runTagger 与 validateTagContribution 共用 sanitizeSuggestions；单次清洗丢弃计数与账本拒绝/unchanged 是不同阶段",
-          "source_ids": [
-            "s2",
-            "s3",
-            "sanitize"
-          ],
-          "tests": [
-            "test/tagging.test.ts",
-            "test/sync.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "贡献收包、submitSuggestions、裁决、有效标签与统计"
-      ],
-      "unknowns": [
-        "外部模型质量、身份与生产收包幂等未验证"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/tagging.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
-    },
-    {
-      "id": "ledger-policy",
-      "title": "标签裁决与审核规则",
-      "aliases": [
-        "接口规则",
-        "标签裁决",
-        "审核规则",
-        "信任层级",
-        "修改申请"
-      ],
-      "sources": [
-        {
-          "path": "src/ledger.ts",
-          "needle": "export interface LedgerPolicy",
-          "id": "s1",
-          "role": "declaration",
-          "reason": "export interface LedgerPolicy"
-        },
-        {
-          "path": "src/ledger.ts",
-          "needle": "export function resolveWorkTags",
-          "id": "s2",
-          "role": "implementation",
-          "reason": "export function resolveWorkTags"
-        },
-        {
-          "path": "src/ledger.ts",
-          "needle": "export function checkAssertion",
-          "id": "s3",
-          "role": "implementation",
-          "reason": "export function checkAssertion"
-        },
-        {
-          "path": "src/ledger.ts",
-          "needle": "export function decideChangeRequest",
-          "id": "s4",
-          "role": "implementation",
-          "reason": "export function decideChangeRequest"
-        },
-        {
-          "path": "src/ledger.ts",
-          "needle": "export interface TagLedgerStore",
-          "id": "s5",
-          "role": "declaration",
-          "reason": "export interface TagLedgerStore"
-        },
-        {
-          "path": "src/ledger.ts",
-          "needle": "export function createTagLedger",
-          "id": "s6",
-          "role": "implementation",
-          "reason": "export function createTagLedger"
-        },
-        {
-          "path": "src/ledger.ts",
-          "needle": "export function createTagLedger",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        },
-        {
-          "id": "write",
-          "path": "src/ledger.ts",
-          "needle": "const write = async (",
-          "role": "implementation",
-          "reason": "断言写入拒绝、unchanged、同次最后立场和 append",
-          "edit_for": [
-            "断言写入拒绝、unchanged、同次最后立场和 append"
-          ],
-          "visibility": "internal"
-        },
-        {
-          "id": "decide-write",
-          "path": "src/ledger.ts",
-          "needle": "async decide(requestId: string",
-          "role": "implementation",
-          "reason": "审核门面 append 后 putRequest 的非原子边界",
-          "edit_for": [
-            "审核门面 append 后 putRequest 的非原子边界"
-          ],
-          "visibility": "public"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#ledger-policy",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md"
-      ],
-      "tests": [
-        "test/sync.test.ts",
-        "test/tagging.test.ts",
-        "test/settings.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/sync.test.ts test/tagging.test.ts test/settings.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Policy changes can alter historical effective results; concurrency guarantees require host storage review.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "断言列表、LedgerPolicy、修改申请、审核/撤回身份"
-        ],
-        "outputs": [
-          "present/absent/disputed；允许或 refusal；申请及审核断言"
-        ],
-        "errors": [
-          "needs_change_request、not_open、self_review、insufficient_tier 等拒绝"
-        ],
-        "failure_modes": {
-          "returned": [
-            "needs_change_request、not_open、self_review、insufficient_tier 等拒绝"
-          ],
-          "thrown": [
-            "纯规则返回 refusal；createTagLedger 存储拒绝可向调用者传播"
-          ],
-          "unsupported": [
-            "无账号认证、跨 append/putRequest 事务或并发防重保证"
-          ]
-        },
-        "compatibility": "策略变动可重算历史结果；需变更说明和行为快照"
-      },
-      "rules": [
-        {
-          "id": "ledger-policy-invariant",
-          "statement": "每人最新立场→门槛→最高有效层；同层审核结论优先；禁止自审",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4",
-            "s5",
-            "s6"
-          ],
-          "tests": [
-            "test/sync.test.ts",
-            "test/tagging.test.ts",
-            "test/settings.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "审核后台、存储、applyWorkTags、历史统计与缓存"
-      ],
-      "unknowns": [
-        "先 append 后 putRequest 的部分成功与并发恢复由宿主设计"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/ledger.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
-    },
-    {
-      "id": "ledger-integration",
-      "title": "账本应用与标签召回",
-      "aliases": [
-        "标签漏项",
-        "标签计数",
-        "争议排除",
-        "账本应用",
-        "审阅门槛"
-      ],
-      "sources": [
-        {
-          "path": "src/ledger.ts",
-          "needle": "export function applyWorkTags",
-          "id": "s1",
-          "role": "implementation",
-          "reason": "export function applyWorkTags"
-        },
-        {
-          "path": "src/ports.ts",
-          "needle": "export interface WorkTagSource",
-          "id": "s2",
-          "role": "declaration",
-          "reason": "export interface WorkTagSource"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "s3",
-          "role": "implementation",
-          "reason": "export function createEvidenceService"
-        },
-        {
-          "path": "src/onsite.ts",
-          "needle": "export function applyReviewGate",
-          "id": "s4",
-          "role": "implementation",
-          "reason": "export function applyReviewGate"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "async function onsiteRecords(",
-          "id": "s5",
-          "role": "implementation",
-          "reason": "async function onsiteRecords("
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#ledger-integration",
-        "docs/wiki/Interface-improvement-plan.md"
-      ],
-      "tests": [
-        "test/sync.test.ts",
-        "test/service.test.ts",
-        "test/onsite.test.ts",
-        "test/integration.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/sync.test.ts test/service.test.ts test/onsite.test.ts test/integration.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Queries must include ledger-added tags; unavailable ledger cannot be treated as an empty ledger.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "文章行、WorkTagSource 决策、merge/ledger_only/off 与 reviewGate"
-        ],
-        "outputs": [
-          "生效 records、pending、争议/模型图注与计数"
-        ],
-        "errors": [
-          "端口不可用不能回退原始标签冒充账本成功"
-        ],
-        "failure_modes": {
-          "returned": [
-            "端口不可用不能回退原始标签冒充账本成功"
-          ],
-          "thrown": [
-            "onsiteRecords 的文章/账本读取可拒绝；上层服务方法处理错误"
-          ],
-          "unsupported": [
-            "无法补回被宿主查询漏掉的仅账本新增文章"
-          ]
-        },
-        "compatibility": "保留先账本应用后标签筛选再审阅门槛的顺序"
-      },
-      "rules": [
-        {
-          "id": "ledger-integration-invariant",
-          "statement": "absent/disputed 不计入；merge 仅保留未裁决的原标签",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4",
-            "s5"
-          ],
-          "tests": [
-            "test/sync.test.ts",
-            "test/service.test.ts",
-            "test/onsite.test.ts",
-            "test/integration.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "文章召回、图谱、计数、审阅资格及缓存失效"
-      ],
-      "unknowns": [
-        "跨实例失效和资格撤销后的重算由宿主负责"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/ledger.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
-    },
-    {
-      "id": "settings-contract",
-      "title": "设置接口与默认值",
-      "aliases": [
-        "配置接口",
-        "默认值",
-        "热更新",
-        "设置接口"
-      ],
-      "sources": [
-        {
-          "path": "src/settings.ts",
-          "needle": "export const EVIDENCE_SETTINGS:",
-          "id": "s1",
-          "role": "implementation",
-          "reason": "export const EVIDENCE_SETTINGS:"
-        },
-        {
-          "path": "src/settings.ts",
-          "needle": "export function validateSettings",
-          "id": "s2",
-          "role": "implementation",
-          "reason": "export function validateSettings"
-        },
-        {
-          "path": "src/settings.ts",
-          "needle": "export function createLiveSettings",
-          "id": "s3",
-          "role": "implementation",
-          "reason": "export function createLiveSettings"
-        },
-        {
-          "path": "src/settings.ts",
-          "needle": "export function ledgerPolicyFromSettings",
-          "id": "s4",
-          "role": "implementation",
-          "reason": "export function ledgerPolicyFromSettings"
-        },
-        {
-          "path": "src/settings.ts",
-          "needle": "export function settingsReader",
-          "id": "s5",
-          "role": "implementation",
-          "reason": "export function settingsReader"
-        },
-        {
-          "path": "src/manifest.ts",
-          "needle": "export function buildPluginManifest",
-          "id": "s6",
-          "role": "implementation",
-          "reason": "export function buildPluginManifest"
-        },
-        {
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "id": "consumer",
-          "role": "consumer",
-          "reason": "本路由的下游消费/装配位置"
-        },
-        {
-          "path": "src/settings.ts",
-          "needle": "export const EVIDENCE_SETTINGS:",
-          "id": "contract",
-          "role": "declaration",
-          "reason": "函数公开签名或契约常量"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#settings-contract",
-        "docs/wiki/Interface-improvement-plan.md"
-      ],
-      "tests": [
-        "test/settings.test.ts",
-        "test/features.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/settings.test.ts test/features.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Live synchronous reads may use the previous value; registry existence does not prove a host UI is installed.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "静态对象、同步读取函数或 LiveSettings"
-        ],
-        "outputs": [
-          "ValidatedSettings 与合并后的当前设置"
-        ],
-        "errors": [
-          "非法/未知键进入 issues；live provider 失败保留最近值"
-        ],
-        "failure_modes": {
-          "returned": [
-            "非法/未知键进入 issues；live provider 失败保留最近值"
-          ],
-          "thrown": [
-            "普通设置函数异常回缺省；自定义 LiveSettings/日志回调不保证永不抛错"
-          ],
-          "unsupported": [
-            "无主动推送、UI 或定时轮询；过期按调用触发刷新"
-          ]
-        },
-        "compatibility": "后台已提供键 > 代码选项 > 注册表缺省；同步 peek 可旧值"
-      },
-      "rules": [
-        {
-          "id": "settings-contract-invariant",
-          "statement": "createLiveSettings 合并并发读取；get/refresh 异步、peek 同步；TTL 默认 10000 ms",
-          "source_ids": [
-            "s1",
-            "s2",
-            "s3",
-            "s4",
-            "s5",
-            "s6",
-            "contract"
-          ],
-          "tests": [
-            "test/settings.test.ts",
-            "test/features.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "服务配置、外部预算、ledgerPolicyFromSettings 与 manifest"
-      ],
-      "unknowns": [
-        "真实后台刷新/多实例一致性未验证"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/settings.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
-    },
-    {
-      "id": "compatibility",
-      "title": "契约与包导出兼容",
-      "aliases": [
-        "兼容性",
-        "包导出",
-        "版本规则",
-        "破坏性变更",
-        "接口兼容",
-        "接口规则"
-      ],
-      "sources": [
-        {
-          "path": "src/types.ts",
-          "needle": "export const EVIDENCE_CONTRACT_VERSION",
-          "id": "s1",
-          "role": "implementation",
-          "reason": "export const EVIDENCE_CONTRACT_VERSION"
-        },
-        {
-          "path": "src/features.ts",
-          "needle": "export const EVIDENCE_FEATURES",
-          "id": "s2",
-          "role": "implementation",
-          "reason": "export const EVIDENCE_FEATURES"
-        },
-        {
-          "id": "consumer",
-          "role": "consumer",
-          "path": "test/api-surface.test.ts",
-          "needle": "const ENTRIES: Record<string, string>",
-          "reason": "五入口运行时导出快照的实际消费清单"
-        },
-        {
-          "path": "src/types.ts",
-          "needle": "export const EVIDENCE_CONTRACT_VERSION",
-          "id": "contract",
-          "role": "declaration",
-          "reason": "函数公开签名或契约常量"
-        },
-        {
-          "id": "exports",
-          "path": "src/index.ts",
-          "needle": "export * from './types'",
-          "role": "implementation",
-          "reason": "根入口导出清单；子入口另核对 package exports",
-          "edit_for": [
-            "根入口导出清单；子入口另核对 package exports"
-          ],
-          "visibility": "public"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Interface-map.md#compatibility",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Interface-change-playbook.md"
-      ],
-      "tests": [
-        "test/api-surface.test.ts",
-        "test/regression.test.ts",
-        "test/features.test.ts",
-        "test/contract-tables.test.ts",
-        "test/release.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/api-surface.test.ts test/regression.test.ts test/features.test.ts test/contract-tables.test.ts test/release.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "Export snapshots cover runtime names, not all TypeScript compatibility; proposals are not shipped APIs.",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "类型契约、五入口导出与功能登记"
-        ],
-        "outputs": [
-          "版本常量、运行时导出、类型消费者和行为快照"
-        ],
-        "errors": [
-          "类型/导出/行为漂移由相应检查失败报告"
-        ],
-        "failure_modes": {
-          "returned": [
-            "类型/导出/行为漂移由相应检查失败报告"
-          ],
-          "thrown": [
-            "构建/测试失败属于开发检查；不是运行时统一错误模型"
-          ],
-          "unsupported": [
-            "运行时导出快照不能证明全部 TS 兼容或真实部署"
-          ]
-        },
-        "compatibility": "遵守 CONTRIBUTING 加法契约、0.x 次版本破坏性迁移和 CHANGELOG"
-      },
-      "rules": [
-        {
-          "id": "compatibility-invariant",
-          "statement": "公开能力以五入口导出为准；内部符号不是宿主 API",
-          "source_ids": [
-            "s1",
-            "s2",
-            "contract"
-          ],
-          "tests": [
-            "test/api-surface.test.ts",
-            "test/regression.test.ts",
-            "test/features.test.ts",
-            "test/contract-tables.test.ts",
-            "test/release.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "类型、生产/消费登记、快照、manifest、文档和安装包"
-      ],
-      "unknowns": [
-        "实际发布安装与接入方升级验收未验证"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/types.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      }
-    },
-    {
-      "id": "system-views",
-      "title": "系统边界与六种工程视图",
-      "aliases": [
-        "六种图",
-        "系统架构",
-        "部署边界",
-        "数据模型",
-        "申请状态机",
-        "交互时序",
-        "统计流程"
-      ],
-      "sources": [
-        {
-          "id": "types",
-          "path": "src/types.ts",
-          "needle": "export interface EvidenceTagAssertion",
-          "role": "declaration",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "service",
-          "path": "src/service.ts",
-          "needle": "export function createEvidenceService",
-          "role": "implementation",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "http",
-          "path": "src/http.ts",
-          "needle": "export function createEvidenceHandler",
-          "role": "implementation",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "client",
-          "path": "src/client.ts",
-          "needle": "export function createEvidenceClient",
-          "role": "consumer",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "ledger",
-          "path": "src/ledger.ts",
-          "needle": "export function createTagLedger",
-          "role": "implementation",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "resolve",
-          "path": "src/ledger.ts",
-          "needle": "export function resolveWorkTags",
-          "role": "implementation",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "decide",
-          "path": "src/ledger.ts",
-          "needle": "export function decideChangeRequest",
-          "role": "implementation",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "open",
-          "path": "src/ledger.ts",
-          "needle": "export function openChangeRequest",
-          "role": "implementation",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "withdraw",
-          "path": "src/ledger.ts",
-          "needle": "export function withdrawChangeRequest",
-          "role": "implementation",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "package",
-          "path": "package.json",
-          "needle": "\"name\": \"scholar-meta\",",
-          "role": "contract",
-          "reason": "六视图的当前边界和行为定位"
-        },
-        {
-          "id": "ports",
-          "path": "src/ports.ts",
-          "needle": "export interface ExternalEvidenceSource",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "work-tags",
-          "path": "src/ports.ts",
-          "needle": "export interface WorkTagSource",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "tagger",
-          "path": "src/tagging.ts",
-          "needle": "export async function runTagger",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "adapter",
-          "path": "src/openalex.ts",
-          "needle": "export function createOpenAlexSource",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "records",
-          "path": "src/service.ts",
-          "needle": "async function onsiteRecords(",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "applied",
-          "path": "src/ledger.ts",
-          "needle": "export function applyWorkTags",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "review",
-          "path": "src/onsite.ts",
-          "needle": "export function applyReviewGate",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "shape",
-          "path": "src/guards.ts",
-          "needle": "export function isEvidenceOnsiteCounts",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "actor",
-          "path": "src/types.ts",
-          "needle": "export interface EvidenceTagActor",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "request",
-          "path": "src/types.ts",
-          "needle": "export interface EvidenceTagChangeRequest",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "decision",
-          "path": "src/types.ts",
-          "needle": "export interface EvidenceWorkTag {",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "store",
-          "path": "src/ledger.ts",
-          "needle": "export interface TagLedgerStore",
-          "role": "contract",
-          "reason": "图中具体交互或类型的权威位置"
-        },
-        {
-          "id": "guard",
-          "path": "src/service.ts",
-          "needle": "const guard = async <T>",
-          "role": "implementation",
-          "reason": "数据方法异常转 unavailable；不包含宿主 log 自身异常"
-        }
-      ],
-      "docs": [
-        "docs/wiki/System-views.md"
-      ],
-      "tests": [
-        "test/http.test.ts",
-        "test/integration.test.ts",
-        "test/features.test.ts",
-        "test/api-surface.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes.",
-      "kind": "architecture",
-      "interface": {
-        "inputs": [
-          "四个 GET/HEAD 读口参数和 EvidenceClientOptions"
-        ],
-        "outputs": [
-          "service 返回 ServiceResult；HTTP 返回数据/状态；SDK 返回 data/null"
-        ],
-        "errors": [
-          "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
-        ],
-        "failure_modes": {
-          "returned": [
-            "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
-          ],
-          "thrown": [
-            "业务分发异常由 handler catch 返回 500；设置读取另有 catch 回缺省；宿主 log 自身抛错可拒绝 Promise"
-          ],
-          "unsupported": [
-            "无编辑/账本写入路由；无结果式 SDK 或自动版本握手"
-          ]
-        },
-        "compatibility": "保留旧 SDK data/null；改错误模型同步服务、HTTP、guard 和消费端"
-      },
-      "rules": [
-        {
-          "id": "runtime-boundaries",
-          "statement": "模块入口不等于独立服务；SMT 没有独立运行实现；申请纯规则结果不证明持久化事务",
-          "source_ids": [
-            "service",
-            "ledger",
-            "package"
-          ]
-        }
-      ],
-      "impact": [
-        "跨视图核对接口名称、错误语义、存储责任和计划范围"
-      ],
-      "unknowns": [
-        "真实部署、宿主事务、外部源与多实例验收未观察"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/service.ts",
-            "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
-            "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
-            "observed_at": "2026-10-15"
-          }
-        ]
-      },
-      "diagrams": [
-        {
-          "path": "docs/wiki/System-views.md#architecture",
-          "kind": "architecture",
-          "question": "组件怎样依赖公共端口",
-          "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
-          "source_ids": [
-            "service",
-            "http",
-            "client",
-            "ledger"
-          ]
-        },
-        {
-          "path": "docs/wiki/System-views.md#flow",
-          "kind": "flow",
-          "question": "账本标签怎样进入统计",
-          "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
-          "source_ids": [
-            "records",
-            "guard",
-            "applied",
-            "review"
-          ]
-        },
-        {
-          "path": "docs/wiki/System-views.md#sequence",
-          "kind": "sequence",
-          "question": "服务、HTTP、SDK 怎样处理失败",
-          "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
-          "source_ids": [
-            "client",
-            "http",
-            "service",
-            "records",
-            "guard",
-            "shape"
-          ]
-        },
-        {
-          "path": "docs/wiki/System-views.md#data-model",
-          "kind": "data-model",
-          "question": "断言、申请、结论有什么区别",
-          "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
-          "source_ids": [
-            "types",
-            "actor",
-            "request",
-            "decision",
-            "resolve",
-            "store"
-          ]
-        },
-        {
-          "path": "docs/wiki/System-views.md#deployment",
-          "kind": "deployment",
-          "question": "模块在哪类宿主边界执行",
-          "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
-          "source_ids": [
-            "package",
-            "client",
-            "service"
-          ]
-        },
-        {
-          "path": "docs/wiki/System-views.md#state-machine",
-          "kind": "state-machine",
-          "question": "申请可怎样迁移和拒绝",
-          "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
-          "source_ids": [
-            "open",
-            "decide",
-            "withdraw",
-            "ledger"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "interface-plan",
-      "title": "后续接口改进候选计划",
-      "aliases": [
-        "接口改进计划",
-        "结果式客户端方案",
-        "依赖改进计划",
-        "标签改进方案",
-        "跨接口改进",
-        "接口改造总览",
-        "工程研究计划",
-        "开发方向"
-      ],
-      "sources": [],
-      "docs": [
-        "docs/wiki/Interface-change-playbook.md",
-        "docs/wiki/Interface-improvement-plan.md",
-        "docs/wiki/Engineering-research-2026-10.md",
-        "docs/wiki/TODO.md"
-      ],
-      "tests": [
-        "test/http.test.ts",
-        "test/integration.test.ts",
-        "test/features.test.ts",
-        "test/api-surface.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts",
-          "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
-        }
-      ],
-      "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes.",
-      "kind": "plan",
-      "interface": {
-        "inputs": [
-          "四个 GET/HEAD 读口参数和 EvidenceClientOptions"
-        ],
-        "outputs": [
-          "service 返回 ServiceResult；HTTP 返回数据/状态；SDK 返回 data/null"
-        ],
-        "errors": [
-          "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
-        ],
-        "failure_modes": {
-          "returned": [
-            "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
-          ],
-          "thrown": [
-            "业务分发异常由 handler catch 返回 500；设置读取另有 catch 回缺省；宿主 log 自身抛错可拒绝 Promise"
-          ],
-          "unsupported": [
-            "无编辑/账本写入路由；无结果式 SDK 或自动版本握手"
-          ]
-        },
-        "compatibility": "保留旧 SDK data/null；改错误模型同步服务、HTTP、guard 和消费端"
-      },
-      "rules": [],
-      "impact": [
-        "HTTP 状态映射、客户端、guards、features、安装包链路"
-      ],
-      "unknowns": [
-        "结果式客户端已实现；剩余取消、共享预算、诊断/政策与事务设计仍待确定"
-      ],
-      "reviewed_at": "2026-10-15",
-      "evidence": {
-        "implementation": "planned",
-        "observations": []
-      },
-      "plan": {
-        "outcomes": [
-          "复核 provider 能力和当前预算合约",
-          "标签全链路诊断",
-          "审核提交责任设计",
-          "兼容与交付一致"
-        ],
-        "dependencies": [
-          "P1 先定错误分类再定 SDK/HTTP 形状；P2 契约矩阵可独立",
-          "P3 先固定作品/标签键与政策，再定诊断；改键需迁移"
-        ],
-        "interfaces": [
-          "public-api / external-source / external-transport / host-ports",
-          "tag-normalization / tagger-contribution / ledger-policy / ledger-integration",
-          "settings-contract / compatibility"
-        ],
-        "deliverables": [
-          "兼容矩阵、失败测试、必要最小设计与迁移说明、CHANGELOG/Wiki"
-        ],
-        "exit_evidence": [
-          "旧客户端回归、无假空结果、包 CJS/ESM 和 TS 消费验证",
-          "争议排除、禁止自审、账本新增召回与失败不回退"
-        ],
-        "unknowns": [
-          "共享预算/取消和事务方案未实施；新 SDK 当前源码能力见 client-diagnostics"
-        ]
-      }
-    },
-    {
-      "id": "client-diagnostics",
-      "title": "客户端结果与重试提示",
-      "aliases": [
-        "结果式客户端",
-        "客户端错误细分",
-        "重试提示",
-        "EvidenceClientResult",
-        "createEvidenceResultClient"
-      ],
-      "sources": [
-        {
-          "id": "factory",
-          "path": "src/client.ts",
-          "needle": "export function createEvidenceResultClient",
-          "role": "implementation",
-          "visibility": "public",
-          "reason": "新增五方法结果式客户端"
-        },
-        {
-          "id": "result",
-          "path": "src/client.ts",
-          "needle": "export type EvidenceClientResult<T>",
-          "role": "declaration",
-          "reason": "结果判别联合与状态、等待字段"
-        },
-        {
-          "id": "retry-policy",
-          "path": "src/client.ts",
-          "needle": "function retryAfterSeconds(",
-          "role": "implementation",
-          "visibility": "internal",
-          "reason": "解析等待提示，不执行重试",
-          "edit_for": [
-            "调整 Retry-After 秒数和日期解析"
-          ]
-        },
-        {
-          "id": "legacy",
-          "path": "src/client.ts",
-          "needle": "export function createEvidenceClient",
-          "role": "consumer",
-          "reason": "旧 data/null 包装复用新实现"
-        },
-        {
-          "id": "request-core",
-          "path": "src/client.ts",
-          "needle": "const get = async <T>",
-          "role": "implementation",
-          "visibility": "internal",
-          "reason": "新旧工厂共用的请求、错误分类与验形实现"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Client-diagnostics.md",
-        "docs/wiki/TODO.md",
-        "docs/wiki/Development-verification-2026-10.md"
-      ],
-      "tests": [
-        "test/client-result.test.ts",
-        "test/http.test.ts",
-        "test/integration.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/client-result.test.ts test/http.test.ts test/integration.test.ts",
-          "scope": "真实内存 handler 与受控 fetch；非在线部署或真实 provider"
-        }
-      ],
-      "boundary": "源码和离线安装包验证；非在线宿主验收",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "原五方法参数；baseUrl/fetch/headers"
-        ],
-        "outputs": [
-          "ok/data/status 或 error/status/retryAfterSeconds"
-        ],
-        "errors": [
-          "已知错误与 HTTP 状态匹配；网络、坏形状与未知 HTTP 错误分别返回"
-        ],
-        "failure_modes": {
-          "returned": [
-            "HTTP、network、invalid_response、不可编码参数均返回失败联合"
-          ],
-          "thrown": [
-            "选项需符合类型和 fetch/Response 协议；恶意 getter、错误的 Response 实现不承诺全部转换"
-          ],
-          "unsupported": [
-            "无自动重试/取消/Problem Details/版本握手"
-          ]
-        },
-        "compatibility": "旧工厂仍 data/null；孤立 Unicode 代理项现返回 null，不再拒绝 URIError"
-      },
-      "rules": [
-        {
-          "id": "sdk-failure-boundary",
-          "statement": "失败不冒充空结果；只保留与状态相符的已知错误，未知正文不透传",
-          "source_ids": [
-            "factory",
-            "result",
-            "legacy"
-          ],
-          "tests": [
-            "test/client-result.test.ts"
-          ]
-        }
-      ],
-      "impact": [
-        "新旧 SDK、HTTP/guard、安装包及宿主错误提示"
-      ],
-      "unknowns": [
-        "HTTP 日期受本机时钟与运行时解析影响；跨域提示头可见性由宿主负责"
-      ],
-      "reviewed_at": "2026-10-17",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "source",
-            "reference": "src/client.ts",
-            "claim": "结果式工厂和旧客户端包装已实现",
-            "revision": "working-tree-based-on-e74574404ce9dfeddb98eaeae5ece879064dd8bc",
-            "observed_at": "2026-10-17"
-          },
-          {
-            "level": "offline-tested",
-            "reference": "docs/wiki/Development-verification-2026-10.md",
-            "claim": "本地完整 pnpm check 与真实临时安装包通过，包含新 SDK 501 映射和类型消费；非在线 provider 验收",
-            "revision": "candidate-working-tree-based-on-e745744",
-            "observed_at": "2026-10-17"
-          }
-        ]
-      }
-    },
-    {
-      "id": "synthesis-table",
-      "title": "多结局与复合数据证据表",
-      "aliases": [
-        "多结局",
-        "复合指标",
-        "多个数据一个值",
-        "文章提取",
-        "多时间点",
-        "结局合成",
-        "synthesis-table",
-        "intakeOutcomeRows",
-        "buildSynthesisTable"
-      ],
-      "sources": [
-        {
-          "id": "decl",
-          "path": "src/synthesis.ts",
-          "needle": "export interface SynthesisContext",
-          "role": "declaration",
-          "reason": "研究/结果/时间/单位/出处的上下文"
-        },
-        {
-          "id": "producer",
-          "path": "src/synthesis.ts",
-          "needle": "export function intakeOutcomeRows",
-          "role": "implementation",
-          "reason": "结构化多结局收口"
-        },
-        {
-          "id": "consumer",
-          "path": "src/synthesis.ts",
-          "needle": "export function buildSynthesisTable",
-          "role": "consumer",
-          "reason": "分面表与独立性闸"
-        }
-      ],
-      "docs": [
-        "docs/wiki/Outcome-synthesis.md",
-        "docs/wiki/Publication-integration-handoff.md"
-      ],
-      "tests": [
-        "test/synthesis.test.ts"
-      ],
-      "checks": [
-        {
-          "command": "pnpm exec jest --runInBand test/synthesis.test.ts",
-          "scope": "合成输入验收；不是模型准确率或真实网站验收"
-        }
-      ],
-      "boundary": "结构化输入与人工语义编码；不做全文自动提取或跨结局总分。",
-      "kind": "interface",
-      "interface": {
-        "inputs": [
-          "公开文章、结果数组、审核上下文"
-        ],
-        "outputs": [
-          "既有EvidenceRecord、多结局表与阻止原因"
-        ],
-        "errors": [
-          "行验形问题、缺出处、重复或非独立阻止合成"
-        ],
-        "compatibility": "新增纯函数；旧HTTP与领域types.ts不变",
-        "failure_modes": {
-          "returned": [
-            "验形问题与合成阻止原因"
-          ],
-          "thrown": [
-            "调用方违反类型契约可抛错；不承诺处理任意循环对象"
-          ],
-          "unsupported": [
-            "全文自动提取、身份认证与跨结局总分"
-          ]
-        }
-      },
-      "impact": [
-        "编辑提取/审核、表格与分面消费者"
-      ],
-      "unknowns": [
-        "全文提取真实性、复杂协方差和真实网站接入未验"
-      ],
-      "reviewed_at": "2026-10-21",
-      "evidence": {
-        "implementation": "implemented",
-        "observations": [
-          {
-            "level": "offline-tested",
-            "reference": "test/synthesis.test.ts",
-            "claim": "结构化拆行、语义分面与依赖闸；合成数据",
-            "revision": "candidate-based-on-665b890",
-            "observed_at": "2026-10-21"
-          }
-        ]
-      },
-      "diagrams": [
-        {
-          "kind": "flow",
-          "path": "docs/wiki/Outcome-synthesis.md",
-          "purpose": "结构化提取到分面与合成闸",
-          "question": "结构化提取怎样变成可审核分面",
-          "scope": "当前纯函数与手工上下文；不表示全文提取已实现",
-          "source_ids": [
-            "producer",
-            "consumer"
-          ]
-        }
-      ],
-      "rules": [
-        {
-          "id": "independence",
-          "statement": "同分面重复研究或依赖群不可当独立研究合成",
-          "source_ids": [
-            "producer",
-            "consumer"
-          ],
-          "tests": [
-            "test/synthesis.test.ts"
-          ]
-        }
-      ]
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
     }
-  ],
-  "quality": {
-    "min_structural_score": 85,
-    "max_query_words": 450
-  },
-  "diagram_policy": {
-    "scope": "共享 Wiki 项目级六种视图，不要求每接口重复六图",
-    "required_kinds": [
-      "architecture",
-      "flow",
-      "sequence",
-      "data-model",
-      "deployment",
-      "state-machine"
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#external-source",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Provider-contract-matrix.md"
+   ],
+   "tests": [
+    "test/service.test.ts",
+    "test/openalex.test.ts",
+    "test/openalex-counts.test.ts",
+    "test/integration.test.ts",
+    "test/provider-contract.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/service.test.ts test/openalex.test.ts test/openalex-counts.test.ts test/integration.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "null failure is not an empty result; optional capabilities must degrade; mock tests do not verify a live provider.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "tag/limit 或 level/externalId/scope"
     ],
-    "not_applicable": []
-  },
-  "task_maps": [
+    "outputs": [
+     "候选主题、节点包、示例作品；可选 children/counts/topicsForDois"
+    ],
+    "errors": [
+     "null 是未取到；[] 是成功空；partial 是不完整"
+    ],
+    "failure_modes": {
+     "returned": [
+      "null 是未取到；[] 是成功空；partial 是不完整"
+     ],
+     "thrown": [
+      "自定义适配器可拒绝 Promise；不能从端口声明推断被捕获"
+     ],
+     "unsupported": [
+      "可选 counts 缺失时计数不可用；缺 children 时不带 children"
+     ]
+    },
+    "compatibility": "新增能力保持可选；不把外部 JSON 暴露成引擎契约"
+   },
+   "rules": [
     {
-      "id": "interface-change",
-      "title": "外部、依赖、标签与接口规则改进",
-      "scope": "当前四类工作面、十二条实现路由；不声称自动推断全项目影响",
-      "docs": [
-        "docs/wiki/Interface-change-playbook.md"
-      ],
-      "surfaces": [
-        {
-          "id": "external",
-          "question": "公共读口与外部文献源怎样改？",
-          "route_ids": [
-            "public-api",
-            "external-source",
-            "external-transport",
-            "client-diagnostics",
-            "synthesis-table"
-          ],
-          "why": "先对齐服务/HTTP/SDK 的失败分类，再处理文献源必需/可选能力及请求预算。"
-        },
-        {
-          "id": "dependency",
-          "question": "宿主依赖与存储责任怎样改？",
-          "route_ids": [
-            "host-ports"
-          ],
-          "why": "定位缓存/召回实现，明确失败降级、事务和宿主责任。"
-        },
-        {
-          "id": "tagging",
-          "question": "标签、贡献、裁决与统计怎样联动？",
-          "route_ids": [
-            "tag-normalization",
-            "tagger-contribution",
-            "ledger-policy",
-            "ledger-integration"
-          ],
-          "why": "键迁移、共用清洗、断言写入、审核、有效标签与召回必须串起来检查。"
-        },
-        {
-          "id": "rules",
-          "question": "配置、兼容和交付规则怎样保持一致？",
-          "route_ids": [
-            "settings-contract",
-            "compatibility"
-          ],
-          "why": "按实际改动同步设置消费、类型、导出、快照、迁移、安装包与 Wiki。"
-        }
-      ]
+     "id": "external-source-invariant",
+     "statement": "外部失败不充当零研究；不完整节点包不写长缓存",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4"
+     ],
+     "tests": [
+      "test/service.test.ts",
+      "test/openalex.test.ts",
+      "test/openalex-counts.test.ts",
+      "test/integration.test.ts"
+     ]
     }
-  ]
+   ],
+   "impact": [
+    "service 图谱/计数、guards、前端空态与图注"
+   ],
+   "unknowns": [
+    "真实 provider 连通性与自定义适配器异常需另验"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/ports.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "external-transport",
+   "title": "外部请求与预算",
+   "aliases": [
+    "外部请求",
+    "超时",
+    "重试",
+    "限流",
+    "预算",
+    "OpenAlexOptions"
+   ],
+   "sources": [
+    {
+     "path": "src/openalex.ts",
+     "needle": "export interface OpenAlexOptions",
+     "id": "s1",
+     "role": "declaration",
+     "reason": "export interface OpenAlexOptions"
+    },
+    {
+     "path": "src/openalex.ts",
+     "needle": "export function createOpenAlexClient",
+     "id": "s2",
+     "role": "implementation",
+     "reason": "export function createOpenAlexClient"
+    },
+    {
+     "path": "src/openalex.ts",
+     "needle": "export function isFreeOpenAlexPath",
+     "id": "s3",
+     "role": "implementation",
+     "reason": "export function isFreeOpenAlexPath"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
+    },
+    {
+     "id": "request",
+     "path": "src/openalex.ts",
+     "needle": "const getJson: GetJson = async (path, attempt = 0",
+     "role": "implementation",
+     "reason": "请求、预算、429 重试、计费和超时的内部接缝",
+     "edit_for": [
+      "请求、预算、429 重试、计费和超时的内部接缝"
+     ],
+     "visibility": "internal"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#external-transport",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Interface-change-playbook.md",
+    "docs/wiki/OpenAlex-contract-2026-10.md"
+   ],
+   "tests": [
+    "test/openalex.test.ts",
+    "test/openalex-counts.test.ts",
+    "test/settings.test.ts",
+    "test/openalex-paging.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/openalex.test.ts test/openalex-counts.test.ts test/settings.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Budget is per instance per UTC day; no implemented global budget or cancellation port is implied.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "OpenAlexOptions、请求路径、注入 fetch 和预算"
+    ],
+    "outputs": [
+     "JSON 适配后的主题/作品/计数或 null"
+    ],
+    "errors": [
+     "预算耗尽、非成功响应、网络/超时与坏 JSON 返回 null"
+    ],
+    "failure_modes": {
+     "returned": [
+      "预算耗尽、非成功响应、网络/超时与坏 JSON 返回 null"
+     ],
+     "thrown": [
+      "预算/密钥等宿主回调部分在请求 try 外；不承诺全部回调异常转换 null"
+     ],
+     "unsupported": [
+      "无全局硬预算、调用方取消端口或任意错误自动重试"
+     ]
+    },
+    "compatibility": "维持注入 fetch、密钥仅服务端和零运行时依赖"
+   },
+   "rules": [
+    {
+     "id": "external-transport-invariant",
+     "statement": "预算是实例内 UTC 日已记录消耗；仅 429 按上限重试",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3"
+     ],
+     "tests": [
+      "test/openalex.test.ts",
+      "test/openalex-counts.test.ts",
+      "test/settings.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "外部源、设置读取、缓存失败语义和宿主额度协调"
+   ],
+   "unknowns": [
+    "共享全局预算、真实429压力与复杂嵌套分组仍未保证"
+   ],
+   "reviewed_at": "2026-10-21",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/openalex.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "host-ports",
+   "title": "宿主依赖与注入",
+   "aliases": [
+    "依赖接口",
+    "依赖注入",
+    "宿主端口",
+    "缓存接口",
+    "数据库接口"
+   ],
+   "sources": [
+    {
+     "path": "src/ports.ts",
+     "needle": "export interface OnsiteArticleSource",
+     "id": "s1",
+     "role": "declaration",
+     "reason": "export interface OnsiteArticleSource"
+    },
+    {
+     "path": "src/ports.ts",
+     "needle": "export interface TagBindingStore",
+     "id": "s2",
+     "role": "declaration",
+     "reason": "export interface TagBindingStore"
+    },
+    {
+     "path": "src/ports.ts",
+     "needle": "export interface EvidenceCache",
+     "id": "s3",
+     "role": "declaration",
+     "reason": "export interface EvidenceCache"
+    },
+    {
+     "path": "src/ports.ts",
+     "needle": "export interface WorkTagSource",
+     "id": "s4",
+     "role": "declaration",
+     "reason": "export interface WorkTagSource"
+    },
+    {
+     "path": "src/ports.ts",
+     "needle": "export interface CertaintySource",
+     "id": "s5",
+     "role": "declaration",
+     "reason": "export interface CertaintySource"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export interface EvidenceServiceOptions",
+     "id": "s6",
+     "role": "declaration",
+     "reason": "export interface EvidenceServiceOptions"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
+    },
+    {
+     "id": "factory",
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "role": "implementation",
+     "reason": "宿主端口的装配、缓存降级和读取实现"
+    },
+    {
+     "id": "cache-flow",
+     "path": "src/service.ts",
+     "needle": "async function cached<T>",
+     "role": "implementation",
+     "reason": "缓存命中、并发合并、null/partial 写回与异常降级",
+     "edit_for": [
+      "缓存命中、并发合并、null/partial 写回与异常降级"
+     ],
+     "visibility": "internal"
+    },
+    {
+     "id": "records",
+     "path": "src/service.ts",
+     "needle": "async function onsiteRecords(",
+     "role": "implementation",
+     "reason": "文章验形、账本应用、标签与审阅筛选顺序",
+     "edit_for": [
+      "文章验形、账本应用、标签与审阅筛选顺序"
+     ],
+     "visibility": "internal"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#host-ports",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Interface-change-playbook.md"
+   ],
+   "tests": [
+    "test/ports.test.ts",
+    "test/service.test.ts",
+    "test/sync.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/ports.test.ts test/service.test.ts test/sync.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Host persistence, authorization and transactions are not supplied by in-memory adapters.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "文章查询、绑定键、缓存键/TTL、作品键与评级范围"
+    ],
+    "outputs": [
+     "文章行、绑定、缓存值、账本结论与评级"
+    ],
+    "errors": [
+     "绑定 get 的 null 表示无绑定；cache undefined 表示 miss；评级 null 与 [] 区分"
+    ],
+    "failure_modes": {
+     "returned": [
+      "绑定 get 的 null 表示无绑定；cache undefined 表示 miss；评级 null 与 [] 区分"
+     ],
+     "thrown": [
+      "缓存 get/set 异常在 cached 中降级；文章/账本拒绝由上层路径处理"
+     ],
+     "unsupported": [
+      "不提供真实数据库、身份鉴权或多实例一致性"
+     ]
+    },
+    "compatibility": "优先由宿主替换实现；新增引擎能力才扩展端口"
+   },
+   "rules": [
+    {
+     "id": "host-ports-invariant",
+     "statement": "文章召回须包含账本新增标签；账本失败不能等于空账本",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s6"
+     ],
+     "tests": [
+      "test/ports.test.ts",
+      "test/service.test.ts",
+      "test/sync.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "createEvidenceService、召回查询、缓存键/失效和宿主存储"
+   ],
+   "unknowns": [
+    "真实存储事务和宿主身份来源未验证"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/ports.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "public-api",
+   "title": "服务 HTTP 与客户端",
+   "aliases": [
+    "外部接口",
+    "公共接口",
+    "HTTP 错误",
+    "HTTP",
+    "SDK",
+    "客户端错误",
+    "读口"
+   ],
+   "sources": [
+    {
+     "path": "src/service.ts",
+     "needle": "export interface EvidenceService {",
+     "id": "s1",
+     "role": "declaration",
+     "reason": "export interface EvidenceService {"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export type ServiceResult<",
+     "id": "s2",
+     "role": "declaration",
+     "reason": "export type ServiceResult<"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export type ServiceError =",
+     "id": "s3",
+     "role": "declaration",
+     "reason": "export type ServiceError ="
+    },
+    {
+     "path": "src/http.ts",
+     "needle": "export function createEvidenceHandler",
+     "id": "s4",
+     "role": "implementation",
+     "reason": "export function createEvidenceHandler"
+    },
+    {
+     "path": "src/http.ts",
+     "needle": "export const EVIDENCE_ROUTES =",
+     "id": "s5",
+     "role": "implementation",
+     "reason": "export const EVIDENCE_ROUTES ="
+    },
+    {
+     "path": "src/client.ts",
+     "needle": "export function createEvidenceClient",
+     "id": "s6",
+     "role": "consumer",
+     "reason": "export function createEvidenceClient"
+    },
+    {
+     "path": "src/client.ts",
+     "needle": "export const EVIDENCE_CLIENT_ROUTES =",
+     "id": "s7",
+     "role": "implementation",
+     "reason": "export const EVIDENCE_CLIENT_ROUTES ="
+    },
+    {
+     "id": "sdk-request",
+     "path": "src/client.ts",
+     "needle": "const get = async <T>",
+     "role": "implementation",
+     "reason": "SDK请求、状态及验形失败返回null",
+     "edit_for": [
+      "SDK请求、状态及验形失败返回null"
+     ],
+     "visibility": "internal"
+    },
+    {
+     "id": "response",
+     "path": "src/http.ts",
+     "needle": "const done = <T>",
+     "role": "implementation",
+     "reason": "服务结果转换为HTTP状态、正文和缓存头",
+     "edit_for": [
+      "服务结果转换为HTTP状态、正文和缓存头"
+     ],
+     "visibility": "internal"
+    },
+    {
+     "id": "service-guard",
+     "path": "src/service.ts",
+     "needle": "const guard = async <T>",
+     "role": "implementation",
+     "reason": "服务方法异常转 unavailable",
+     "edit_for": [
+      "服务方法异常转 unavailable"
+     ],
+     "visibility": "internal"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#public-api",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Interface-change-playbook.md",
+    "docs/wiki/Client-diagnostics.md"
+   ],
+   "tests": [
+    "test/http.test.ts",
+    "test/integration.test.ts",
+    "test/features.test.ts",
+    "test/api-surface.test.ts",
+    "test/client-result.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "四个 GET/HEAD 读口参数和 EvidenceClientOptions"
+    ],
+    "outputs": [
+     "service 返回 ServiceResult；HTTP 返回数据/状态；旧 SDK data/null，新结果式工厂见 client-diagnostics"
+    ],
+    "errors": [
+     "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
+    ],
+    "failure_modes": {
+     "returned": [
+      "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
+     ],
+     "thrown": [
+      "业务分发异常由 handler catch 返回 500；设置读取另有 catch 回缺省；宿主 log 自身抛错可拒绝 Promise"
+     ],
+     "unsupported": [
+      "无编辑/账本写入路由或自动版本握手；SDK 不自动重试"
+     ]
+    },
+    "compatibility": "保留旧 SDK data/null；改错误模型同步服务、HTTP、guard 和消费端"
+   },
+   "rules": [
+    {
+     "id": "public-api-invariant",
+     "statement": "unavailable 与成功空结果必须分开；失败 HTTP no-store",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s6",
+      "s7"
+     ],
+     "tests": [
+      "test/http.test.ts",
+      "test/integration.test.ts",
+      "test/features.test.ts",
+      "test/api-surface.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "HTTP 状态映射、客户端、guards、features、安装包链路"
+   ],
+   "unknowns": [
+    "真实宿主挂载、权限与公开缓存适用性未验证"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/service.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "tag-normalization",
+   "title": "标签归一与主题绑定",
+   "aliases": [
+    "标签归一",
+    "标签接口",
+    "主题绑定",
+    "同义词",
+    "标签键"
+   ],
+   "sources": [
+    {
+     "path": "src/tags.ts",
+     "needle": "export function normalizeTag",
+     "id": "s1",
+     "role": "implementation",
+     "reason": "export function normalizeTag"
+    },
+    {
+     "path": "src/tags.ts",
+     "needle": "export function resolveTagBinding",
+     "id": "s2",
+     "role": "implementation",
+     "reason": "export function resolveTagBinding"
+    },
+    {
+     "path": "src/tags.ts",
+     "needle": "export function createCuratedBinding",
+     "id": "s3",
+     "role": "implementation",
+     "reason": "export function createCuratedBinding"
+    },
+    {
+     "path": "src/tags.ts",
+     "needle": "export const MACHINE_BINDING_POLICIES",
+     "id": "s4",
+     "role": "implementation",
+     "reason": "export const MACHINE_BINDING_POLICIES"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
+    },
+    {
+     "path": "src/tags.ts",
+     "needle": "export function normalizeTag",
+     "id": "contract",
+     "role": "declaration",
+     "reason": "函数公开签名或契约常量"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#tag-normalization",
+    "docs/wiki/Interface-improvement-plan.md"
+   ],
+   "tests": [
+    "test/tags.test.ts",
+    "test/service.test.ts",
+    "test/onsite.test.ts",
+    "test/regression.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/tags.test.ts test/service.test.ts test/onsite.test.ts test/regression.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Normalization is not semantic synonym merging; changing stored keys requires a migration plan.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "标签原文、编辑绑定、机器匹配与策略"
+    ],
+    "outputs": [
+     "归一键或 null、curated/rejected/machine 绑定结果"
+    ],
+    "errors": [
+     "非法标签归一 null；机器失败与 no_match 不同"
+    ],
+    "failure_modes": {
+     "returned": [
+      "非法标签归一 null；机器失败与 no_match 不同"
+     ],
+     "thrown": [
+      "纯函数不提供宿主 IO 异常处理；依赖执行路径另核对"
+     ],
+     "unsupported": [
+      "不翻译、不语义合并；无历史键自动迁移"
+     ]
+    },
+    "compatibility": "变归一规则必须设计历史键迁移和冲突策略"
+   },
+   "rules": [
+    {
+     "id": "tag-normalization-invariant",
+     "statement": "编辑确认或否决优先机器候选；机器出处保留未确认",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "contract"
+     ],
+     "tests": [
+      "test/tags.test.ts",
+      "test/service.test.ts",
+      "test/onsite.test.ts",
+      "test/regression.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "查询索引、绑定、账本 tag_key、缓存、共现与历史断言"
+   ],
+   "unknowns": [
+    "历史存储迁移工具未实现"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/tags.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "tagger-contribution",
+   "title": "模型标签接口与贡献包",
+   "aliases": [
+    "模型接口",
+    "模型贡献",
+    "交换包",
+    "贡献包",
+    "EvidenceTagger"
+   ],
+   "sources": [
+    {
+     "path": "src/tagging.ts",
+     "needle": "export interface EvidenceTagger {",
+     "id": "s1",
+     "role": "declaration",
+     "reason": "export interface EvidenceTagger {"
+    },
+    {
+     "path": "src/tagging.ts",
+     "needle": "export async function runTagger",
+     "id": "s2",
+     "role": "implementation",
+     "reason": "export async function runTagger"
+    },
+    {
+     "path": "src/tagging.ts",
+     "needle": "export function validateTagContribution",
+     "id": "s3",
+     "role": "implementation",
+     "reason": "export function validateTagContribution"
+    },
+    {
+     "path": "src/tagging.ts",
+     "needle": "export function buildTagContribution",
+     "id": "s4",
+     "role": "implementation",
+     "reason": "export function buildTagContribution"
+    },
+    {
+     "path": "src/tagging.ts",
+     "needle": "export function normalizeWorkId",
+     "id": "s5",
+     "role": "implementation",
+     "reason": "export function normalizeWorkId"
+    },
+    {
+     "path": "src/ledger.ts",
+     "needle": "export function createTagLedger",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
+    },
+    {
+     "id": "sanitize",
+     "path": "src/tagging.ts",
+     "needle": "function sanitizeSuggestions(",
+     "role": "implementation",
+     "reason": "模型与贡献包共用的清洗、门槛、去重、计数规则",
+     "edit_for": [
+      "模型与贡献包共用的清洗、门槛、去重、计数规则"
+     ],
+     "visibility": "internal"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#tagger-contribution",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Interface-change-playbook.md"
+   ],
+   "tests": [
+    "test/tagging.test.ts",
+    "test/sync.test.ts",
+    "test/api-surface.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/tagging.test.ts test/sync.test.ts test/api-surface.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Model suggestions are not resolved tags; contribution validation does not authenticate the sender.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "EvidenceTagger/input、词表、置信门槛、交换包"
+    ],
+    "outputs": [
+     "归一/去重后的建议与 dropped；贡献包与验形结果"
+    ],
+    "errors": [
+     "模型 null/抛错由 runTagger 返回 null；空 suggestions 成功"
+    ],
+    "failure_modes": {
+     "returned": [
+      "模型 null/抛错由 runTagger 返回 null；空 suggestions 成功"
+     ],
+     "thrown": [
+      "runTagger 仅捕获 tag(input) 的拒绝；后续清洗、vocabulary 或模型元数据 getter 的异常不在该 catch；账本存储异常另处理"
+     ],
+     "unsupported": [
+      "贡献包不认证身份；词表基线不代表第三方模型质量"
+     ]
+    },
+    "compatibility": "保留模型版本和贡献包版本；新增诊断需兼容旧包"
+   },
+   "rules": [
+    {
+     "id": "tagger-contribution-invariant",
+     "statement": "vocabulary null 是开放、[] 是禁用全部；null confidence 不因数值门槛被剔除",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5"
+     ],
+     "tests": [
+      "test/tagging.test.ts",
+      "test/sync.test.ts",
+      "test/api-surface.test.ts"
+     ]
+    },
+    {
+     "id": "shared-sanitizer",
+     "statement": "runTagger 与 validateTagContribution 共用 sanitizeSuggestions；单次清洗丢弃计数与账本拒绝/unchanged 是不同阶段",
+     "source_ids": [
+      "s2",
+      "s3",
+      "sanitize"
+     ],
+     "tests": [
+      "test/tagging.test.ts",
+      "test/sync.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "贡献收包、submitSuggestions、裁决、有效标签与统计"
+   ],
+   "unknowns": [
+    "外部模型质量、身份与生产收包幂等未验证"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/tagging.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ledger-policy",
+   "title": "标签裁决与审核规则",
+   "aliases": [
+    "接口规则",
+    "标签裁决",
+    "审核规则",
+    "信任层级",
+    "修改申请"
+   ],
+   "sources": [
+    {
+     "path": "src/ledger.ts",
+     "needle": "export interface LedgerPolicy",
+     "id": "s1",
+     "role": "declaration",
+     "reason": "export interface LedgerPolicy"
+    },
+    {
+     "path": "src/ledger.ts",
+     "needle": "export function resolveWorkTags(",
+     "id": "s2",
+     "role": "implementation",
+     "reason": "export function resolveWorkTags"
+    },
+    {
+     "path": "src/ledger.ts",
+     "needle": "export function checkAssertion",
+     "id": "s3",
+     "role": "implementation",
+     "reason": "export function checkAssertion"
+    },
+    {
+     "path": "src/ledger.ts",
+     "needle": "export function decideChangeRequest",
+     "id": "s4",
+     "role": "implementation",
+     "reason": "export function decideChangeRequest"
+    },
+    {
+     "path": "src/ledger.ts",
+     "needle": "export interface TagLedgerStore",
+     "id": "s5",
+     "role": "declaration",
+     "reason": "export interface TagLedgerStore"
+    },
+    {
+     "path": "src/ledger.ts",
+     "needle": "export function createTagLedger",
+     "id": "s6",
+     "role": "implementation",
+     "reason": "export function createTagLedger"
+    },
+    {
+     "path": "src/ledger.ts",
+     "needle": "export function createTagLedger",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
+    },
+    {
+     "id": "write",
+     "path": "src/ledger.ts",
+     "needle": "const write = async (",
+     "role": "implementation",
+     "reason": "断言写入拒绝、unchanged、同次最后立场和 append",
+     "edit_for": [
+      "断言写入拒绝、unchanged、同次最后立场和 append"
+     ],
+     "visibility": "internal"
+    },
+    {
+     "id": "decide-write",
+     "path": "src/ledger.ts",
+     "needle": "async decide(requestId: string",
+     "role": "implementation",
+     "reason": "审核门面 append 后 putRequest 的非原子边界",
+     "edit_for": [
+      "审核门面 append 后 putRequest 的非原子边界"
+     ],
+     "visibility": "public"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#ledger-policy",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Interface-change-playbook.md"
+   ],
+   "tests": [
+    "test/sync.test.ts",
+    "test/tagging.test.ts",
+    "test/settings.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/sync.test.ts test/tagging.test.ts test/settings.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Policy changes can alter historical effective results; concurrency guarantees require host storage review.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "断言列表、LedgerPolicy、修改申请、审核/撤回身份"
+    ],
+    "outputs": [
+     "present/absent/disputed；允许或 refusal；申请及审核断言"
+    ],
+    "errors": [
+     "needs_change_request、not_open、self_review、insufficient_tier 等拒绝"
+    ],
+    "failure_modes": {
+     "returned": [
+      "needs_change_request、not_open、self_review、insufficient_tier 等拒绝"
+     ],
+     "thrown": [
+      "纯规则返回 refusal；createTagLedger 存储拒绝可向调用者传播"
+     ],
+     "unsupported": [
+      "无账号认证、跨 append/putRequest 事务或并发防重保证"
+     ]
+    },
+    "compatibility": "策略变动可重算历史结果；需变更说明和行为快照"
+   },
+   "rules": [
+    {
+     "id": "ledger-policy-invariant",
+     "statement": "每人最新立场→门槛→最高有效层；同层审核结论优先；禁止自审",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s6"
+     ],
+     "tests": [
+      "test/sync.test.ts",
+      "test/tagging.test.ts",
+      "test/settings.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "审核后台、存储、applyWorkTags、历史统计与缓存"
+   ],
+   "unknowns": [
+    "先 append 后 putRequest 的部分成功与并发恢复由宿主设计"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/ledger.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ledger-integration",
+   "title": "账本应用与标签召回",
+   "aliases": [
+    "标签漏项",
+    "标签计数",
+    "争议排除",
+    "账本应用",
+    "审阅门槛"
+   ],
+   "sources": [
+    {
+     "path": "src/ledger.ts",
+     "needle": "export function applyWorkTags",
+     "id": "s1",
+     "role": "implementation",
+     "reason": "export function applyWorkTags"
+    },
+    {
+     "path": "src/ports.ts",
+     "needle": "export interface WorkTagSource",
+     "id": "s2",
+     "role": "declaration",
+     "reason": "export interface WorkTagSource"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "s3",
+     "role": "implementation",
+     "reason": "export function createEvidenceService"
+    },
+    {
+     "path": "src/onsite.ts",
+     "needle": "export function applyReviewGate",
+     "id": "s4",
+     "role": "implementation",
+     "reason": "export function applyReviewGate"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "async function onsiteRecords(",
+     "id": "s5",
+     "role": "implementation",
+     "reason": "async function onsiteRecords("
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#ledger-integration",
+    "docs/wiki/Interface-improvement-plan.md"
+   ],
+   "tests": [
+    "test/sync.test.ts",
+    "test/service.test.ts",
+    "test/onsite.test.ts",
+    "test/integration.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/sync.test.ts test/service.test.ts test/onsite.test.ts test/integration.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Queries must include ledger-added tags; unavailable ledger cannot be treated as an empty ledger.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "文章行、WorkTagSource 决策、merge/ledger_only/off 与 reviewGate"
+    ],
+    "outputs": [
+     "生效 records、pending、争议/模型图注与计数"
+    ],
+    "errors": [
+     "端口不可用不能回退原始标签冒充账本成功"
+    ],
+    "failure_modes": {
+     "returned": [
+      "端口不可用不能回退原始标签冒充账本成功"
+     ],
+     "thrown": [
+      "onsiteRecords 的文章/账本读取可拒绝；上层服务方法处理错误"
+     ],
+     "unsupported": [
+      "无法补回被宿主查询漏掉的仅账本新增文章"
+     ]
+    },
+    "compatibility": "保留先账本应用后标签筛选再审阅门槛的顺序"
+   },
+   "rules": [
+    {
+     "id": "ledger-integration-invariant",
+     "statement": "absent/disputed 不计入；merge 仅保留未裁决的原标签",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5"
+     ],
+     "tests": [
+      "test/sync.test.ts",
+      "test/service.test.ts",
+      "test/onsite.test.ts",
+      "test/integration.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "文章召回、图谱、计数、审阅资格及缓存失效"
+   ],
+   "unknowns": [
+    "跨实例失效和资格撤销后的重算由宿主负责"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/ledger.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "settings-contract",
+   "title": "设置接口与默认值",
+   "aliases": [
+    "配置接口",
+    "默认值",
+    "热更新",
+    "设置接口"
+   ],
+   "sources": [
+    {
+     "path": "src/settings.ts",
+     "needle": "export const EVIDENCE_SETTINGS:",
+     "id": "s1",
+     "role": "implementation",
+     "reason": "export const EVIDENCE_SETTINGS:"
+    },
+    {
+     "path": "src/settings.ts",
+     "needle": "export function validateSettings",
+     "id": "s2",
+     "role": "implementation",
+     "reason": "export function validateSettings"
+    },
+    {
+     "path": "src/settings.ts",
+     "needle": "export function createLiveSettings",
+     "id": "s3",
+     "role": "implementation",
+     "reason": "export function createLiveSettings"
+    },
+    {
+     "path": "src/settings.ts",
+     "needle": "export function ledgerPolicyFromSettings",
+     "id": "s4",
+     "role": "implementation",
+     "reason": "export function ledgerPolicyFromSettings"
+    },
+    {
+     "path": "src/settings.ts",
+     "needle": "export function settingsReader",
+     "id": "s5",
+     "role": "implementation",
+     "reason": "export function settingsReader"
+    },
+    {
+     "path": "src/manifest.ts",
+     "needle": "export function buildPluginManifest",
+     "id": "s6",
+     "role": "implementation",
+     "reason": "export function buildPluginManifest"
+    },
+    {
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "id": "consumer",
+     "role": "consumer",
+     "reason": "本路由的下游消费/装配位置"
+    },
+    {
+     "path": "src/settings.ts",
+     "needle": "export const EVIDENCE_SETTINGS:",
+     "id": "contract",
+     "role": "declaration",
+     "reason": "函数公开签名或契约常量"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#settings-contract",
+    "docs/wiki/Interface-improvement-plan.md"
+   ],
+   "tests": [
+    "test/settings.test.ts",
+    "test/features.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/settings.test.ts test/features.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Live synchronous reads may use the previous value; registry existence does not prove a host UI is installed.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "静态对象、同步读取函数或 LiveSettings"
+    ],
+    "outputs": [
+     "ValidatedSettings 与合并后的当前设置"
+    ],
+    "errors": [
+     "非法/未知键进入 issues；live provider 失败保留最近值"
+    ],
+    "failure_modes": {
+     "returned": [
+      "非法/未知键进入 issues；live provider 失败保留最近值"
+     ],
+     "thrown": [
+      "普通设置函数异常回缺省；自定义 LiveSettings/日志回调不保证永不抛错"
+     ],
+     "unsupported": [
+      "无主动推送、UI 或定时轮询；过期按调用触发刷新"
+     ]
+    },
+    "compatibility": "后台已提供键 > 代码选项 > 注册表缺省；同步 peek 可旧值"
+   },
+   "rules": [
+    {
+     "id": "settings-contract-invariant",
+     "statement": "createLiveSettings 合并并发读取；get/refresh 异步、peek 同步；TTL 默认 10000 ms",
+     "source_ids": [
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s6",
+      "contract"
+     ],
+     "tests": [
+      "test/settings.test.ts",
+      "test/features.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "服务配置、外部预算、ledgerPolicyFromSettings 与 manifest"
+   ],
+   "unknowns": [
+    "真实后台刷新/多实例一致性未验证"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/settings.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "compatibility",
+   "title": "契约与包导出兼容",
+   "aliases": [
+    "兼容性",
+    "包导出",
+    "版本规则",
+    "破坏性变更",
+    "接口兼容",
+    "接口规则"
+   ],
+   "sources": [
+    {
+     "path": "src/types.ts",
+     "needle": "export const EVIDENCE_CONTRACT_VERSION",
+     "id": "s1",
+     "role": "implementation",
+     "reason": "export const EVIDENCE_CONTRACT_VERSION"
+    },
+    {
+     "path": "src/features.ts",
+     "needle": "export const EVIDENCE_FEATURES",
+     "id": "s2",
+     "role": "implementation",
+     "reason": "export const EVIDENCE_FEATURES"
+    },
+    {
+     "id": "consumer",
+     "role": "consumer",
+     "path": "test/api-surface.test.ts",
+     "needle": "const ENTRIES: Record<string, string>",
+     "reason": "五入口运行时导出快照的实际消费清单"
+    },
+    {
+     "path": "src/types.ts",
+     "needle": "export const EVIDENCE_CONTRACT_VERSION",
+     "id": "contract",
+     "role": "declaration",
+     "reason": "函数公开签名或契约常量"
+    },
+    {
+     "id": "exports",
+     "path": "src/index.ts",
+     "needle": "export * from './types'",
+     "role": "implementation",
+     "reason": "根入口导出清单；子入口另核对 package exports",
+     "edit_for": [
+      "根入口导出清单；子入口另核对 package exports"
+     ],
+     "visibility": "public"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Interface-map.md#compatibility",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Interface-change-playbook.md"
+   ],
+   "tests": [
+    "test/api-surface.test.ts",
+    "test/regression.test.ts",
+    "test/features.test.ts",
+    "test/contract-tables.test.ts",
+    "test/release.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/api-surface.test.ts test/regression.test.ts test/features.test.ts test/contract-tables.test.ts test/release.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "Export snapshots cover runtime names, not all TypeScript compatibility; proposals are not shipped APIs.",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "类型契约、五入口导出与功能登记"
+    ],
+    "outputs": [
+     "版本常量、运行时导出、类型消费者和行为快照"
+    ],
+    "errors": [
+     "类型/导出/行为漂移由相应检查失败报告"
+    ],
+    "failure_modes": {
+     "returned": [
+      "类型/导出/行为漂移由相应检查失败报告"
+     ],
+     "thrown": [
+      "构建/测试失败属于开发检查；不是运行时统一错误模型"
+     ],
+     "unsupported": [
+      "运行时导出快照不能证明全部 TS 兼容或真实部署"
+     ]
+    },
+    "compatibility": "遵守 CONTRIBUTING 加法契约、0.x 次版本破坏性迁移和 CHANGELOG"
+   },
+   "rules": [
+    {
+     "id": "compatibility-invariant",
+     "statement": "公开能力以五入口导出为准；内部符号不是宿主 API",
+     "source_ids": [
+      "s1",
+      "s2",
+      "contract"
+     ],
+     "tests": [
+      "test/api-surface.test.ts",
+      "test/regression.test.ts",
+      "test/features.test.ts",
+      "test/contract-tables.test.ts",
+      "test/release.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "类型、生产/消费登记、快照、manifest、文档和安装包"
+   ],
+   "unknowns": [
+    "实际发布安装与接入方升级验收未验证"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/types.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   }
+  },
+  {
+   "id": "system-views",
+   "title": "系统边界与六种工程视图",
+   "aliases": [
+    "六种图",
+    "系统架构",
+    "部署边界",
+    "数据模型",
+    "申请状态机",
+    "交互时序",
+    "统计流程"
+   ],
+   "sources": [
+    {
+     "id": "types",
+     "path": "src/types.ts",
+     "needle": "export interface EvidenceTagAssertion",
+     "role": "declaration",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "service",
+     "path": "src/service.ts",
+     "needle": "export function createEvidenceService",
+     "role": "implementation",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "http",
+     "path": "src/http.ts",
+     "needle": "export function createEvidenceHandler",
+     "role": "implementation",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "client",
+     "path": "src/client.ts",
+     "needle": "export function createEvidenceClient",
+     "role": "consumer",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "ledger",
+     "path": "src/ledger.ts",
+     "needle": "export function createTagLedger",
+     "role": "implementation",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "resolve",
+     "path": "src/ledger.ts",
+     "needle": "export function resolveWorkTags(",
+     "role": "implementation",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "decide",
+     "path": "src/ledger.ts",
+     "needle": "export function decideChangeRequest",
+     "role": "implementation",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "open",
+     "path": "src/ledger.ts",
+     "needle": "export function openChangeRequest",
+     "role": "implementation",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "withdraw",
+     "path": "src/ledger.ts",
+     "needle": "export function withdrawChangeRequest",
+     "role": "implementation",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "package",
+     "path": "package.json",
+     "needle": "\"name\": \"scholar-meta\",",
+     "role": "contract",
+     "reason": "六视图的当前边界和行为定位"
+    },
+    {
+     "id": "ports",
+     "path": "src/ports.ts",
+     "needle": "export interface ExternalEvidenceSource",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "work-tags",
+     "path": "src/ports.ts",
+     "needle": "export interface WorkTagSource",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "tagger",
+     "path": "src/tagging.ts",
+     "needle": "export async function runTagger",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "adapter",
+     "path": "src/openalex.ts",
+     "needle": "export function createOpenAlexSource",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "records",
+     "path": "src/service.ts",
+     "needle": "async function onsiteRecords(",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "applied",
+     "path": "src/ledger.ts",
+     "needle": "export function applyWorkTags",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "review",
+     "path": "src/onsite.ts",
+     "needle": "export function applyReviewGate",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "shape",
+     "path": "src/guards.ts",
+     "needle": "export function isEvidenceOnsiteCounts",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "actor",
+     "path": "src/types.ts",
+     "needle": "export interface EvidenceTagActor",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "request",
+     "path": "src/types.ts",
+     "needle": "export interface EvidenceTagChangeRequest",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "decision",
+     "path": "src/types.ts",
+     "needle": "export interface EvidenceWorkTag {",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "store",
+     "path": "src/ledger.ts",
+     "needle": "export interface TagLedgerStore",
+     "role": "contract",
+     "reason": "图中具体交互或类型的权威位置"
+    },
+    {
+     "id": "guard",
+     "path": "src/service.ts",
+     "needle": "const guard = async <T>",
+     "role": "implementation",
+     "reason": "数据方法异常转 unavailable；不包含宿主 log 自身异常"
+    }
+   ],
+   "docs": [
+    "docs/wiki/System-views.md"
+   ],
+   "tests": [
+    "test/http.test.ts",
+    "test/integration.test.ts",
+    "test/features.test.ts",
+    "test/api-surface.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes.",
+   "kind": "architecture",
+   "interface": {
+    "inputs": [
+     "四个 GET/HEAD 读口参数和 EvidenceClientOptions"
+    ],
+    "outputs": [
+     "service 返回 ServiceResult；HTTP 返回数据/状态；SDK 返回 data/null"
+    ],
+    "errors": [
+     "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
+    ],
+    "failure_modes": {
+     "returned": [
+      "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
+     ],
+     "thrown": [
+      "业务分发异常由 handler catch 返回 500；设置读取另有 catch 回缺省；宿主 log 自身抛错可拒绝 Promise"
+     ],
+     "unsupported": [
+      "无编辑/账本写入路由；无结果式 SDK 或自动版本握手"
+     ]
+    },
+    "compatibility": "保留旧 SDK data/null；改错误模型同步服务、HTTP、guard 和消费端"
+   },
+   "rules": [
+    {
+     "id": "runtime-boundaries",
+     "statement": "模块入口不等于独立服务；SMT 没有独立运行实现；申请纯规则结果不证明持久化事务",
+     "source_ids": [
+      "service",
+      "ledger",
+      "package"
+     ]
+    }
+   ],
+   "impact": [
+    "跨视图核对接口名称、错误语义、存储责任和计划范围"
+   ],
+   "unknowns": [
+    "真实部署、宿主事务、外部源与多实例验收未观察"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/service.ts",
+      "claim": "已定点核对声明、实现和消费边界；不代表真实部署验收",
+      "revision": "37584593a5805fc197531dbc4e58ba60fcd530e0",
+      "observed_at": "2026-10-15"
+     }
+    ]
+   },
+   "diagrams": [
+    {
+     "path": "docs/wiki/System-views.md#architecture",
+     "kind": "architecture",
+     "question": "组件怎样依赖公共端口",
+     "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
+     "source_ids": [
+      "service",
+      "http",
+      "client",
+      "ledger"
+     ]
+    },
+    {
+     "path": "docs/wiki/System-views.md#flow",
+     "kind": "flow",
+     "question": "账本标签怎样进入统计",
+     "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
+     "source_ids": [
+      "records",
+      "guard",
+      "applied",
+      "review"
+     ]
+    },
+    {
+     "path": "docs/wiki/System-views.md#sequence",
+     "kind": "sequence",
+     "question": "服务、HTTP、SDK 怎样处理失败",
+     "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
+     "source_ids": [
+      "client",
+      "http",
+      "service",
+      "records",
+      "guard",
+      "shape"
+     ]
+    },
+    {
+     "path": "docs/wiki/System-views.md#data-model",
+     "kind": "data-model",
+     "question": "断言、申请、结论有什么区别",
+     "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
+     "source_ids": [
+      "types",
+      "actor",
+      "request",
+      "decision",
+      "resolve",
+      "store"
+     ]
+    },
+    {
+     "path": "docs/wiki/System-views.md#deployment",
+     "kind": "deployment",
+     "question": "模块在哪类宿主边界执行",
+     "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
+     "source_ids": [
+      "package",
+      "client",
+      "service"
+     ]
+    },
+    {
+     "path": "docs/wiki/System-views.md#state-machine",
+     "kind": "state-machine",
+     "question": "申请可怎样迁移和拒绝",
+     "scope": "当前源码支持的通用接线与纯规则；非线上部署证据",
+     "source_ids": [
+      "open",
+      "decide",
+      "withdraw",
+      "ledger"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "interface-plan",
+   "title": "后续接口改进候选计划",
+   "aliases": [
+    "接口改进计划",
+    "结果式客户端方案",
+    "依赖改进计划",
+    "标签改进方案",
+    "跨接口改进",
+    "接口改造总览",
+    "工程研究计划",
+    "开发方向"
+   ],
+   "sources": [],
+   "docs": [
+    "docs/wiki/Interface-change-playbook.md",
+    "docs/wiki/Interface-improvement-plan.md",
+    "docs/wiki/Engineering-research-2026-10.md",
+    "docs/wiki/TODO.md"
+   ],
+   "tests": [
+    "test/http.test.ts",
+    "test/integration.test.ts",
+    "test/features.test.ts",
+    "test/api-surface.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/http.test.ts test/integration.test.ts test/features.test.ts test/api-surface.test.ts",
+     "scope": "离线受控输入/模拟依赖；不验证真实 provider、数据库或部署"
+    }
+   ],
+   "boundary": "ServiceResult, HTTP status/body and client data/null are different boundaries; reader routes do not authorize writes.",
+   "kind": "plan",
+   "interface": {
+    "inputs": [
+     "四个 GET/HEAD 读口参数和 EvidenceClientOptions"
+    ],
+    "outputs": [
+     "service 返回 ServiceResult；HTTP 返回数据/状态；SDK 返回 data/null"
+    ],
+    "errors": [
+     "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
+    ],
+    "failure_modes": {
+     "returned": [
+      "invalid_input/not_found/not_configured/unavailable；SDK 错误折叠 null"
+     ],
+     "thrown": [
+      "业务分发异常由 handler catch 返回 500；设置读取另有 catch 回缺省；宿主 log 自身抛错可拒绝 Promise"
+     ],
+     "unsupported": [
+      "无编辑/账本写入路由；无结果式 SDK 或自动版本握手"
+     ]
+    },
+    "compatibility": "保留旧 SDK data/null；改错误模型同步服务、HTTP、guard 和消费端"
+   },
+   "rules": [],
+   "impact": [
+    "HTTP 状态映射、客户端、guards、features、安装包链路"
+   ],
+   "unknowns": [
+    "结果式客户端已实现；剩余取消、共享预算、诊断/政策与事务设计仍待确定"
+   ],
+   "reviewed_at": "2026-10-15",
+   "evidence": {
+    "implementation": "planned",
+    "observations": []
+   },
+   "plan": {
+    "outcomes": [
+     "复核 provider 能力和当前预算合约",
+     "标签全链路诊断",
+     "审核提交责任设计",
+     "兼容与交付一致"
+    ],
+    "dependencies": [
+     "P1 先定错误分类再定 SDK/HTTP 形状；P2 契约矩阵可独立",
+     "P3 先固定作品/标签键与政策，再定诊断；改键需迁移"
+    ],
+    "interfaces": [
+     "public-api / external-source / external-transport / host-ports",
+     "tag-normalization / tagger-contribution / ledger-policy / ledger-integration",
+     "settings-contract / compatibility"
+    ],
+    "deliverables": [
+     "兼容矩阵、失败测试、必要最小设计与迁移说明、CHANGELOG/Wiki"
+    ],
+    "exit_evidence": [
+     "旧客户端回归、无假空结果、包 CJS/ESM 和 TS 消费验证",
+     "争议排除、禁止自审、账本新增召回与失败不回退"
+    ],
+    "unknowns": [
+     "共享预算/取消和事务方案未实施；新 SDK 当前源码能力见 client-diagnostics"
+    ]
+   }
+  },
+  {
+   "id": "client-diagnostics",
+   "title": "客户端结果与重试提示",
+   "aliases": [
+    "结果式客户端",
+    "客户端错误细分",
+    "重试提示",
+    "EvidenceClientResult",
+    "createEvidenceResultClient"
+   ],
+   "sources": [
+    {
+     "id": "factory",
+     "path": "src/client.ts",
+     "needle": "export function createEvidenceResultClient",
+     "role": "implementation",
+     "visibility": "public",
+     "reason": "新增五方法结果式客户端"
+    },
+    {
+     "id": "result",
+     "path": "src/client.ts",
+     "needle": "export type EvidenceClientResult<T>",
+     "role": "declaration",
+     "reason": "结果判别联合与状态、等待字段"
+    },
+    {
+     "id": "retry-policy",
+     "path": "src/client.ts",
+     "needle": "function retryAfterSeconds(",
+     "role": "implementation",
+     "visibility": "internal",
+     "reason": "解析等待提示，不执行重试",
+     "edit_for": [
+      "调整 Retry-After 秒数和日期解析"
+     ]
+    },
+    {
+     "id": "legacy",
+     "path": "src/client.ts",
+     "needle": "export function createEvidenceClient",
+     "role": "consumer",
+     "reason": "旧 data/null 包装复用新实现"
+    },
+    {
+     "id": "request-core",
+     "path": "src/client.ts",
+     "needle": "const get = async <T>",
+     "role": "implementation",
+     "visibility": "internal",
+     "reason": "新旧工厂共用的请求、错误分类与验形实现"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Client-diagnostics.md",
+    "docs/wiki/TODO.md",
+    "docs/wiki/Development-verification-2026-10.md"
+   ],
+   "tests": [
+    "test/client-result.test.ts",
+    "test/http.test.ts",
+    "test/integration.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/client-result.test.ts test/http.test.ts test/integration.test.ts",
+     "scope": "真实内存 handler 与受控 fetch；非在线部署或真实 provider"
+    }
+   ],
+   "boundary": "源码和离线安装包验证；非在线宿主验收",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "原五方法参数；baseUrl/fetch/headers"
+    ],
+    "outputs": [
+     "ok/data/status 或 error/status/retryAfterSeconds"
+    ],
+    "errors": [
+     "已知错误与 HTTP 状态匹配；网络、坏形状与未知 HTTP 错误分别返回"
+    ],
+    "failure_modes": {
+     "returned": [
+      "HTTP、network、invalid_response、不可编码参数均返回失败联合"
+     ],
+     "thrown": [
+      "选项需符合类型和 fetch/Response 协议；恶意 getter、错误的 Response 实现不承诺全部转换"
+     ],
+     "unsupported": [
+      "无自动重试/取消/Problem Details/版本握手"
+     ]
+    },
+    "compatibility": "旧工厂仍 data/null；孤立 Unicode 代理项现返回 null，不再拒绝 URIError"
+   },
+   "rules": [
+    {
+     "id": "sdk-failure-boundary",
+     "statement": "失败不冒充空结果；只保留与状态相符的已知错误，未知正文不透传",
+     "source_ids": [
+      "factory",
+      "result",
+      "legacy"
+     ],
+     "tests": [
+      "test/client-result.test.ts"
+     ]
+    }
+   ],
+   "impact": [
+    "新旧 SDK、HTTP/guard、安装包及宿主错误提示"
+   ],
+   "unknowns": [
+    "HTTP 日期受本机时钟与运行时解析影响；跨域提示头可见性由宿主负责"
+   ],
+   "reviewed_at": "2026-10-17",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "source",
+      "reference": "src/client.ts",
+      "claim": "结果式工厂和旧客户端包装已实现",
+      "revision": "working-tree-based-on-e74574404ce9dfeddb98eaeae5ece879064dd8bc",
+      "observed_at": "2026-10-17"
+     },
+     {
+      "level": "offline-tested",
+      "reference": "docs/wiki/Development-verification-2026-10.md",
+      "claim": "本地完整 pnpm check 与真实临时安装包通过，包含新 SDK 501 映射和类型消费；非在线 provider 验收",
+      "revision": "candidate-working-tree-based-on-e745744",
+      "observed_at": "2026-10-17"
+     }
+    ]
+   }
+  },
+  {
+   "id": "synthesis-table",
+   "title": "多结局与复合数据证据表",
+   "aliases": [
+    "多结局",
+    "复合指标",
+    "多个数据一个值",
+    "文章提取",
+    "多时间点",
+    "结局合成",
+    "synthesis-table",
+    "intakeOutcomeRows",
+    "buildSynthesisTable"
+   ],
+   "sources": [
+    {
+     "id": "decl",
+     "path": "src/synthesis.ts",
+     "needle": "export interface SynthesisContext",
+     "role": "declaration",
+     "reason": "研究/结果/时间/单位/出处的上下文"
+    },
+    {
+     "id": "producer",
+     "path": "src/synthesis.ts",
+     "needle": "export function intakeOutcomeRows",
+     "role": "implementation",
+     "reason": "结构化多结局收口"
+    },
+    {
+     "id": "consumer",
+     "path": "src/synthesis.ts",
+     "needle": "export function buildSynthesisTable",
+     "role": "consumer",
+     "reason": "分面表与独立性闸"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Outcome-synthesis.md",
+    "docs/wiki/Publication-integration-handoff.md"
+   ],
+   "tests": [
+    "test/synthesis.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/synthesis.test.ts",
+     "scope": "合成输入验收；不是模型准确率或真实网站验收"
+    }
+   ],
+   "boundary": "结构化输入与人工语义编码；不做全文自动提取或跨结局总分。",
+   "kind": "interface",
+   "interface": {
+    "inputs": [
+     "公开文章、结果数组、审核上下文"
+    ],
+    "outputs": [
+     "既有EvidenceRecord、多结局表与阻止原因"
+    ],
+    "errors": [
+     "行验形问题、缺出处、重复或非独立阻止合成"
+    ],
+    "compatibility": "新增纯函数；旧HTTP与领域types.ts不变",
+    "failure_modes": {
+     "returned": [
+      "验形问题与合成阻止原因"
+     ],
+     "thrown": [
+      "调用方违反类型契约可抛错；不承诺处理任意循环对象"
+     ],
+     "unsupported": [
+      "全文自动提取、身份认证与跨结局总分"
+     ]
+    }
+   },
+   "impact": [
+    "编辑提取/审核、表格与分面消费者"
+   ],
+   "unknowns": [
+    "全文提取真实性、复杂协方差和真实网站接入未验"
+   ],
+   "reviewed_at": "2026-10-21",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "offline-tested",
+      "reference": "test/synthesis.test.ts",
+      "claim": "结构化拆行、语义分面与依赖闸；合成数据",
+      "revision": "candidate-based-on-665b890",
+      "observed_at": "2026-10-21"
+     }
+    ]
+   },
+   "diagrams": [
+    {
+     "kind": "flow",
+     "path": "docs/wiki/Outcome-synthesis.md",
+     "purpose": "结构化提取到分面与合成闸",
+     "question": "结构化提取怎样变成可审核分面",
+     "scope": "当前纯函数与手工上下文；不表示全文提取已实现",
+     "source_ids": [
+      "producer",
+      "consumer"
+     ]
+    }
+   ],
+   "rules": [
+    {
+     "id": "independence",
+     "statement": "同分面重复研究或依赖群不可当独立研究合成",
+     "source_ids": [
+      "producer",
+      "consumer"
+     ],
+     "tests": [
+      "test/synthesis.test.ts"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "community-annotation",
+   "title": "社区标注平台与三层标签模型",
+   "aliases": [
+    "社区标注",
+    "社区标签",
+    "打标签平台",
+    "GitHub 当数据库",
+    "标签分层",
+    "上级标签",
+    "分面标注",
+    "作品名片",
+    "比例裁决",
+    "Wilson 认可",
+    "社区导出",
+    "community",
+    "SMT 数据仓",
+    "标注怎样变成图",
+    "名片",
+    "DOI",
+    "链接认成论文",
+    "作品引用",
+    "parseWorkRef",
+    "fetchWorkCard",
+    "readCommunityExport"
+   ],
+   "sources": [
+    {
+     "id": "workref",
+     "path": "src/workref.ts",
+     "needle": "export function parseWorkRef",
+     "role": "contract",
+     "reason": "用户贴进来的 DOI / 链接 / 标题认成作品引用"
+    },
+    {
+     "id": "workcard",
+     "path": "src/openalex.ts",
+     "needle": "export type WorkCardResolution",
+     "role": "contract",
+     "reason": "单篇作品名片的三态（found / not_found / error）"
+    },
+    {
+     "id": "quantile",
+     "path": "src/stats.ts",
+     "needle": "export function normalQuantile",
+     "role": "contract",
+     "reason": "置信度换 z，给比例裁决的 Wilson 区间"
+    },
+    {
+     "id": "card-type",
+     "path": "src/types.ts",
+     "needle": "export interface EvidenceWorkCard",
+     "role": "declaration",
+     "reason": "作品名片的契约形状"
+    },
+    {
+     "id": "ledger",
+     "path": "src/ledger.ts",
+     "needle": "export function resolveWorkTags(",
+     "role": "contract",
+     "reason": "层级裁决的既有五规则；比例规则在同一函数内按层启用"
+    },
+    {
+     "id": "synthesis",
+     "path": "src/synthesis.ts",
+     "needle": "export function buildSynthesisTable",
+     "role": "consumer",
+     "reason": "结果行的分面键与汇总闸——「加上这篇后」预览的依据"
+    }
+   ],
+   "docs": [
+    "docs/wiki/Tagging-model.md",
+    "docs/wiki/Community-annotation.md"
+   ],
+   "tests": [
+    "test/workref.test.ts",
+    "test/openalex.test.ts",
+    "test/stats.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/workref.test.ts test/openalex.test.ts test/stats.test.ts",
+     "scope": "作品引用识别、名片三态、正态分位数；平台侧 Action 与导出在 SMT 仓验收"
+    }
+   ],
+   "boundary": "引擎只提供契约、裁决规则与读取函数；账号、存储、Action、页面在 SMT 仓；宿主只经 SMV 契约消费导出，SMT 与宿主零直接接口。",
+   "kind": "plan",
+   "interface": {
+    "inputs": [
+     "DOI / OpenAlex / PMID / 链接 / 标题；断言 JSONL；导出 manifest 与分片"
+    ],
+    "outputs": [
+     "EvidenceWorkRef / EvidenceWorkCard；社区裁决与 EvidenceWorkTag；EvidenceCommunityExport 的内存端口"
+    ],
+    "errors": [
+     "名片 not_found ≠ error；导出验形逐条报 issue；pending 不转成账本立场"
+    ],
+    "compatibility": "契约只加法；缺省不设 quorum / 不配 community 时行为与 0.5.0 相同",
+    "failure_modes": {
+     "returned": [
+      "not_found / error 三态；导出 issues 列表"
+     ],
+     "thrown": [
+      "调用方违反类型契约可抛错"
+     ],
+     "unsupported": [
+      "引擎不拉导出、不认识 GitHub、不托管账号"
+     ]
+    }
+   },
+   "impact": [
+    "ledger-policy（按层比例裁决）、synthesis-table（frame 键与预览）、host-ports（社区端口）、compatibility（契约与快照）"
+   ],
+   "unknowns": [
+    "OpenAlex 单实体计费未实测；盲复录在静态页是荣誉制；真实社区规模与刷票风险未观察"
+   ],
+   "reviewed_at": "2026-10-31",
+   "evidence": {
+    "implementation": "planned",
+    "observations": []
+   },
+   "plan": {
+    "outcomes": [
+     "三层标签模型落到契约与判据",
+     "比例裁决（Wilson + 挑战规则）单一实现",
+     "导出读取与内存端口让宿主零解析代码",
+     "SMT 仓按设计布局并能跑通 issue → JSONL → 导出"
+    ],
+    "dependencies": [
+     "先定契约与裁决规则，再写 SMT 脚本；SMT 钉 SMV 发布版本",
+     "OpenAlex 单实体计费实测后再改免费路径"
+    ],
+    "interfaces": [
+     "ledger-policy / synthesis-table / host-ports / compatibility / external-transport"
+    ],
+    "deliverables": [
+     "SMV 0.6.0：类型、community.ts、ledger quorum、frame 与阶梯差距、展示与词典、功能登记、CHANGELOG",
+     "SMT：数据布局、issue 表单、intake / export / sample / replay / check 工作流、静态页"
+    ],
+    "exit_evidence": [
+     "比例裁决与独立参考对表；导出能被 readCommunityExport 零问题读回；缺省配置下回归快照不变；pnpm check 绿",
+     "SMT 仓 CI 绿；一条 issue 入库并出现在导出里"
+    ],
+    "unknowns": [
+     "单实体计费；盲复录诚实性；宿主是否回流自家裁决"
+    ]
+   },
+   "diagrams": [
+    {
+     "kind": "flow",
+     "path": "docs/wiki/Tagging-model.md",
+     "purpose": "三层标注各自影响选哪些 / 能画什么",
+     "question": "一条标注怎样变成一张图",
+     "scope": "设计；实现后核对",
+     "source_ids": [
+      "synthesis",
+      "ledger"
+     ]
+    },
+    {
+     "kind": "sequence",
+     "path": "docs/wiki/Community-annotation.md",
+     "purpose": "贴 DOI 到 issue 入库到导出的交互",
+     "question": "用户在平台上做什么、何时看到结果",
+     "scope": "设计；Action 与导出在 SMT 仓",
+     "source_ids": [
+      "workref",
+      "workcard"
+     ]
+    },
+    {
+     "kind": "state-machine",
+     "path": "docs/wiki/Community-annotation.md",
+     "purpose": "社区裁决状态迁移",
+     "question": "pending / accepted / disputed / rejected / confirmed / removed 怎么变",
+     "scope": "设计；参数在 SMT 配置",
+     "source_ids": [
+      "quantile",
+      "ledger"
+     ]
+    }
+   ],
+   "rules": [
+    {
+     "id": "pending-not-a-stance",
+     "statement": "pending 不转成账本立场，不进统计；只有 accepted / confirmed 计入",
+     "source_ids": [
+      "ledger"
+     ],
+     "tests": [
+      "test/stats.test.ts"
+     ]
+    },
+    {
+     "id": "row-atomic",
+     "statement": "结果行是整行原子：认可即盲复录整行，不按字段拼装",
+     "source_ids": [
+      "synthesis"
+     ],
+     "tests": [
+      "test/stats.test.ts"
+     ]
+    }
+   ]
+  }
+ ],
+ "quality": {
+  "min_structural_score": 85,
+  "max_query_words": 450
+ },
+ "diagram_policy": {
+  "scope": "共享 Wiki 项目级六种视图，不要求每接口重复六图",
+  "required_kinds": [
+   "architecture",
+   "flow",
+   "sequence",
+   "data-model",
+   "deployment",
+   "state-machine"
+  ],
+  "not_applicable": []
+ },
+ "task_maps": [
+  {
+   "id": "interface-change",
+   "title": "外部、依赖、标签与接口规则改进",
+   "scope": "当前四类工作面、十二条实现路由；不声称自动推断全项目影响",
+   "docs": [
+    "docs/wiki/Interface-change-playbook.md"
+   ],
+   "surfaces": [
+    {
+     "id": "external",
+     "question": "公共读口与外部文献源怎样改？",
+     "route_ids": [
+      "public-api",
+      "external-source",
+      "external-transport",
+      "client-diagnostics",
+      "synthesis-table"
+     ],
+     "why": "先对齐服务/HTTP/SDK 的失败分类，再处理文献源必需/可选能力及请求预算。"
+    },
+    {
+     "id": "dependency",
+     "question": "宿主依赖与存储责任怎样改？",
+     "route_ids": [
+      "host-ports"
+     ],
+     "why": "定位缓存/召回实现，明确失败降级、事务和宿主责任。"
+    },
+    {
+     "id": "tagging",
+     "question": "标签、贡献、裁决与统计怎样联动？",
+     "route_ids": [
+      "tag-normalization",
+      "tagger-contribution",
+      "ledger-policy",
+      "ledger-integration"
+     ],
+     "why": "键迁移、共用清洗、断言写入、审核、有效标签与召回必须串起来检查。"
+    },
+    {
+     "id": "rules",
+     "question": "配置、兼容和交付规则怎样保持一致？",
+     "route_ids": [
+      "settings-contract",
+      "compatibility"
+     ],
+     "why": "按实际改动同步设置消费、类型、导出、快照、迁移、安装包与 Wiki。"
+    }
+   ]
+  }
+ ]
 }

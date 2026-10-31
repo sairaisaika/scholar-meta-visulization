@@ -3,7 +3,57 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
-## 未发布
+## 0.6.0（2026-10-31）
+
+只有加法，没有破坏性改动：**社区标注**——任何人都可以给公开论文打标签、说它是什么研究、从原文抄一行数字，别人可以认可 / 不认可 / 复录；
+引擎提供契约、裁决规则、导出读取与宿主端口，平台（GitHub 仓库当数据库）与页面在独立的标注平台仓里。设计见 `docs/wiki/Tagging-model.md` 与 `docs/wiki/Community-annotation.md`。
+升级步骤见接入指南第 8 节「从 0.5 到 0.6」。
+
+### 新增（契约，加法）
+- `EvidenceSourceId` 多一个成员 `community`；`EvidenceRecord.data_provenance?`（`EvidenceDataProvenance`：谁抄的、几人复核、从哪抄）。
+- 作品引用与名片：`EVIDENCE_WORK_REF_KINDS` / `EvidenceWorkRef`（doi · openalex · pmid · url · title）、`EvidenceWorkCard`（书目、期刊、出版物形态、外部源的主题 / 关键词 / MeSH、摘要、撤稿）。
+- 分面与概念：`EVIDENCE_FACET_IDS` / `EvidenceFacetId`、`EvidenceConcept`（受控概念：别名、`broader`、可核对的外部 id、结局的缺省类型与方向）。
+- 比例裁决：`EvidenceQuorumRule`、`EvidenceQuorum`、`EvidenceWorkTag.quorum?`。
+- 社区断言与裁决：`EVIDENCE_COMMUNITY_STATES`、`EVIDENCE_VERIFICATIONS`、`EVIDENCE_ANNOTATION_KINDS`、`EVIDENCE_ANNOTATION_OPS`、`EvidenceRowContextInput`、`EvidenceRowEffectInput`、
+  `EvidenceAnnotationPayload`、`EvidenceAnnotation`、`EvidenceCommunityPolicy`、`EVIDENCE_COMMUNITY_ISSUES`、`EvidenceCommunityDecision`。
+- frame 与阶梯差距：`EvidenceFrame`、`EvidenceFrameChange`、`EvidenceLadderGap`。
+- 社区导出：`EvidenceCommunityExportManifest`、`EvidenceCommunityRow`、`EvidenceCommunityWork`、`EvidenceCommunityExport`、`EVIDENCE_COMMUNITY_EXPORT_ISSUES`。
+- 图注 `community_annotated` · `single_extraction` · `community_pending_excluded`；设置 `community.apply`（off · tags_only · tags_and_records，缺省 off）、
+  `community.minVerification`（缺省 double）、`community.tagStates`（缺省 present_only）与设置组 `community`。
+- `EVIDENCE_CONTRACT_VERSION = '0.6.0'`。
+
+### 新增（代码）
+- `src/workref.ts`：`parseWorkRef`（DOI、doi.org 与出版社链接里的 DOI、OpenAlex 编号 / 链接、PubMed 编号 / 链接、其他链接、标题）、`workKeyOf`、`workRefOfKey`（与 `normalizeWorkId` 同一套作品键）。
+- `src/stats.ts`：`normalQuantile`（标准正态分位数，Acklam 逼近，与 scipy 逐个对过）；`wilsonInterval` 签名不变。
+- `src/ledger.ts`：`LedgerPolicy.quorum?`、`DEFAULT_QUORUM_RULE`、`assessQuorum`（Wilson 区间整体高于 / 低于门槛；`min_independent`；反对不足 `min_disputers` 只算挑战）、
+  `resolveWorkTagsWithPending`；`resolveWorkTags` 在设了 `quorum` 时对那一层按比例裁决，pending 不出现在结论里。**不设时行为逐字不变**。
+- `src/community.ts`（新，主入口导出）：`resolveAnnotations`（全部断言种类；分面单选；结果行整行原子、盲复录 `matchReExtraction`、peeked 不计独立复录、冲突自动争议、缺出处封顶 pending）、
+  `reconcileRows`（竞争值）、`resolveConcepts`、`publicWorkCard`、`readCommunityExport`（契约主次版本核对、摘要置空并报、坏条目逐条报不抛）、`createCommunityPorts`（文章 / 账本 / 绑定端口与结果行、记录）、
+  `mergeWorkTagSources`（先到先得）、`communityStateToWorkTagState`、`DEFAULT_COMMUNITY_POLICY`。
+- `src/synthesis.ts`：`SynthesisContext.concept_ids?` / `timepoint_raw?`；`synthesisFrameKey`（抽出既有分面键；有概念 id 的分面用 id）、`summarizeFrames`、`previewFrameChange`。
+- `src/ladder.ts`：`describeLadderGap`（到下一级差几条带什么字段的记录；汇总还差几项）。
+- `src/onsite.ts`：`OnsiteIntakeOptions.source`（`onsite` / `community`：id 前缀与 `source` 随之）。
+- `src/service.ts`：`EvidenceServiceOptions.community`（社区导出装成的文章端口）；设置 `community.apply` 为 `tags_and_records` 时社区记录并进标签级与主题级图谱，与外部示例同一篇（DOI 或编号相同）时留社区记录；端口抛错 ⇒ unavailable；计数层与共现图不收。
+- `scholar-meta/openalex`：`createOpenAlexClient().fetchWorkCard(ref)`（单篇作品名片，三态：found / not_found / error，404 不是失败）、`autocompleteWorks(q)`（免费路径）；`workCardOf` 顶层导出；`WorkCardResolution`、`OpenAlexWorkHit` 类型。
+- 展示：`presentWorkCard`、`presentCommunityDecision`、`presentCommunityWork`、`presentLadderGap`、`presentFrames`、`presentFrameChange`；`presentWorkTags` 每行多 `quorum_text`（按比例裁决的层才有）。
+- 词典：`communityState`、`verification`、`facet`、`annotationKind`、`communityIssue`、`exportIssue`、`ladderField` 七节与一组 `text` 模板（名片、比例、复录、阶梯差距、frame），三条图注与三个设置项的文案（中英）。
+- 功能登记：`community_records`（`service.getTagMap` → `presentEvidenceMap`）、`work_card`（`workCardOf` → `presentWorkCard`）、`ladder_gap`（`describeLadderGap` → `presentLadderGap`）、
+  `frame_preview`（`previewFrameChange` → `presentFrameChange`）、`community_export`（`readCommunityExport` → `presentCommunityWork`）。
+
+### 公开接口
+- 主入口新增导出：`parseWorkRef`、`workKeyOf`、`workRefOfKey`、`normalQuantile`、`assessQuorum`、`DEFAULT_QUORUM_RULE`、`resolveWorkTagsWithPending`、`resolveAnnotations`、`reconcileRows`、`matchReExtraction`、`resolveConcepts`、
+  `publicWorkCard`、`readCommunityExport`、`createCommunityPorts`、`mergeWorkTagSources`、`communityStateToWorkTagState`、`DEFAULT_COMMUNITY_POLICY`、`COMMUNITY_EXPORT_MAX_WORKS`、`synthesisFrameKey`、`summarizeFrames`、`previewFrameChange`、
+  `describeLadderGap`、`presentWorkCard`、`presentCommunityDecision`、`presentCommunityWork`、`presentLadderGap`、`presentFrames`、`presentFrameChange`，以及上面列的契约常量。
+  `scholar-meta/openalex` 新增导出 `workCardOf`。没有删除。
+
+### 行为变化
+- `presentWorkTags` 的每一行多了 `quorum_text`（不按比例裁决时为 null）；其余输出不变。
+- 回归快照新增一组「社区标注」用例（裁决、导出读回、记录、阶梯差距、frame 变化与中英文案）；既有用例的快照没有变化。
+- 缺省设置下（`community.apply: off`、不设 `quorum`、不配 `community` 端口）服务层与账本的输出与 0.5.0 相同。
+
+### 文档
+- 新 Wiki 页：`Tagging-model`（三层标签模型、上级标签的决定、一条标注怎样变成一张图）、`Community-annotation`（平台设计、裁决参数与算例、工作流、许可与隐私、三方边界）；路由 `community-annotation`。
+- 接入指南：第 8 节「从 0.5 到 0.6」与第 9 节「接社区标注导出」；打标签文档第 9 节「公开社区的比例裁决」；架构文档功能表多五行。
 
 ### 多结局证据表
 - 主入口新增 `intakeOutcomeRows`、`buildSynthesisTable` 及 `SynthesisContext` / `SynthesisTable` 类型：结构化多结局拆行、语义分面、报告/研究/结果分计数与独立性闸；复合指标保留组成不自动运算，不生成总体分数。

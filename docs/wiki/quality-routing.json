@@ -7,15 +7,15 @@
     "min_tasks": 10,
     "min_unknown": 2
   },
-  "task_count": 33,
+  "task_count": 36,
   "top1": {
-    "numerator": 31,
-    "denominator": 31,
+    "numerator": 34,
+    "denominator": 34,
     "rate": 1.0
   },
   "top2": {
-    "numerator": 31,
-    "denominator": 31,
+    "numerator": 34,
+    "denominator": 34,
     "rate": 1.0
   },
   "unknown_rejection": {
@@ -24,8 +24,8 @@
     "rate": 1.0
   },
   "location_success": {
-    "numerator": 33,
-    "denominator": 33,
+    "numerator": 36,
+    "denominator": 36,
     "rate": 1.0
   },
   "max_response_words": 449,
@@ -120,7 +120,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 152,
-      "response_bytes": 2436,
+      "response_bytes": 2439,
       "candidate_count": 1,
       "truncated": false
     },
@@ -228,7 +228,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 253,
-      "response_bytes": 4129,
+      "response_bytes": 4131,
       "candidate_count": 1,
       "truncated": false
     },
@@ -246,7 +246,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 253,
-      "response_bytes": 4129,
+      "response_bytes": 4131,
       "candidate_count": 1,
       "truncated": false
     },
@@ -264,7 +264,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 253,
-      "response_bytes": 4129,
+      "response_bytes": 4131,
       "candidate_count": 1,
       "truncated": false
     },
@@ -283,7 +283,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 449,
-      "response_bytes": 6845,
+      "response_bytes": 6847,
       "candidate_count": 2,
       "truncated": false
     },
@@ -294,15 +294,16 @@
         "system-views"
       ],
       "actual": [
-        "system-views"
+        "system-views",
+        "community-annotation"
       ],
       "top1": true,
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 253,
-      "response_bytes": 4129,
-      "candidate_count": 1,
+      "response_words": 402,
+      "response_bytes": 6588,
+      "candidate_count": 2,
       "truncated": false
     },
     {
@@ -601,7 +602,7 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 61,
-      "response_bytes": 1433,
+      "response_bytes": 1434,
       "candidate_count": 1,
       "truncated": false
     },
@@ -619,7 +620,61 @@
       "unknown_rejected": null,
       "locations_ok": true,
       "response_words": 61,
-      "response_bytes": 1433,
+      "response_bytes": 1434,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "q-community-platform",
+      "query": "社区打标签平台怎样用 GitHub 当数据库",
+      "expected": [
+        "community-annotation"
+      ],
+      "actual": [
+        "community-annotation"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 149,
+      "response_bytes": 2456,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "q-tag-hierarchy",
+      "query": "标签要不要分上级下级 分面标注怎样变成图",
+      "expected": [
+        "community-annotation"
+      ],
+      "actual": [
+        "community-annotation"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 149,
+      "response_bytes": 2456,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "q-work-card",
+      "query": "DOI 或链接 怎样认成哪篇论文 作品名片",
+      "expected": [
+        "community-annotation"
+      ],
+      "actual": [
+        "community-annotation"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 149,
+      "response_bytes": 2456,
       "candidate_count": 1,
       "truncated": false
     }

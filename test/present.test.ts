@@ -24,6 +24,7 @@ import {
   EVIDENCE_CAVEATS, EVIDENCE_CHART_BLOCKERS, EVIDENCE_CHART_KINDS, EVIDENCE_DOWNGRADE_REASONS, EVIDENCE_EXTERNAL_MATCHES,
   EVIDENCE_INTAKE_ISSUES, EVIDENCE_POOLING_REASONS, EVIDENCE_STUDY_DESIGNS, EVIDENCE_DIMENSION_IDS, ONSITE_DIMENSION_IDS,
   EVIDENCE_DENOMINATOR_KINDS, EVIDENCE_EFFECT_METRICS, EVIDENCE_CITATION_FUNCTIONS, EVIDENCE_CITATION_DECLARERS,
+  EVIDENCE_COMMUNITY_STATES, EVIDENCE_VERIFICATIONS, EVIDENCE_FACET_IDS, EVIDENCE_ANNOTATION_KINDS, EVIDENCE_COMMUNITY_ISSUES, EVIDENCE_COMMUNITY_EXPORT_ISSUES,
 } from '../src/types'
 import type { EvidenceCitationPurpose, EvidenceCountSeries, EvidenceMapData, EvidenceRecord, EvidenceTopic } from '../src/types'
 import { chartAvailability } from '../src/charts'
@@ -41,6 +42,9 @@ describe('词典', () => {
     ['intake', EVIDENCE_INTAKE_ISSUES], ['studyDesign', EVIDENCE_STUDY_DESIGNS], ['binding', BINDING_BADGES],
     ['dimension', [...EVIDENCE_DIMENSION_IDS, ...ONSITE_DIMENSION_IDS]], ['denominator', EVIDENCE_DENOMINATOR_KINDS],
     ['metric', EVIDENCE_EFFECT_METRICS], ['reliability', SHARE_RELIABILITIES], ['studyDesignMeaning', EVIDENCE_STUDY_DESIGNS],
+    // 0.6.0 社区标注
+    ['communityState', EVIDENCE_COMMUNITY_STATES], ['verification', EVIDENCE_VERIFICATIONS], ['facet', EVIDENCE_FACET_IDS],
+    ['annotationKind', EVIDENCE_ANNOTATION_KINDS], ['communityIssue', EVIDENCE_COMMUNITY_ISSUES], ['exportIssue', EVIDENCE_COMMUNITY_EXPORT_ISSUES],
   ]
   it.each(Object.keys(EVIDENCE_MESSAGES))('%s：每个契约键都有非空的一句', (locale) => {
     const cat = EVIDENCE_MESSAGES[locale as 'zh' | 'en'] as unknown as Record<string, Record<string, string>>
