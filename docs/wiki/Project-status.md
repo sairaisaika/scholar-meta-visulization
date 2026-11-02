@@ -44,6 +44,10 @@ SMV 原有 `docs/architecture.md`、`charts.md`、`integration.md`、`tagging.md
 
 这些判断来自实现函数；详见相应 Wiki 页的源码依据。
 
+## 2026-11-01 推进：平台上线与运维修补
+
+SMV 代码无改动（基线仍为 `6fc2709`，0.6.0 已发布），本轮只改 Wiki。SMT 侧：维护者在仓库设置里开通了 GitHub Pages（来源 GitHub Actions）并允许 Actions 创建 PR，已核实——仓库 API `has_pages: true`，`export` 工作流手动运行后 Pages 上 `export/v1/` 可读，`sample` 工作流手动运行并自动开出 PR #2（仅刷新 `data/sample.json` 的 `generated_at`、书架没有新内容，已关闭未并入），证明 Actions 开 PR 的权限已生效。随后三个修补均已进 main，CI 的 check 与 export 都成功：`3147657` 书架没变时 sample 不再重写 `sample.json`，避免每周只为时间戳开 PR；`cc14f8d` replay 在已发布导出的 `manifest.json` 拉不到时不比对、不开 issue、退出码 0（没问成 ≠ 不一致）；`2ae73e2` replay 读远端文件缺失或失败时隔几秒重试、最多三次，避开刚部署后的 CDN 传播窗口。后两类情形（`cc14f8d`、`2ae73e2`）此前误开的 issue #1、#3 已留言说明误报并关闭。仍未做的事（真实 issue 走通入库 → 导出 → `readCommunityExport`、归档片读回、下次 sample 真开 PR 时核对 check）见 [TODO](TODO.md) R14；逐项观察见[本轮验证](Development-verification-2026-11.md)。
+
 ## 2026-10-31 推进：社区标注
 
 SMV 基线 `dc2398e`（0.6.0）：引擎侧的社区标注全部落地（见 [TODO](TODO.md) R13 与两页设计的实现核对）。SMT 基线由本轮提交：配置、词表、数据占位、工作流、issue 表单、数据许可、README / AGENTS、`scripts/`（入库 / 导出 / 样本 / 重放 / 结构闸 / 抹名）与 `site/`（静态标注页）；SMT 依赖 SMV 的发布安装包（`package.json` 钉 v0.6.0 的 release 链接），SMV 不依赖 SMT。
