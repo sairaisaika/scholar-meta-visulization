@@ -11,7 +11,7 @@
 | 编辑整理文章结果 | **新增 intakeOutcomeRows → buildSynthesisTable** | 多结局表、时间/比较/单位分面、不能合并的原因、合格分面的汇总 | 未增加写入接口/持久化，也未自动从 PDF 提取数字 |
 | 请求状态 | createEvidenceResultClient | HTTP 状态、受支持错误类别、Retry-After 提示 | null 不表示零文献；失败不可永久缓存 |
 
-SMT 当前仍共用 SMV 包内 tagging/ledger，没有第二套独立 API 服务。新表的入口在主包 `scholar-meta`，新增配置/视图类型位于 `synthesis.ts` 的声明导出；领域 `src/types.ts` 及四类现有 HTTP 路由未变。源码候选新增功能不代表已发布新 npm 版本；按提交钉定或等维护者正式发版，再做接入方的升级验收。
+（2026-10-21 时的状态：SMT 仍共用 SMV 包内 tagging/ledger，没有独立服务。2026-10-31 起 SMT 是独立的公开标注平台，只发静态导出，与宿主零直接接口，见[社区标注平台](Community-annotation.md)。）新表的入口在主包 `scholar-meta`，新增配置/视图类型位于 `synthesis.ts` 的声明导出；领域 `src/types.ts` 及四类现有 HTTP 路由未变。源码候选新增功能不代表已发布新 npm 版本；按提交钉定或等维护者正式发版，再做接入方的升级验收。
 
 ## 最小接线（结构化结果已有后）
 

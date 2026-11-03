@@ -433,7 +433,9 @@ export const openalex = createOpenAlexClient({ apiKey: () => process.env.OPENALE
 import { readCommunityExport, createCommunityPorts, mergeWorkTagSources } from 'scholar-meta'
 import { createEvidenceService } from 'scholar-meta/service'
 
-const parsed = readCommunityExport(manifestJson, shardJsons)          // 契约主次版本对不上 ⇒ ok: false；坏条目逐条报在 issues，不抛
+// 先解析再交给引擎：manifest 是对象；每个 works/<hh>.jsonl 按行 JSON.parse 成一个作品数组，一片一个数组（传原文会整片记 not_an_object 并跳过）。
+// bindings.json / concepts.json / frames.json 有就一起解析后放进第三个参数。
+const parsed = readCommunityExport(manifest, shardArrays, { bindings, concepts, frames })   // 契约主次版本对不上 ⇒ ok: false；坏条目逐条报在 issues，不抛
 if (parsed.ok) {
   const community = createCommunityPorts(parsed.value, { tagStates: 'present_only', minVerification: 'double' })
   service = createEvidenceService({
@@ -452,4 +454,15 @@ if (parsed.ok) {
 | `community.tagStates` | `present_only` | 只把「有」交给账本合并——merge 模式下任何非「有」的结论都会去掉作者原标签 |
 
 规则：pending 不是立场，不进统计；`reviewed` 只有编辑层核验的行才为 true，`independence_verified` 只由编辑层的独立性断言置 true——社区抄录本身不出汇总菱形；
-记录带 `source: 'community'`、`data_provenance`（谁抄的、几人复核、从哪抄）与导出清单里的许可，脚注分开印。文章页可以放一条到平台页面的深链让读者去标注，不需要别的接口。
+`ok: true` 不等于数据可用：`issues` 里有 `not_an_object` / `too_many_works`，或读到的作品数不等于清单各分片 `works` 之和，都应当当成这次刷新失败、保留上一份。引擎不校 sha256，宿主拉文件时按清单核。
+
+社区记录有两种取法，粒度不同：
+
+| 取法 | 粒度 | 出处字段 |
+|---|---|---|
+| `community.articles.listArticles({ tagKeys })` → `intakeArticles(rows, { source: 'community', source_label, license, retrieved_at })`（服务层 `tags_and_records` 就是这样做的） | 一篇一条 | `provenance` 里有来源名与许可；**没有** `data_provenance` |
+| `community.records({ minVerification })` | 一个结果行一条 | 有裁决的行带 `data_provenance`（层级、谁裁决、原文位置）；不按标签过滤，宿主用 `recordTagKeys` 自己筛 |
+
+`tagKeys` 是引擎 `normalizeTag` 形的键；宿主若以别的形式存标签，查之前先过一遍 `normalizeTag`。
+宿主不用服务层、自己装配图谱时，按上表任取一种，自己与外部示例去重（同 DOI 或同 OpenAlex 编号只留社区那条）。
+记录都带 `source: 'community'` 与导出清单里的许可，脚注分开印。文章页可以放一条到平台页面的深链让读者去标注，不需要别的接口。
