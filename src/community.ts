@@ -28,6 +28,9 @@ import { normalizeWorkId } from './tagging'
 import { intakeOutcomeRows, type SynthesisContext } from './synthesis'
 import { workRefOfKey } from './workref'
 import type { OnsiteArticleSource, TagBindingStore, WorkTagSource } from './ports'
+import type { EvidenceRecord } from './types'
+import { validateSettings } from './settings'
+import { communityRecordsFromRows, dropExternalDuplicates } from './community-records'
 
 /** 缺省参数（平台配置随导出下发时以导出里的为准）。 */
 export const DEFAULT_COMMUNITY_POLICY: EvidenceCommunityPolicy = {
@@ -575,6 +578,42 @@ export interface CommunityPorts {
 
 const meets = (v: EvidenceVerification | null, min: EvidenceVerification) => v !== null && VERIFICATION_RANK[v] >= VERIFICATION_RANK[min]
 
+const presentTags = (w: EvidenceCommunityWork) => w.tags.filter((t) => t.state === 'present')
+const design = (w: EvidenceCommunityWork) => {
+  const f = w.facets.design
+  return f && COUNTED.includes(f.decision.state) ? f.value : null
+}
+const rowsOf = (w: EvidenceCommunityWork, min: EvidenceVerification) =>
+  w.rows.filter((r) => COUNTED.includes(r.decision.state) && meets(r.decision.verification, min)).sort((a, b) => (a.row_id < b.row_id ? -1 : 1))
+/** 一篇作品 → 站内文章端口同形的一行（标签是「有」的标签，研究设计取 accepted / confirmed 的 design，数字取最小核验档以上的第一行） */
+const article = (w: EvidenceCommunityWork, min: EvidenceVerification) => {
+  const c = w.card
+  const primary = rowsOf(w, min)[0] ?? null
+  return {
+    id: w.work_id,
+    title: c?.title ?? w.work_id,
+    tags: presentTags(w).map((t) => t.label),
+    year: c?.year ?? null,
+    authors: c?.authors ?? [],
+    doi: c?.doi ?? (w.work_id.startsWith('doi:') ? w.work_id.slice(4) : null),
+    url: c?.oa_url ?? (c?.doi ? `https://doi.org/${c.doi}` : c?.id ? `https://openalex.org/${c.id.replace(/^openalex:/, '')}` : null),
+    publication_type: c?.publication_type ?? null,
+    study_design: design(w),
+    effect: primary?.input.effect ?? null,
+    direction: primary?.input.direction ?? null,
+    is_retracted: c?.is_retracted ?? false,
+    is_public: true,
+  }
+}
+/** 带这些标签（引擎键）的、未撤稿的作品，一篇一行；`tagKeys` 为 null ⇒ 全部 */
+function communityArticles(exp: EvidenceCommunityExport, tagKeys: readonly string[] | null, min: EvidenceVerification) {
+  const want = tagKeys ? new Set(tagKeys) : null
+  return exp.works
+    .filter((w) => !w.card?.is_retracted)
+    .filter((w) => !want || presentTags(w).some((t) => want.has(t.tag_key)))
+    .map((w) => article(w, min))
+}
+
 /** 把导出装成宿主端口。纯内存、零 IO；宿主自己负责拉文件、校哈希、缓存与定时刷新。 */
 export function createCommunityPorts(exp: EvidenceCommunityExport, opts: CommunityPortsOptions = {}): CommunityPorts {
   const tagStates = opts.tagStates ?? 'present_only'
@@ -587,13 +626,6 @@ export function createCommunityPorts(exp: EvidenceCommunityExport, opts: Communi
     }
   }
   const lookup = (id: string) => byKey.get(normalizeWorkId(id) ?? id) ?? null
-  const presentTags = (w: EvidenceCommunityWork) => w.tags.filter((t) => t.state === 'present')
-  const design = (w: EvidenceCommunityWork) => {
-    const f = w.facets.design
-    return f && COUNTED.includes(f.decision.state) ? f.value : null
-  }
-  const rowsOf = (w: EvidenceCommunityWork, min: EvidenceVerification) =>
-    w.rows.filter((r) => COUNTED.includes(r.decision.state) && meets(r.decision.verification, min)).sort((a, b) => (a.row_id < b.row_id ? -1 : 1))
   const outcomes: CommunityPorts['outcomes'] = (workId, o = {}) => {
     const w = lookup(workId)
     if (!w) return []
@@ -619,36 +651,13 @@ export function createCommunityPorts(exp: EvidenceCommunityExport, opts: Communi
       }
     })
   }
-  const article = (w: EvidenceCommunityWork, min: EvidenceVerification) => {
-    const c = w.card
-    const primary = rowsOf(w, min)[0] ?? null
-    return {
-      id: w.work_id,
-      title: c?.title ?? w.work_id,
-      tags: presentTags(w).map((t) => t.label),
-      year: c?.year ?? null,
-      authors: c?.authors ?? [],
-      doi: c?.doi ?? (w.work_id.startsWith('doi:') ? w.work_id.slice(4) : null),
-      url: c?.oa_url ?? (c?.doi ? `https://doi.org/${c.doi}` : c?.id ? `https://openalex.org/${c.id.replace(/^openalex:/, '')}` : null),
-      publication_type: c?.publication_type ?? null,
-      study_design: design(w),
-      effect: primary?.input.effect ?? null,
-      direction: primary?.input.direction ?? null,
-      is_retracted: c?.is_retracted ?? false,
-      is_public: true,
-    }
-  }
   const label = exp.manifest.label
   const license = exp.manifest.license
   return {
     articles: {
       label, license,
       async listArticles({ tagKeys }) {
-        const want = tagKeys ? new Set(tagKeys) : null
-        return exp.works
-          .filter((w) => !w.card?.is_retracted)
-          .filter((w) => !want || presentTags(w).some((t) => want.has(t.tag_key)))
-          .map((w) => article(w, minVerification))
+        return communityArticles(exp, tagKeys ?? null, minVerification)
       },
     },
     workTags: {
@@ -717,4 +726,184 @@ export function mergeWorkTagSources(sources: readonly WorkTagSource[]): WorkTagS
       return out
     },
   }
+}
+
+// ── 宿主插件层：拉取与合并（0.6.1） ─────────────────────────────────────────────────
+// 宿主不走服务层、自己装配图谱时，只需定时调 `refreshCommunityExport`、在装配处调 `mergeCommunityRecords`。
+// 引擎不出网：取文件的函数（`get`）与哈希函数（`sha256`）都由宿主传进来，宿主照旧用自己的服务端包装与白名单。
+
+/** 一份可直接存成 JSON 的社区导出快照（宿主存它；下次刷新与合并都只认它） */
+export interface CommunityExportSnapshot {
+  /** 导出根，末尾不带 `/` */
+  base: string
+  /** 内容最后一次真的变了、被取回的时刻（记录脚注的取数时间用它） */
+  fetched_at: string
+  /** 清单里的分片：路径 → sha256（判「没变」用） */
+  shards: Record<string, string>
+  /** 附带文件的 sha256；没有该文件为 null */
+  extras: { bindings: string | null; concepts: string | null; frames: string | null }
+  /** 引擎读回的导出（`readCommunityExport` 的结果） */
+  export: EvidenceCommunityExport
+}
+
+/** 刷新失败的原因：`unreachable` 取不到文件（含非 200）；`bad_path` 清单里的路径不是相对路径；`hash_mismatch` 分片哈希对不上；
+ *  `bad_json` 文件不是合法 JSON / JSON Lines；`bad_export` 引擎读回不过（契约版本不符、清单形状不对、整片坏、附带文件不是数组）；
+ *  `incomplete` 读到的作品数不等于清单的分片之和或 `counts.works`；`host_error` 宿主传进来的 `sha256` / `now` 抛了 */
+export type CommunityRefreshFailure = 'unreachable' | 'bad_path' | 'hash_mismatch' | 'bad_json' | 'bad_export' | 'incomplete' | 'host_error'
+
+export interface CommunityRefreshResult {
+  /** `updated` 内容变了，存新快照；`unchanged` 没变；`failed` 这次没成，`snapshot` 原样是上一份（可能为 null） */
+  status: 'updated' | 'unchanged' | 'failed'
+  snapshot: CommunityExportSnapshot | null
+  reason: CommunityRefreshFailure | null
+  /** 出问题的文件（相对导出根）；没有为 null */
+  path: string | null
+  /** 引擎读回时的逐条问题（成功时也可能有不致命的，如摘要被置空） */
+  issues: EvidenceCommunityExportIssue[]
+}
+
+export interface CommunityRefreshOptions {
+  /** 导出根地址，例如 `https://<平台>/export/v1` */
+  base: string
+  /** 取一个文件；宿主传自己的服务端取数（只要有 `status` 与 `text()`） */
+  get: (url: string) => Promise<{ status: number; text(): Promise<string> }>
+  /** 对 UTF-8 文本算 sha256（十六进制小写） */
+  sha256: (text: string) => string | Promise<string>
+  /** 上一份快照；没有就 null */
+  previous?: CommunityExportSnapshot | null
+  now?: () => Date
+}
+
+const EXTRA_FILES = ['bindings', 'concepts', 'frames'] as const
+const SAFE_PATH = /^[A-Za-z0-9_\-.]+(\/[A-Za-z0-9_\-.]+)*$/
+
+/**
+ * 拉一次社区导出：清单 → 附带文件 → 分片（分片集合与哈希都没变就复用上一份的作品，不下载）→ 逐个核 sha256 → 逐行解析 → `readCommunityExport`。
+ * 作品数必须等于清单各分片之和、不能有整片坏掉。任何一步不成都返回 `failed` 并原样交回上一份——失败不等于没有数据。从不抛。
+ */
+export async function refreshCommunityExport(opts: CommunityRefreshOptions): Promise<CommunityRefreshResult> {
+  const previous = opts.previous ?? null
+  try {
+    return await refreshOnce(opts, previous)
+  } catch {
+    // 只会是宿主传进来的函数（sha256 / now）抛了：照样交回上一份，不让定时任务崩
+    return { status: 'failed', snapshot: previous, reason: 'host_error', path: null, issues: [] }
+  }
+}
+
+/** 快照的形状能不能拿来复用（存储读回的可能缺字段）；不能就当没有上一份来拉，失败时仍原样交回 */
+function reusableSnapshot(x: CommunityExportSnapshot | null): x is CommunityExportSnapshot {
+  return x !== null && isRecord(x) && typeof x.base === 'string' && isRecord(x.shards) && isRecord(x.extras)
+    && isRecord(x.export) && Array.isArray(x.export.works) && isRecord(x.export.manifest)
+}
+
+async function refreshOnce(opts: CommunityRefreshOptions, previous: CommunityExportSnapshot | null): Promise<CommunityRefreshResult> {
+  const base = opts.base.replace(/\/+$/, '')
+  const fail = (reason: CommunityRefreshFailure, path: string | null, issues: EvidenceCommunityExportIssue[] = []): CommunityRefreshResult =>
+    ({ status: 'failed', snapshot: previous, reason, path, issues })
+  const load = async (path: string): Promise<{ status: number; text: string } | null> => {
+    try {
+      const res = await opts.get(`${base}/${path}`)
+      return { status: res.status, text: res.status === 200 ? await res.text() : '' }
+    } catch {
+      return null
+    }
+  }
+  const parse = (t: string): { ok: true; value: unknown } | { ok: false } => {
+    try { return { ok: true, value: JSON.parse(t) } } catch { return { ok: false } }
+  }
+
+  const mres = await load('manifest.json')
+  if (!mres || mres.status !== 200) return fail('unreachable', 'manifest.json')
+  const mjson = parse(mres.text)
+  if (!mjson.ok) return fail('bad_json', 'manifest.json')
+  const rawShards = isRecord(mjson.value) && Array.isArray(mjson.value.shards) ? mjson.value.shards : null
+  if (!rawShards) return fail('bad_export', 'manifest.json')
+  const shards: Record<string, string> = {}
+  let expected = 0
+  for (const sh of rawShards) {
+    const path = isRecord(sh) && text(sh.path) ? sh.path : ''
+    if (!SAFE_PATH.test(path) || path.split('/').includes('..')) return fail('bad_path', path || null)
+    shards[path] = isRecord(sh) && text(sh.sha256) ? sh.sha256.toLowerCase() : ''
+    expected += isRecord(sh) && typeof sh.works === 'number' ? sh.works : 0
+  }
+
+  const extras: Record<(typeof EXTRA_FILES)[number], unknown> = { bindings: undefined, concepts: undefined, frames: undefined }
+  const extraHashes: CommunityExportSnapshot['extras'] = { bindings: null, concepts: null, frames: null }
+  for (const name of EXTRA_FILES) {
+    const res = await load(`${name}.json`)
+    if (!res || (res.status !== 200 && res.status !== 404)) return fail('unreachable', `${name}.json`)
+    if (res.status === 404) continue
+    const j = parse(res.text)
+    if (!j.ok) return fail('bad_json', `${name}.json`)
+    if (!Array.isArray(j.value)) return fail('bad_export', `${name}.json`)
+    extras[name] = j.value
+    extraHashes[name] = String(await opts.sha256(res.text)).toLowerCase()
+  }
+
+  const samePaths = (a: Record<string, string>, b: Record<string, string>) => {
+    const ka = Object.keys(a).sort()
+    const kb = Object.keys(b).sort()
+    return ka.length === kb.length && ka.every((k, i) => k === kb[i] && a[k] === b[k])
+  }
+  const reuse = reusableSnapshot(previous) && previous.base === base && samePaths(previous.shards, shards)
+  const shardArrays: unknown[][] = []
+  if (reuse && previous) {
+    shardArrays.push(previous.export.works as unknown[])
+  } else {
+    for (const path of Object.keys(shards)) {
+      const res = await load(path)
+      if (!res || res.status !== 200) return fail('unreachable', path)
+      if (String(await opts.sha256(res.text)).toLowerCase() !== shards[path]) return fail('hash_mismatch', path)
+      const rows: unknown[] = []
+      for (const line of res.text.split('\n')) {
+        if (!line.trim()) continue
+        const j = parse(line)
+        if (!j.ok) return fail('bad_json', path)
+        rows.push(j.value)
+      }
+      shardArrays.push(rows)
+    }
+  }
+
+  const r = readCommunityExport(mjson.value, shardArrays, extras)
+  if (!r.ok) return fail('bad_export', 'manifest.json', r.issues)
+  if (r.issues.some((i) => i.code === 'not_an_object' || i.code === 'too_many_works')) return fail('bad_export', null, r.issues)
+  if (r.value.works.length !== expected || r.value.works.length !== r.value.manifest.counts.works) return fail('incomplete', null, r.issues)
+
+  const meta = (m: EvidenceCommunityExportManifest) =>
+    JSON.stringify([m.contract, m.label, m.license, m.repository, m.policy, m.facet_vocab, m.concepts_version, m.maintainers])
+  if (reuse && previous && meta(previous.export.manifest) === meta(r.value.manifest)
+    && EXTRA_FILES.every((n) => previous.extras[n] === extraHashes[n])) {
+    return { status: 'unchanged', snapshot: previous, reason: null, path: null, issues: r.issues }
+  }
+  const at = (opts.now ?? (() => new Date()))().toISOString()
+  return { status: 'updated', snapshot: { base, fetched_at: at, shards, extras: extraHashes, export: r.value }, reason: null, path: null, issues: r.issues }
+}
+
+export interface CommunityMergeInput {
+  /** 这张图的站内标签（任何写法；函数里换成引擎 `normalizeTag` 键）。标签级是当前标签，主题级是对应到该主题的站内标签 */
+  tags: readonly string[]
+  /** 这张图的外部示例记录 */
+  external: readonly EvidenceRecord[]
+  /** 引擎设置（只看 `community.apply` 与 `community.minVerification`；缺的取缺省，不合法的退回缺省） */
+  settings?: Readonly<Record<string, unknown>> | null
+}
+
+/**
+ * 把社区导出并进一张图：`community.apply` 是 `tags_and_records` 且有快照时，取带这些标签的社区作品（一篇一条记录，来源 community，
+ * 出处是导出的来源名与 CC0），并从外部示例里去掉同一篇（同 DOI 或同 OpenAlex 编号）；否则社区为空、外部示例原样。纯函数，零 IO。
+ */
+export function mergeCommunityRecords(
+  snapshot: Pick<CommunityExportSnapshot, 'export' | 'fetched_at'> | null | undefined,
+  input: CommunityMergeInput,
+): { community: EvidenceRecord[]; external: EvidenceRecord[] } {
+  const values = validateSettings(input.settings ?? {}).values
+  const keys = [...new Set(input.tags.map((t) => normalizeTag(t)).filter((k): k is string => k !== null))]
+  if (!snapshot || values['community.apply'] !== 'tags_and_records' || keys.length === 0) return { community: [], external: [...input.external] }
+  const exp = snapshot.export
+  const rows = communityArticles(exp, keys, values['community.minVerification'])
+  // 行已经按导出里的 tag_key 挑过；不再按标签显示名二次过滤（显示名与键可以不同）
+  const { records } = communityRecordsFromRows(rows, { label: exp.manifest.label, license: exp.manifest.license, retrieved_at: snapshot.fetched_at }, null)
+  return { community: records, external: dropExternalDuplicates(input.external, records) }
 }

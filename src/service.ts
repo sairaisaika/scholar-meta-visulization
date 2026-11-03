@@ -36,7 +36,7 @@ import {
 } from './onsite'
 import type { IntakeResult, TagGraphOptions } from './onsite'
 import { wilsonInterval } from './stats'
-import { fnv1a, normalizeDoi, sampleDois } from './doi'
+import { fnv1a, sampleDois } from './doi'
 import { createMemoryCache, EXTERNAL_LEVELS } from './ports'
 import { defaultSettings, isLiveSettings, settingsReader } from './settings'
 import { applyWorkTags } from './ledger'
@@ -45,6 +45,7 @@ import type {
   CertaintySource, EvidenceCache, ExternalEvidenceSource, ExternalLevel, ExternalNodeBundle, OnsiteArticleSource, TagBindingStore, WorkTagSource,
 } from './ports'
 import { checkCertainty } from './appraisal'
+import { communityRecordsFromRows, dropExternalDuplicates } from './community-records'
 
 export * from './ports'
 
@@ -294,29 +295,13 @@ export function createEvidenceService(opts: EvidenceServiceOptions): EvidenceSer
     const src = opts.community
     if (!src || c.communityApply !== 'tags_and_records' || tagKeys.length === 0) return []
     const rows = await src.listArticles({ tagKeys })
-    const out = intakeArticles(Array.isArray(rows) ? rows : [], {
-      source: 'community', source_label: src.label ?? 'Community annotations', license: src.license ?? 'CC0-1.0', retrieved_at: now().toISOString(),
-    })
-    if (out.issues.length > 0) log('[evidence.community] intake issues', { articles: out.issues.length })
-    const want = new Set(tagKeys)
-    return out.records.filter((r) => recordTagKeys(r).some((k) => want.has(k)))
+    const out = communityRecordsFromRows(Array.isArray(rows) ? rows : [], {
+      label: src.label ?? 'Community annotations', license: src.license ?? 'CC0-1.0', retrieved_at: now().toISOString(),
+    }, tagKeys)
+    if (out.issues > 0) log('[evidence.community] intake issues', { articles: out.issues })
+    return out.records
   }
-  /** 外部示例里与社区记录同一篇的（DOI 或 OpenAlex 编号相同）丢掉：同一篇只出现一次，社区记录带着人抄的字段，信息更多 */
-  const dedupeExternal = (external: readonly EvidenceRecord[], community: readonly EvidenceRecord[]): EvidenceRecord[] => {
-    if (community.length === 0) return [...external]
-    // DOI 两边都归一（入库存的是 doi.org 链接形式，外部源给的也是）；OpenAlex 编号按作品键比
-    const keys = new Set<string>()
-    for (const r of community) {
-      const d = normalizeDoi(r.doi)
-      if (d) keys.add(`doi:${d}`)
-      const m = /^community:(openalex:w\d+)/i.exec(r.id)
-      if (m) keys.add(m[1]!.toLowerCase())
-    }
-    return external.filter((r) => {
-      const d = normalizeDoi(r.doi)
-      return !(d && keys.has(`doi:${d}`)) && !keys.has(r.id.toLowerCase())
-    })
-  }
+  const dedupeExternal = dropExternalDuplicates
   /** 开了审阅门槛才下发「还有几篇在等」 */
   const pendingField = <K extends string>(key: K, pending: number | undefined) =>
     (pending === undefined ? {} : { [key]: pending }) as Partial<Record<K, number>>

@@ -3,6 +3,24 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
+## 0.6.1（2026-11-03）
+
+只有加法，契约（`src/types.ts`）没变，`EVIDENCE_CONTRACT_VERSION` 仍是 0.6.0：**宿主插件层**——不走服务层、自己装配图谱的宿主接社区导出时，只需调两个函数。
+
+### 新增（代码）
+- `refreshCommunityExport({ base, get, sha256, previous, now? })`：拉一次社区导出——清单、附带文件（`bindings` / `concepts` / `frames`，404 当没有）、分片（集合与哈希都没变就复用上一份的作品、不下载）、逐个核 sha256、逐行解析、`readCommunityExport` 读回；作品数必须同时等于清单各分片之和与 `counts.works`，附带文件必须是数组。返回 `updated` / `unchanged` / `failed`；**失败时原样交回上一份**，带原因（`unreachable` / `bad_path` / `hash_mismatch` / `bad_json` / `bad_export` / `incomplete` / `host_error`）与出问题的文件。从不抛（宿主的 `sha256` / `now` 抛了也记为 `host_error`）；从存储读回的残缺快照不复用、整份重拉。引擎不出网：取文件的 `get` 与 `sha256` 都由宿主传入；清单里的路径只接受相对路径。
+- `mergeCommunityRecords(snapshot, { tags, external, settings })`：`community.apply` 为 `tags_and_records` 时，把站内标签（任何写法，函数内换成 `normalizeTag` 键）对应的社区作品变成记录（一篇一条），并从外部示例里去掉同一篇（同 DOI 或同 OpenAlex 编号）；按导出里的标签键取，标签显示名与键不同也取得到。否则社区为空、外部示例原样。纯函数。
+- 类型：`CommunityExportSnapshot`（可直接存成 JSON）、`CommunityRefreshOptions`、`CommunityRefreshResult`、`CommunityRefreshFailure`、`CommunityMergeInput`。
+
+### 公开接口
+- 主入口新增 `refreshCommunityExport`、`mergeCommunityRecords` 两个函数与上述类型；没有删除或改签名。
+
+### 行为变化
+- 无。服务层 `tags_and_records` 改用与 `mergeCommunityRecords` 同一份「社区作品 → 记录」与去重规则（内部模块，不导出）；回归快照未变。
+
+### 文档
+- 接入指南第 9 节加「自己装配图谱的宿主：两个函数」；Wiki 社区标注平台页「宿主插件层」。
+
 ## 0.6.0（2026-10-31）
 
 只有加法，没有破坏性改动：**社区标注**——任何人都可以给公开论文打标签、说它是什么研究、从原文抄一行数字，别人可以认可 / 不认可 / 复录；

@@ -456,6 +456,22 @@ if (parsed.ok) {
 规则：pending 不是立场，不进统计；`reviewed` 只有编辑层核验的行才为 true，`independence_verified` 只由编辑层的独立性断言置 true——社区抄录本身不出汇总菱形；
 `ok: true` 不等于数据可用：`issues` 里有 `not_an_object` / `too_many_works`，或读到的作品数不等于清单各分片 `works` 之和，都应当当成这次刷新失败、保留上一份。引擎不校 sha256，宿主拉文件时按清单核。
 
+**自己装配图谱的宿主：两个函数（0.6.1）。** 不走服务层的宿主不必自己写拉取与合并：
+
+```ts
+import { refreshCommunityExport, mergeCommunityRecords } from 'scholar-meta'
+
+// 定时任务（服务端，例如每小时）：get 用宿主自己的服务端取数，sha256 对 UTF-8 文本算
+const r = await refreshCommunityExport({ base: EXPORT_BASE, get: (url) => serverFetch(url), sha256, previous: await loadSnapshot() })
+if (r.status === 'updated') await saveSnapshot(r.snapshot)          // 快照是普通对象，直接存成 JSON
+if (r.status === 'failed') log(r.reason, r.path, r.issues)            // 上一份原样还在，失败不等于没有数据
+
+// 装配一张图时
+const { community, external } = mergeCommunityRecords(await loadSnapshot(), { tags: siteTags, external: externalRecords, settings })
+```
+
+`tags` 传这张图的站内标签，任何写法都行（标签级是当前标签，主题级是对应到该主题的站内标签）；`settings` 是宿主存的引擎设置，只看 `community.apply` 与 `community.minVerification`。
+
 社区记录有两种取法，粒度不同：
 
 | 取法 | 粒度 | 出处字段 |

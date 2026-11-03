@@ -179,6 +179,7 @@ flowchart LR
 | M11 | `src/present.ts` + `src/messages.ts` | `presentWorkCard`、`presentCommunityWork`、`presentFrames` / `presentFrameChange`、`presentLadderGap`；`presentWorkTags` 识别 `quorum`；词典新增各键中英各一句 |
 | M12 | `src/features.ts` + `docs/architecture.md` | `work_card`、`frame_preview`、`ladder_gap`、`community_export`、`community_records` |
 | M13 | 闸 | CHANGELOG 0.6.0；API 快照人工审差异；`docs/tagging.md` / `integration.md` / README；本 wiki 两页与路由；`python tools/wiki.py build && check` |
+| M14 | 宿主插件层（0.6.1，计划见「宿主插件层」节） | `refreshCommunityExport`（注入 `get` / `sha256`；分片集合与哈希没变就复用上一份作品；失败交回上一份并带原因与文件）、`mergeCommunityRecords`（换引擎键、一篇一条社区记录、与外部示例去重）；快照类型 `CommunityExportSnapshot` 可直接存 JSON；服务层与它共用内部模块 `community-records.ts`（不导出）。测试 10 例（`test/community-plugin.test.ts`；含独立评审补出的四条：宿主函数抛错记 `host_error`、`counts.works` 也要对上、附带文件须是数组、残缺快照不复用、按 tag_key 取不再按显示名二次过滤）；API 快照只增两个函数；回归快照未变 | 注入的取数函数叫 `get` 不叫 `fetch`（边界闸把任何叫 fetch 的标识符都算出网）；契约未改，`EVIDENCE_CONTRACT_VERSION` 仍 0.6.0 |
 
 红线：`community.ts` 零 IO、不引 `node:*`、不用 `URL`、不用 `crypto.subtle`；**不**在 `client.ts` 加拉导出的方法（client 只打宿主 API；浏览器直连第三方泄露读者 IP）；`cited_by_count` 照旧永不上效应轴。
 
@@ -187,6 +188,21 @@ flowchart LR
 - 冷启动样本由 `sample.yml` 在 CI 取（开发容器内外网不可达不影响）；样本只提供名片与 model 建议，研究设计、方向、数字必须有人抄——「真实数据」＝真实论文、真实的人抄的数。
 - 宿主每小时拉 manifest、校 sha256、失败保留上一份；`community.apply` 与 `minVerification` 由宿主决定。
 - SMV 演示页构建时若有 `COMMUNITY_EXPORT_URL` 就下载导出，失败或无网退回夹具并挂「合成示例」横幅；两种状态必须肉眼可分；`test/regression.test.ts` 仍用固定夹具。
+
+## 宿主插件层（计划，0.6.1）
+
+问题：0.6.0 只给了「读一份已解析的导出」与「装成端口」。宿主若不走服务层、自己装配图谱，接社区导出要自己写三样易错的东西：拉取（分片要先按行解析成数组；`ok: true` 也可能是空数据；失败要保留上一份）、合并（与外部示例去重的规则是服务层内部函数，宿主只能照抄成第二份；标签键要换成 `normalizeTag` 形）、设置（宿主自己登记）。
+
+做法：引擎加两个纯函数，宿主只调用、只配置。不加入口、不加设置、不改契约（`src/types.ts` 不动，`EVIDENCE_CONTRACT_VERSION` 仍是 0.6.0）。
+
+| 函数 | 入参 | 出参 | 规则 |
+|---|---|---|---|
+| `refreshCommunityExport` | 导出根地址、宿主给的 `fetch`（宿主自己的服务端包装）、宿主给的 `sha256`（对 UTF-8 文本算）、上一份快照 | `{ status: 'updated' \| 'unchanged' \| 'failed', snapshot, issues }` | 拉 `manifest.json`；`bindings.json` / `concepts.json` / `frames.json` 有就拉（404 当没有）；分片集合与哈希都没变就复用上一份的作品，不再下载分片；变了就全部重拉、逐个核 sha256、逐行解析；交给 `readCommunityExport`；作品数必须等于清单各分片之和、不能有整片坏掉。**任何一步失败都原样交回上一份**（失败 ≠ 没有数据）。路径只接受清单里的相对路径，拒绝 `..`、绝对路径与带协议的路径 |
+| `mergeCommunityRecords` | 快照、站内标签（任何写法，函数内换成引擎键）、外部示例、引擎设置 | `{ community, external }` | `community.apply` 不是 `tags_and_records` 或没有快照 ⇒ 原样返回外部示例、社区为空；否则取带这些标签的社区作品，一篇一条记录（`source: 'community'`，出处是导出的来源名与 CC0），外部示例里同 DOI 或同 OpenAlex 编号的丢掉。服务层的 `tags_and_records` 改用同一份去重函数 |
+
+快照是可直接存成 JSON 的普通对象（拉取时间、分片哈希、附带文件哈希、解析后的导出）。宿主的事只剩三件：定时调 `refreshCommunityExport` 并在 `updated` 时存快照；图谱装配处调 `mergeCommunityRecords`；把三项设置交进来（有按清单渲染的插件区就自动有）。
+
+不做：不在引擎里出网（`fetch` 由宿主注入，源码仍只有 `openalex.ts` / `client.ts` 用 `fetch`）；不替宿主存快照；不接管宿主的图谱装配、分区或审阅门槛；不加新入口。
 
 ## 风险与未决
 

@@ -163,8 +163,8 @@
           "id": "s4",
           "role": "implementation",
           "reason": "export function createEvidenceService",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/service.ts",
@@ -172,8 +172,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         }
       ]
     },
@@ -341,8 +341,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "id": "request",
@@ -580,8 +580,8 @@
           "id": "s6",
           "role": "declaration",
           "reason": "export interface EvidenceServiceOptions",
-          "line": 74,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 75,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/service.ts",
@@ -589,8 +589,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "id": "factory",
@@ -598,8 +598,8 @@
           "needle": "export function createEvidenceService",
           "role": "implementation",
           "reason": "宿主端口的装配、缓存降级和读取实现",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "id": "cache-flow",
@@ -611,8 +611,8 @@
             "缓存命中、并发合并、null/partial 写回与异常降级"
           ],
           "visibility": "internal",
-          "line": 235,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 236,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "id": "records",
@@ -624,8 +624,8 @@
             "文章验形、账本应用、标签与审阅筛选顺序"
           ],
           "visibility": "internal",
-          "line": 263,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 264,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         }
       ]
     },
@@ -816,8 +816,8 @@
           "id": "s1",
           "role": "declaration",
           "reason": "export interface EvidenceService {",
-          "line": 135,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 136,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/service.ts",
@@ -825,8 +825,8 @@
           "id": "s2",
           "role": "declaration",
           "reason": "export type ServiceResult<",
-          "line": 72,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 73,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/service.ts",
@@ -834,8 +834,8 @@
           "id": "s3",
           "role": "declaration",
           "reason": "export type ServiceError =",
-          "line": 62,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 63,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/http.ts",
@@ -909,8 +909,8 @@
             "服务方法异常转 unavailable"
           ],
           "visibility": "internal",
-          "line": 392,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 377,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         }
       ]
     },
@@ -1090,8 +1090,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/tags.ts",
@@ -1742,8 +1742,8 @@
           "id": "s3",
           "role": "implementation",
           "reason": "export function createEvidenceService",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/onsite.ts",
@@ -1760,8 +1760,8 @@
           "id": "s5",
           "role": "implementation",
           "reason": "async function onsiteRecords(",
-          "line": 263,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 264,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/service.ts",
@@ -1769,8 +1769,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         }
       ]
     },
@@ -1979,8 +1979,8 @@
           "id": "consumer",
           "role": "consumer",
           "reason": "本路由的下游消费/装配位置",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "path": "src/settings.ts",
@@ -2515,8 +2515,8 @@
           "needle": "export function createEvidenceService",
           "role": "implementation",
           "reason": "六视图的当前边界和行为定位",
-          "line": 175,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 176,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "id": "http",
@@ -2588,7 +2588,7 @@
           "role": "contract",
           "reason": "六视图的当前边界和行为定位",
           "line": 2,
-          "sha256": "a6ca6260db356b8066391fbce16b780cb1076e6970d0239c6a106acdd44250c6"
+          "sha256": "6b2d1bff70d311a0f78b3b9a9db4ed6b7e4dab1b3800101afd4bf1f7214982df"
         },
         {
           "id": "ports",
@@ -2632,8 +2632,8 @@
           "needle": "async function onsiteRecords(",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 263,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 264,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "id": "applied",
@@ -2704,8 +2704,8 @@
           "needle": "const guard = async <T>",
           "role": "implementation",
           "reason": "数据方法异常转 unavailable；不包含宿主 log 自身异常",
-          "line": 392,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 377,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         }
       ]
     },
@@ -3625,8 +3625,8 @@
           "needle": "export function resolveAnnotations",
           "role": "implementation",
           "reason": "全部断言种类的裁决（标签 / 分面单选 / 结果行整行原子）",
-          "line": 113,
-          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+          "line": 116,
+          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
         },
         {
           "id": "read",
@@ -3634,8 +3634,8 @@
           "needle": "export function readCommunityExport",
           "role": "implementation",
           "reason": "导出验形：契约主次版本、摘要置空、坏条目逐条报",
-          "line": 501,
-          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+          "line": 504,
+          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
         },
         {
           "id": "ports",
@@ -3643,8 +3643,8 @@
           "needle": "export function createCommunityPorts",
           "role": "implementation",
           "reason": "把导出装成文章 / 账本 / 绑定端口与结果行、记录",
-          "line": 579,
-          "sha256": "cac550a835fb383963dd042a6f88f7d70c518794d88aef07610875cd94b8240e"
+          "line": 618,
+          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
         },
         {
           "id": "service",
@@ -3652,8 +3652,8 @@
           "needle": "community?: (OnsiteArticleSource",
           "role": "caller",
           "reason": "服务层按 community.apply 把社区记录并进图谱",
-          "line": 94,
-          "sha256": "ecf2f2d5e7553e798c436bf3c4d0331f8fa0b9c11fe05831fd4aad1e2de0fbb3"
+          "line": 95,
+          "sha256": "c7cb34031639dbcf8fdd27749f6a44482d58d4c127a5a72039c848225ff1da7a"
         },
         {
           "id": "present",
