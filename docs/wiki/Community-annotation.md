@@ -124,10 +124,11 @@ stateDiagram-v2
 
 | 工作流 | 触发 | 做什么 |
 |---|---|---|
-| `intake.yml` | issue opened / edited / labeled；issue_comment；每 15 分钟兜底；手动 | 每次运行扫全部待处理 issue：只认表单 payload 与评论命令（`/agree` `/disagree` `/unsure`；编辑层 `/accept` `/reject` `/bind`；维护者 `/approve` 放行新账号）；鉴权与层级；防滥用（账号年龄 ≥ 7 天否则 `held`、日上限扫当月与上月 JSONL、单 issue ≤ 60 条、单篇行 ≤ 20、`self_endorse` 拒、blocklist）；校验（`parseWorkRef` / `normalizeTag` / 分面词表 / `intakeOutcomeRows`）；没有名片的作品在 CI 里 `fetchWorkCard`（`error` ⇒ 标 `deferred` 等重试，外部源失败 ≠ 论文不存在）；幂等（id）；追加 JSONL；`pull --rebase` 推送失败退避重试；回评（写入几条 / 拒几条 / 状态与区间 / frame 前后）；关闭 issue。导出作为**同一工作流的后续作业** |
-| `export.yml` | workflow_call；每小时；手动；push 到 `vocab/**` `config/**` `site/**` | 读全部断言（含归档）→ `resolveAnnotations` → `resolveConcepts` → 名片 + accepted 行 → `intakeOutcomeRows`（`source: 'community'`）→ `buildSynthesisTable` → `summarizeFrames` → 写 `export/v1/*`；与 `site/` 构建成一个 Pages 工件；每日另发 Release 资产；**不提交回 main**；Pages 部署按内容哈希去重且每 10 分钟最多一次 |
+| `intake.yml` | issue opened / edited / labeled；issue_comment；定时兜底（写的是每 15 分钟，GitHub 实测每天约 4 次）；手动 | 每次运行扫全部待处理 issue：只认表单 payload 与评论命令（`/agree` `/disagree` `/unsure`；编辑层 `/accept` `/reject` `/bind`；维护者 `/approve` 放行新账号）；鉴权与层级；防滥用（账号年龄 ≥ 7 天否则 `held`、日上限扫当月与上月 JSONL、单 issue ≤ 60 条、单篇行 ≤ 20、`self_endorse` 拒、blocklist）；校验（`parseWorkRef` / `normalizeTag` / 分面词表 / `intakeOutcomeRows`）；没有名片的作品在 CI 里 `fetchWorkCard`（`error` ⇒ 标 `deferred` 等重试，外部源失败 ≠ 论文不存在）；幂等（id）；追加 JSONL；`pull --rebase` 推送失败退避重试；回评（写入几条 / 拒几条 / 状态与区间 / frame 前后）；关闭 issue。导出作为**同一工作流的后续作业** |
+| `export.yml` | workflow_call；定时（写的是每小时，实测每天约 4 次）；手动；push 到 `vocab/**` `config/**` `site/**` `scripts/**` `data/**` | 读全部断言（含归档）→ `resolveAnnotations` → `resolveConcepts` → 名片 + accepted 行 → `intakeOutcomeRows`（`source: 'community'`）→ `buildSynthesisTable` → `summarizeFrames` → 写 `export/v1/*`；与 `site/` 构建成一个 Pages 工件；每日另发 Release 资产；**不提交回 main**；Pages 部署按内容哈希去重且每 10 分钟最多一次 |
 | `sample.yml` | 每周；手动 | 冷启动书架：`config/seeds.json` 每主题被引最高 N + 近两年 M（带 `select`，每主题 ≤ 2 credit）；名片经 `publicWorkCard` 入 `data/works/`；每篇写 model 层主题 / 关键词建议；以 PR 提交 |
-| `replay.yml` | 每周 | 全部断言从头重放与最近导出逐字节比对；不一致开 issue；顺带算互相认可异常 |
+| `replay.yml` | 每周 | 全部断言从头重放与最近导出逐字节比对；不一致开 issue；顺带算互相认可异常；每周把定时工作流重新启用一次（保活） |
+| `import.yml` | push 到 `imports/**`；每天兜底；手动 | 模型贡献包 → 引擎 `validateTagContribution` → 模型层断言（永不计票、幂等）；给没有名片的作品补名片；提交后调导出 |
 | `check.yml` | PR / push | 词表（id 唯一、`broader` 无环且 ≤ 3、`design` ＝ 引擎常量、orphan 概念）、JSONL 可解析、无邮箱、文件 < 50 MB、`card.abstract === null`、导出能被 `readCommunityExport` 零问题读回；复用 SMV 的私有词闸 |
 
 ```mermaid
@@ -186,7 +187,7 @@ flowchart LR
 ## 真实数据怎么到宿主与演示页
 
 - 冷启动样本由 `sample.yml` 在 CI 取（开发容器内外网不可达不影响）；样本只提供名片与 model 建议，研究设计、方向、数字必须有人抄——「真实数据」＝真实论文、真实的人抄的数。
-- 宿主每小时拉 manifest、校 sha256、失败保留上一份；`community.apply` 与 `minVerification` 由宿主决定。
+- 宿主定时拉 manifest、校 sha256、失败保留上一份（平台的导出不保证整点更新：有人提交时立即重导，定时兜底实测每天约 4 次，宿主按「几小时内更新」设计）；`community.apply` 与 `minVerification` 由宿主决定。
 - SMV 演示页构建时若有 `COMMUNITY_EXPORT_URL` 就下载导出，失败或无网退回夹具并挂「合成示例」横幅；两种状态必须肉眼可分；`test/regression.test.ts` 仍用固定夹具。
 
 ## 宿主插件层（计划，0.6.1）
