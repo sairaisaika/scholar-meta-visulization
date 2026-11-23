@@ -268,6 +268,20 @@
       "expected_routes": [
         "community-engine"
       ]
+    },
+    {
+      "id": "q-baseline-append-only",
+      "query": "只追加闸 每日存档 检测基本盘 改写怎么被发现",
+      "expected_routes": [
+        "verification-baseline"
+      ]
+    },
+    {
+      "id": "q-baseline-bulk",
+      "query": "批量导入 贡献包入库 断言分片 上规模之前",
+      "expected_routes": [
+        "verification-baseline"
+      ]
     }
   ],
   "task_map_cases": [

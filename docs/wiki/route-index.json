@@ -3665,6 +3665,184 @@
           "sha256": "0fd9b2f14e25107d3dcfe758ee80e8a73b6dbbfbd249ba6ff81937124f3c39e1"
         }
       ]
+    },
+    {
+      "id": "verification-baseline",
+      "title": "检测基本盘：只追加、存档、页面测试、批量入口、质量度量",
+      "kind": "plan",
+      "aliases": [
+        "检测基本盘",
+        "可验证",
+        "verifiable",
+        "只追加闸",
+        "每日存档",
+        "ledger",
+        "批量导入",
+        "贡献包入库",
+        "断言分片",
+        "标准答案",
+        "gold",
+        "精确率 召回率",
+        "打标签质量",
+        "定时保活",
+        "仓库卫生",
+        "公开仓检查"
+      ],
+      "sources": [
+        {
+          "id": "contribution",
+          "path": "src/tagging.ts",
+          "needle": "export function validateTagContribution",
+          "role": "contract",
+          "reason": "批量入口复用的贡献包校验（词表、门槛、上限、逐条问题）"
+        },
+        {
+          "id": "export-reader",
+          "path": "src/community.ts",
+          "needle": "export function readCommunityExport",
+          "role": "contract",
+          "reason": "导出读回自检与宿主读取共用的验形"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Verification-baseline.md",
+        "docs/wiki/Community-annotation.md"
+      ],
+      "tests": [
+        "test/tagging.test.ts",
+        "test/community.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/tagging.test.ts test/community.test.ts",
+          "scope": "引擎侧的贡献包校验与导出读回；只追加闸、分片、批量入口、页面测试与存档在平台仓验收"
+        }
+      ],
+      "boundary": "引擎只提供校验、读取与度量的纯函数；账本文件、工作流、存档、页面测试与仓库规则都在平台仓。",
+      "interface": {
+        "inputs": [
+          "贡献包 EvidenceTagContribution；标准答案与模型建议的（作品, 标签键）集合；导出清单与分片"
+        ],
+        "outputs": [
+          "验形后的条目与逐条问题；精确率 / 召回率 / F1 / 覆盖率与单选一致率；平台侧的 ledger.json 与 quality.json（不在引擎契约里）"
+        ],
+        "errors": [
+          "整包不成形 ⇒ 整包拒绝；分母为 0 ⇒ 指标 null 而不是 0；只追加闸取不到基准 ⇒ 如实报「没比」"
+        ],
+        "compatibility": "契约（src/types.ts）不改；引擎只加导出；平台新增文件不被宿主读取函数读取",
+        "failure_modes": {
+          "returned": [
+            "贡献包 issues 列表；度量里的 null 指标"
+          ],
+          "thrown": [
+            "引擎函数不抛；平台脚本对坏行抛错并让工作流失败"
+          ],
+          "unsupported": [
+            "引擎不比对 git 历史、不发存档、不认识仓库规则"
+          ]
+        }
+      },
+      "impact": [
+        "tagger-contribution（贡献包成为平台的批量入口）、community-engine（导出多两个旁路文件）、compatibility（新增导出与快照）"
+      ],
+      "unknowns": [
+        "真人路径与真实标准答案需要人；仓库规则需要管理员权限；GitHub 定时调度实际频率不可控；宿主快照在 20 万篇时的存法未设计"
+      ],
+      "reviewed_at": "2026-11-23",
+      "evidence": {
+        "implementation": "planned",
+        "observations": []
+      },
+      "plan": {
+        "outcomes": [
+          "G1 两个真实账号的断言入库、裁决、出现在导出并被读回",
+          "G2 旧断言被改删时 CI 失败（抹名除外）；每天一份带账本哈希的存档；主干不能强推",
+          "G3 标注页浏览器测试随 check 跑；样本 PR 开出前自检",
+          "G4 模型贡献包经 PR 幂等入库；断言文件超上限自动分片",
+          "G5 标签集合对标准答案的精确率 / 召回率 / F1 与单选一致率可算、可复核",
+          "G6 文档写实际频率；定时任务每周保活",
+          "G7 两仓有安全政策、依赖更新配置；平台仓有贡献规则；第三方 Action 钉提交号"
+        ],
+        "dependencies": [
+          "G5 的平台部分依赖引擎发版",
+          "G4 的批量入口依赖分片先落地"
+        ],
+        "interfaces": [
+          "tagger-contribution",
+          "community-engine",
+          "compatibility"
+        ],
+        "deliverables": [
+          "引擎：src/quality.ts（度量与展示）、功能登记、CHANGELOG、API 快照、与独立参考实现对表的测试",
+          "平台：check 的只追加闸、ledger.json、存档修复、store 分片、import 与 evaluate 脚本及工作流、site/test 浏览器测试、sample 自检、保活、SECURITY / CONTRIBUTING / dependabot",
+          "Wiki：本页、实现核对、验证回执、TODO"
+        ],
+        "exit_evidence": [
+          "只追加闸四种情形的测试；分片滚动与贡献包往返测试；度量对表测试；两仓 check 绿",
+          "线上：连续两天各一份 data-<日期> 存档；check 工作流里浏览器测试的运行号；保活步骤的运行记录",
+          "不证明：真人路径、真实标注质量、强推被拒（需要管理员设置规则后再观察）"
+        ],
+        "unknowns": [
+          "真人批量导入怎样保留逐人身份",
+          "标准答案的规模与标注人",
+          "git 仓库到几百万条断言时的归档"
+        ]
+      },
+      "diagrams": [
+        {
+          "kind": "flow",
+          "path": "docs/wiki/Verification-baseline.md",
+          "purpose": "写入路径与检测节点各在哪",
+          "question": "一条数据从进仓到被宿主读到，中间哪些节点会报警",
+          "scope": "计划；实现后核对",
+          "source_ids": [
+            "contribution",
+            "export-reader"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "model-never-votes",
+          "statement": "贡献包写成的断言是模型层，永不计票；只作建议与质量评估对象",
+          "source_ids": [
+            "contribution"
+          ],
+          "tests": [
+            "test/tagging.test.ts"
+          ]
+        },
+        {
+          "id": "null-not-zero",
+          "statement": "度量分母为 0 时给 null，不写 0；没有标准答案时如实说没有",
+          "source_ids": [
+            "export-reader"
+          ],
+          "tests": [
+            "test/community.test.ts"
+          ]
+        }
+      ],
+      "locations": [
+        {
+          "id": "contribution",
+          "path": "src/tagging.ts",
+          "needle": "export function validateTagContribution",
+          "role": "contract",
+          "reason": "批量入口复用的贡献包校验（词表、门槛、上限、逐条问题）",
+          "line": 159,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        },
+        {
+          "id": "export-reader",
+          "path": "src/community.ts",
+          "needle": "export function readCommunityExport",
+          "role": "contract",
+          "reason": "导出读回自检与宿主读取共用的验形",
+          "line": 504,
+          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
+        }
+      ]
     }
   ],
   "task_maps": [

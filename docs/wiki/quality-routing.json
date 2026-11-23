@@ -7,15 +7,15 @@
     "min_tasks": 10,
     "min_unknown": 2
   },
-  "task_count": 38,
+  "task_count": 40,
   "top1": {
-    "numerator": 36,
-    "denominator": 36,
+    "numerator": 38,
+    "denominator": 38,
     "rate": 1.0
   },
   "top2": {
-    "numerator": 36,
-    "denominator": 36,
+    "numerator": 38,
+    "denominator": 38,
     "rate": 1.0
   },
   "unknown_rejection": {
@@ -24,8 +24,8 @@
     "rate": 1.0
   },
   "location_success": {
-    "numerator": 38,
-    "denominator": 38,
+    "numerator": 40,
+    "denominator": 40,
     "rate": 1.0
   },
   "max_response_words": 449,
@@ -712,6 +712,43 @@
       "locations_ok": true,
       "response_words": 332,
       "response_bytes": 5931,
+      "candidate_count": 2,
+      "truncated": false
+    },
+    {
+      "id": "q-baseline-append-only",
+      "query": "只追加闸 每日存档 检测基本盘 改写怎么被发现",
+      "expected": [
+        "verification-baseline"
+      ],
+      "actual": [
+        "verification-baseline"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 92,
+      "response_bytes": 2261,
+      "candidate_count": 1,
+      "truncated": false
+    },
+    {
+      "id": "q-baseline-bulk",
+      "query": "批量导入 贡献包入库 断言分片 上规模之前",
+      "expected": [
+        "verification-baseline"
+      ],
+      "actual": [
+        "verification-baseline",
+        "tagger-contribution"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 245,
+      "response_bytes": 4709,
       "candidate_count": 2,
       "truncated": false
     }

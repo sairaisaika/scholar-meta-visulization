@@ -408,10 +408,38 @@
       "plan_coverage": null,
       "engineering": null,
       "gaps": []
+    },
+    {
+      "id": "verification-baseline",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 2,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
+      "plan_coverage": {
+        "numerator": 6,
+        "denominator": 6
+      },
+      "engineering": null,
+      "gaps": []
     }
   ],
-  "route_count": 16,
-  "structural_average": 99.06,
+  "route_count": 17,
+  "structural_average": 99.12,
   "structural_minimum": 85,
   "required_per_route": 85,
   "diagram_coverage": {
@@ -436,7 +464,7 @@
       "architecture": 1,
       "data-model": 1,
       "deployment": 1,
-      "flow": 3,
+      "flow": 4,
       "sequence": 2,
       "state-machine": 2
     },
