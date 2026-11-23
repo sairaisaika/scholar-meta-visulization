@@ -25,5 +25,6 @@
 - [标签模型：标注怎样变成图](Tagging-model.md)
 - [社区标注平台（SMT）](Community-annotation.md)
 - [检测基本盘（上规模之前）](Verification-baseline.md)
+- [第一批真实规模的模型打标签](Tagging-at-scale.md)
 - [文刊功能交接（给网站会话）](Publication-integration-handoff.md)
 - [OpenAlex当前合约](OpenAlex-contract-2026-10.md)

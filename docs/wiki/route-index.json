@@ -4021,6 +4021,201 @@
           "sha256": "add2c48a0548b0d18b97858433fbfb4167ffced70c70ca8548a5669d4c9d6a03"
         }
       ]
+    },
+    {
+      "id": "tagging-at-scale",
+      "title": "第一批真实规模的模型打标签：批量管道、建议上页、宿主分片存储",
+      "kind": "plan",
+      "aliases": [
+        "批量打标签",
+        "两千篇",
+        "真实规模",
+        "词表打标签器",
+        "vocabulary tagger",
+        "模型建议 不计票",
+        "suggestions 旁路文件",
+        "宿主分片存储",
+        "增量刷新",
+        "分片快照",
+        "refreshCommunityShards",
+        "社区裁决对标准答案",
+        "打标签管道 检测节点"
+      ],
+      "sources": [
+        {
+          "id": "vocabulary-tagger",
+          "path": "src/tagging.ts",
+          "needle": "export function createVocabularyTagger",
+          "role": "contract",
+          "reason": "平台批量打标签用的参考打标签器；只读名片字段，可复现"
+        },
+        {
+          "id": "contribution-builder",
+          "path": "src/tagging.ts",
+          "needle": "export function buildTagContribution",
+          "role": "contract",
+          "reason": "贡献包的成形；入库前再经 validateTagContribution"
+        },
+        {
+          "id": "snapshot-refresh",
+          "path": "src/community.ts",
+          "needle": "export async function refreshCommunityExport",
+          "role": "contract",
+          "reason": "现有整份快照的刷新；分片存储是它的增量版本，旧接口保留"
+        }
+      ],
+      "docs": [
+        "docs/wiki/Tagging-at-scale.md",
+        "docs/wiki/Verification-baseline.md",
+        "docs/wiki/Community-annotation.md"
+      ],
+      "tests": [
+        "test/tagging.test.ts",
+        "test/community-plugin.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/tagging.test.ts test/community-plugin.test.ts",
+          "scope": "引擎侧的打标签器、贡献包与现有快照刷新；批量管道、旁路文件、页面与质量表在平台仓验收"
+        }
+      ],
+      "boundary": "引擎提供打标签器、贡献包校验、度量与宿主存储接口；取名片、开 PR、写账本、导出旁路文件与页面都在平台仓。模型层断言永不计票。",
+      "interface": {
+        "inputs": [
+          "名片字段（标题、关键词、主题名）与词表；导出清单与分片；宿主实现的分片存储端口"
+        ],
+        "outputs": [
+          "贡献包 EvidenceTagContribution；平台导出的 suggestions 旁路文件（不在引擎契约里）；分片存储里的作品与索引；与整份快照相同的合并结果"
+        ],
+        "errors": [
+          "外部索引没问成 ⇒ 保留已有、如实报；分片哈希或作品数对不上 ⇒ 刷新失败、索引不动；整包不成形 ⇒ 整包拒绝"
+        ],
+        "compatibility": "契约（src/types.ts）不改；引擎公开接口只做加法，整份快照的旧接口保留",
+        "failure_modes": {
+          "returned": [
+            "刷新结果的 failed 与原因；贡献包 issues；度量里的 null"
+          ],
+          "thrown": [
+            "引擎函数不抛（宿主端口抛错按 host_error 回）；平台脚本对坏行抛错并让工作流失败"
+          ],
+          "unsupported": [
+            "引擎不取名片、不开 PR、不判断标得准不准；不替宿主选存储"
+          ]
+        }
+      },
+      "impact": [
+        "tagger-contribution（第一次有真实的包）、community-engine（宿主多一种存法）、verification-baseline（G4 / G5 的线上观察）、compatibility（新增导出与快照）"
+      ],
+      "unknowns": [
+        "真人路径、真实标准答案、仓库规则都要人；词表打标签器的准确度没有数字；宿主是否换存法由接入方定"
+      ],
+      "reviewed_at": "2026-11-23",
+      "evidence": {
+        "implementation": "planned",
+        "observations": []
+      },
+      "plan": {
+        "outcomes": [
+          "A 可复现的词表打标签器在 CI 里给至少 2000 篇公开论文产出贡献包，经 PR 进 imports/，合并后写入账本并导出",
+          "B 账本增长跨过分片上限后，只追加闸、重放比对、导出读回仍通过",
+          "C 贡献包的标签在作品页显示并标明「模型建议、不计票」，浏览器测试覆盖",
+          "D 质量表给出模型与社区裁决各自对标准答案的精确率 / 召回率 / F1；没有标准答案时如实说没有",
+          "E 宿主按分片存、增量刷新的接口落地，2 万篇合成数据有实测数字",
+          "F 两仓主干 CI 全绿；引擎公开接口变更同步 CHANGELOG、API 快照、版本号并发版",
+          "G 结束对照逐条写明证据档次与没做成的部分"
+        ],
+        "dependencies": [
+          "A 的真实数据依赖 C 与检测节点先进主干",
+          "B 依赖 A 的数据量",
+          "E 与平台仓无依赖"
+        ],
+        "interfaces": [
+          "tagger-contribution",
+          "community-engine",
+          "verification-baseline",
+          "compatibility"
+        ],
+        "deliverables": [
+          "引擎：分片存储端口、刷新 / 读取 / 合并函数与内存参考实现，测试、实测脚本、CHANGELOG、API 快照、发版",
+          "平台：tag 脚本与工作流、扩充的词表、suggestions 旁路文件、作品页的模型建议、质量表的 consensus、import 里的只追加自检、浏览器测试",
+          "Wiki：本页、结束对照、TODO、验证回执"
+        ],
+        "exit_evidence": [
+          "PR 编号、import / check / replay / export 的运行号、导出清单的作品数与断言数",
+          "浏览器测试与夹具测试进 CI；引擎本机 pnpm check 与发版 tag",
+          "不证明：标得准不准、真人路径、强推被拒、宿主已换存法"
+        ],
+        "unknowns": [
+          "标准答案的规模与标注人",
+          "模型建议要不要进引擎契约让宿主也能读",
+          "词表之外的打标签器（语言模型）怎样保证可复现"
+        ]
+      },
+      "diagrams": [
+        {
+          "kind": "flow",
+          "path": "docs/wiki/Tagging-at-scale.md",
+          "purpose": "批量管道与八个检测节点各在哪",
+          "question": "一批模型标签从取名片到上页，每一步出错在哪报警",
+          "scope": "计划；实现后核对",
+          "source_ids": [
+            "vocabulary-tagger",
+            "contribution-builder",
+            "snapshot-refresh"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "model-never-votes",
+          "statement": "贡献包写成的断言是模型层，永不计票；页面必须标明是模型建议",
+          "source_ids": [
+            "contribution-builder"
+          ],
+          "tests": [
+            "test/tagging.test.ts"
+          ]
+        },
+        {
+          "id": "failure-keeps-previous",
+          "statement": "外部源或刷新失败时保留上一份并如实报告，不当成没有数据",
+          "source_ids": [
+            "snapshot-refresh"
+          ],
+          "tests": [
+            "test/community-plugin.test.ts"
+          ]
+        }
+      ],
+      "locations": [
+        {
+          "id": "vocabulary-tagger",
+          "path": "src/tagging.ts",
+          "needle": "export function createVocabularyTagger",
+          "role": "contract",
+          "reason": "平台批量打标签用的参考打标签器；只读名片字段，可复现",
+          "line": 206,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        },
+        {
+          "id": "contribution-builder",
+          "path": "src/tagging.ts",
+          "needle": "export function buildTagContribution",
+          "role": "contract",
+          "reason": "贡献包的成形；入库前再经 validateTagContribution",
+          "line": 131,
+          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+        },
+        {
+          "id": "snapshot-refresh",
+          "path": "src/community.ts",
+          "needle": "export async function refreshCommunityExport",
+          "role": "contract",
+          "reason": "现有整份快照的刷新；分片存储是它的增量版本，旧接口保留",
+          "line": 784,
+          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
+        }
+      ]
     }
   ],
   "task_maps": [

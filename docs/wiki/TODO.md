@@ -24,6 +24,10 @@
 - [ ] **R22 / P1：打标签质量度量（G5）**。算法与管道已落地（引擎 0.6.2 `scoreTagSets` / `scoreLabelAgreement`，平台 `data/gold`、`pnpm evaluate`、`quality.json`）。剩余：标准答案是空的，要维护者标；社区裁决结果对标准答案的评估未做。
 - [x] **R23 / P2：频率如实与定时保活（G6）**。文档已改；保活步骤在 replay 工作流，效果待下次运行观察。
 - [x] **R24 / P2：公开仓常规件（G7）**。安全政策、依赖更新配置、平台仓贡献规则、第三方 Action 钉提交号。依赖更新 PR 由维护者逐个决定。
+- [ ] **R25 / P0：第一批真实规模的模型标签（A / B）**。平台 `tag` 工作流取至少 2000 篇名片、词表打标签器出贡献包、PR 入 `imports/`、`import` 写账本；分片上限调小让这一批跨过上限；之后只追加闸、重放、导出读回都要过。见[第一批真实规模的模型打标签](Tagging-at-scale.md)。
+- [ ] **R26 / P0：模型建议上页（C）**。导出加 `suggestions` 旁路文件，作品页标明「模型建议、不计票」，浏览器测试覆盖。
+- [ ] **R27 / P1：社区裁决对标准答案（D）**。`quality.json` 与 `pnpm evaluate` 加 `consensus`；真实标准答案仍要人标（R22）。
+- [ ] **R28 / P1：宿主分片存储（E）**。引擎加按分片存、增量刷新的端口与函数，2 万篇合成实测，发版。
 - [ ] **R16 / P2：OpenAlex 单实体 `/works/{id}` 计费探针**。`probe-openalex.mjs` 实测 `x-ratelimit-credits-used` 后再决定是否把它加进 `isFreeOpenAlexPath`。
 - [ ] **R12 / 接入方：文刊功能接线**。维护者将[交接文档](Publication-integration-handoff.md)交给网站开发会话；由其在自己分支处理权限/存储/审核/页面与运行验收。本轮没有改网站仓，避免覆盖并行工作。
 

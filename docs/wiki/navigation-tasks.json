@@ -289,6 +289,20 @@
       "expected_routes": [
         "tagging-quality"
       ]
+    },
+    {
+      "id": "q-scale-pipeline",
+      "query": "批量打标签 两千篇 真实规模 词表打标签器 管道",
+      "expected_routes": [
+        "tagging-at-scale"
+      ]
+    },
+    {
+      "id": "q-scale-shards",
+      "query": "宿主分片存储 增量刷新 refreshCommunityShards 计划",
+      "expected_routes": [
+        "tagging-at-scale"
+      ]
     }
   ],
   "task_map_cases": [
