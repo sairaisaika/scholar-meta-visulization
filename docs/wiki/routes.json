@@ -2702,6 +2702,137 @@
      ]
     }
    ]
+  },
+  {
+   "id": "tagging-quality",
+   "title": "打标签质量度量：建议对标准答案",
+   "kind": "interface",
+   "aliases": [
+    "打标签质量",
+    "精确率",
+    "召回率",
+    "F1",
+    "precision recall",
+    "Cohen kappa",
+    "一致率",
+    "标准答案对照",
+    "scoreTagSets",
+    "质量表",
+    "模型标得准不准"
+   ],
+   "sources": [
+    {
+     "id": "contract",
+     "path": "src/types.ts",
+     "needle": "export interface EvidenceTagQuality",
+     "role": "declaration",
+     "reason": "质量结果的契约形状；null 表示算不出"
+    },
+    {
+     "id": "score",
+     "path": "src/quality.ts",
+     "needle": "export function scoreTagSets",
+     "role": "implementation",
+     "reason": "（作品, 标签键）对的计数与微平均 / 按标签平均",
+     "visibility": "public"
+    },
+    {
+     "id": "agreement",
+     "path": "src/quality.ts",
+     "needle": "export function scoreLabelAgreement",
+     "role": "implementation",
+     "reason": "单选项一致率与 Cohen κ",
+     "visibility": "public"
+    },
+    {
+     "id": "present",
+     "path": "src/present.ts",
+     "needle": "export function presentTagQuality",
+     "role": "consumer",
+     "reason": "质量表的人话；算不出写「—」"
+    }
+   ],
+   "docs": [
+    "docs/tagging.md",
+    "docs/wiki/Verification-baseline.md"
+   ],
+   "tests": [
+    "test/quality.test.ts",
+    "test/features.test.ts",
+    "test/api-surface.test.ts"
+   ],
+   "checks": [
+    {
+     "command": "pnpm exec jest --runInBand test/quality.test.ts test/features.test.ts test/api-surface.test.ts",
+     "scope": "离线：与 scikit-learn 1.9.1 参考值对表、边界与文案；不含任何真实标准答案或真实模型输出"
+    }
+   ],
+   "boundary": "引擎只算一致程度；标准答案由使用方提供，引擎不判断标准答案本身对不对、够不够有代表性。",
+   "interface": {
+    "inputs": [
+     "gold 与 predicted：[{ work_id, tags }]；单选项：[{ gold, predicted }]"
+    ],
+    "outputs": [
+     "EvidenceTagQuality（覆盖率、微平均、macro_f1、逐标签）；EvidenceLabelAgreement（一致率、κ）"
+    ],
+    "errors": [
+     "分母为 0 ⇒ 指标 null；键认不出的条目被丢掉，不报错"
+    ],
+    "compatibility": "契约加法（0.6.2）；社区导出的读取只核主次版本，0.6.0 / 0.6.1 的导出照常能读",
+    "failure_modes": {
+     "returned": [
+      "null 指标；空 per_tag"
+     ],
+     "thrown": [
+      "不抛：非数组的 tags 当空集合，非字符串的键被丢掉"
+     ],
+     "unsupported": [
+      "不做置信区间、不做加权、不比较两个模型的显著性差异"
+     ]
+    }
+   },
+   "impact": [
+    "平台仓的 evaluate 脚本与质量表；verification-baseline 的 G5"
+   ],
+   "unknowns": [
+    "真实标准答案下的数值范围未观察；样本量小时指标的不确定性没有给出区间"
+   ],
+   "reviewed_at": "2026-11-23",
+   "evidence": {
+    "implementation": "implemented",
+    "observations": [
+     {
+      "level": "offline-tested",
+      "reference": "test/quality.test.ts",
+      "claim": "逐标签与微平均 precision / recall / F1、macro F1、κ 与 scikit-learn 1.9.1 参考值一致；边界给 null",
+      "revision": "working tree before the 0.6.2 release commit",
+      "observed_at": "2026-11-23"
+     }
+    ]
+   },
+   "rules": [
+    {
+     "id": "null-not-zero",
+     "statement": "分母为 0 的指标是 null，不是 0；展示时写「—」",
+     "source_ids": [
+      "score",
+      "present"
+     ],
+     "tests": [
+      "test/quality.test.ts"
+     ]
+    },
+    {
+     "id": "gold-scope-only",
+     "statement": "只评标准答案覆盖到的作品；标准答案之外的建议不算对也不算错",
+     "source_ids": [
+      "score"
+     ],
+     "tests": [
+      "test/quality.test.ts"
+     ]
+    }
+   ]
   }
  ],
  "quality": {

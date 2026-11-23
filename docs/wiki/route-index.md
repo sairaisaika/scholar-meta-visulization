@@ -21,6 +21,7 @@ Generated positions; source wins over stale prose. Read only the relevant route.
 | community-annotation: 社区标注平台与三层标签模型 | `src/workref.ts:27` (contract)<br>`src/openalex.ts:450` (contract)<br>`src/stats.ts:38` (contract)<br>`src/types.ts:1069` (declaration)<br>`src/ledger.ts:146` (contract)<br>`src/synthesis.ts:110` (consumer) | [Tagging-model.md](Tagging-model.md)<br>[Community-annotation.md](Community-annotation.md) |
 | community-engine: 社区标注的引擎实现：裁决、导出读取与宿主端口 | `src/types.ts:1220` (declaration)<br>`src/types.ts:1365` (contract)<br>`src/ledger.ts:61` (implementation)<br>`src/community.ts:116` (implementation)<br>`src/community.ts:504` (implementation)<br>`src/community.ts:618` (implementation)<br>`src/service.ts:95` (caller)<br>`src/present.ts:1329` (consumer) | [Community-annotation.md](Community-annotation.md)<br>[Tagging-model.md](Tagging-model.md) |
 | verification-baseline: 检测基本盘：只追加、存档、页面测试、批量入口、质量度量 | `src/tagging.ts:159` (contract)<br>`src/community.ts:504` (contract) | [Verification-baseline.md](Verification-baseline.md)<br>[Community-annotation.md](Community-annotation.md) |
+| tagging-quality: 打标签质量度量：建议对标准答案 | `src/types.ts:1396` (declaration)<br>`src/quality.ts:44` (implementation)<br>`src/quality.ts:80` (implementation)<br>`src/present.ts:1469` (consumer) | [Verification-baseline.md](Verification-baseline.md) |
 
 ## Compound task maps
 

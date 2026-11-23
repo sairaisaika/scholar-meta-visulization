@@ -1,8 +1,8 @@
 {
   "manifest_version": 1,
   "id": "scholar-meta",
-  "version": "0.6.1",
-  "contract_version": "0.6.0",
+  "version": "0.6.2",
+  "contract_version": "0.6.2",
   "repository": "https://github.com/sairaisaika/scholar-meta-visulization",
   "changelog": "CHANGELOG.md",
   "entries": [
@@ -42,6 +42,11 @@
     {
       "id": "frame_preview",
       "audience": "author",
+      "route": null
+    },
+    {
+      "id": "tagging_quality",
+      "audience": "editor",
       "route": null
     },
     {

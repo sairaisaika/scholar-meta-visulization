@@ -39,6 +39,7 @@
 | `work_card` | 作者 | `EvidenceWorkCard` | `workCardOf`（`createOpenAlexClient().fetchWorkCard` 取单篇作品后转成名片） | `presentWorkCard` | —（标注平台的页面与 Action） |
 | `ladder_gap` | 作者 | `EvidenceLadderGap` | `describeLadderGap` | `presentLadderGap` | —（标注页的预览） |
 | `frame_preview` | 作者 | `EvidenceFrameChange` | `previewFrameChange`（`summarizeFrames` 前后两份） | `presentFrameChange` | —（同上） |
+| `tagging_quality` | 编辑 | `EvidenceTagQuality` | `scoreTagSets`（建议对标准答案；单选项另有 `scoreLabelAgreement`） | `presentTagQuality` | —（标注平台的质量表；标准答案由使用方提供） |
 | `community_export` | 编辑 | `EvidenceCommunityWork` | `readCommunityExport`（社区导出验形） | `presentCommunityWork` | —（标注平台的页面；宿主用 `createCommunityPorts` 装进端口） |
 | `evidence_map` | 读者 | `EvidenceMapData` | `service.getTagMap` | `presentEvidenceMap` | `GET /map?tag=` |
 | `node_map` | 读者 | `EvidenceMapData` | `service.getNodeMap` | `presentEvidenceMap` | `GET /map?level=&id=` |

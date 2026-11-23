@@ -147,7 +147,7 @@ Method and references: [docs/tags.md](docs/tags.md) (Chinese).
 
 ```bash
 # Prebuilt package attached to every GitHub release (works the same with npm and yarn)
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.6.1/scholar-meta-0.6.1.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.6.2/scholar-meta-0.6.2.tgz
 ```
 
 All versions are on [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases); changes are in the [CHANGELOG](CHANGELOG.md).

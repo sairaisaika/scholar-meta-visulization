@@ -28,7 +28,7 @@
  * 契约版本：本文件最近一次变化随的那个包版本。接入方拷贝本文件时据此核对（CHANGELOG 里必须有这一版的一节，
  * 破坏性改动写在那一节的「破坏性」下）。改本文件时把它改成将要发布的版本号（见 CONTRIBUTING.md 第三节）。
  */
-export const EVIDENCE_CONTRACT_VERSION = '0.6.0'
+export const EVIDENCE_CONTRACT_VERSION = '0.6.2'
 
 /** 文献来源。站内文章与站外文献在本层**同形**——这正是「加一个源 = 加一行」的前提。`onsite` = 宿主自己的文章（任何站点）。 */
 export type EvidenceSourceId =
@@ -1373,3 +1373,46 @@ export interface EvidenceCommunityExport {
 export const EVIDENCE_COMMUNITY_EXPORT_ISSUES = ['not_an_object', 'contract_mismatch', 'bad_manifest', 'bad_work', 'bad_state', 'abstract_not_allowed', 'duplicate_work', 'too_many_works', 'bad_binding', 'bad_concept'] as const
 export type EvidenceCommunityExportIssueCode = (typeof EVIDENCE_COMMUNITY_EXPORT_ISSUES)[number]
 export interface EvidenceCommunityExportIssue { code: EvidenceCommunityExportIssueCode; path: string }
+
+// ── 打标签质量（0.6.2） ─────────────────────────────────────────────────────────
+// 把一组标签建议与人标的标准答案对照。单位是（作品, 标签键）；只评标准答案覆盖到的作品。
+// 分母为 0 的指标是 null，不是 0——「算不出」与「全错」是两回事。
+
+/** 一组计数与由它算出的指标 */
+export interface EvidenceQualityScore {
+  /** 标准答案里有、建议里也有 */
+  tp: number
+  /** 建议里有、标准答案里没有 */
+  fp: number
+  /** 标准答案里有、建议里没有 */
+  fn: number
+  /** tp / (tp + fp)；没有任何建议 ⇒ null */
+  precision: number | null
+  /** tp / (tp + fn)；标准答案里没有 ⇒ null */
+  recall: number | null
+  /** 2·tp / (2·tp + fp + fn)；三项全 0 ⇒ null */
+  f1: number | null
+}
+export interface EvidenceTagQuality {
+  /** `gold` 标准答案里的作品数；`predicted` 给了建议的作品数（含标准答案之外的）；`with_predictions` 标准答案里至少有一条建议的作品数 */
+  works: { gold: number; predicted: number; with_predictions: number }
+  /** with_predictions / gold；没有标准答案 ⇒ null */
+  coverage: number | null
+  /** 全部（作品, 标签）对合在一起算 */
+  micro: EvidenceQualityScore
+  /** 标准答案里出现过的标签各算 F1 再取平均；没有这样的标签 ⇒ null */
+  macro_f1: number | null
+  /** 标准答案或建议里出现过的标签，按标准答案里的篇数从多到少 */
+  per_tag: Array<EvidenceQualityScore & { tag_key: string; label: string; support: number }>
+}
+/** 单选项（如研究设计）的一致程度 */
+export interface EvidenceLabelAgreement {
+  n: number
+  agreed: number
+  /** agreed / n；n 为 0 ⇒ null */
+  agreement: number | null
+  /** Cohen κ（扣掉碰巧一致）；n 为 0 或两边都只用了同一个值 ⇒ null */
+  kappa: number | null
+  /** 出现过的取值（排序） */
+  labels: string[]
+}

@@ -144,6 +144,13 @@ export interface EvidenceMessageTemplates {
   frame_new: string
   frame_changed: string
   frame_unchanged: string
+  quality_none: string
+  quality_summary: string
+  quality_coverage: string
+  quality_macro: string
+  quality_tag: string
+  quality_agreement: string
+  quality_kappa: string
 }
 
 export interface EvidenceMessageCatalog {
@@ -695,6 +702,13 @@ const zh: EvidenceMessageCatalog = {
     frame_new: '新 frame：{title}——{view}',
     frame_changed: '{title}：{before} → {after}（{what}）',
     frame_unchanged: '{title}：不变（{view}）',
+    quality_none: '还没有标准答案，算不出质量。',
+    quality_summary: '精确率 {precision} · 召回率 {recall} · F1 {f1}（命中 {tp}，多给 {fp}，漏掉 {fn}）',
+    quality_coverage: '标准答案 {gold} 篇，其中 {covered} 篇有建议（{coverage}）',
+    quality_macro: '按标签平均的 F1：{f1}',
+    quality_tag: '{label}：精确率 {precision} · 召回率 {recall} · F1 {f1}（标准答案里 {support} 篇）',
+    quality_agreement: '{n} 对里 {agreed} 对一致（{agreement}）',
+    quality_kappa: '扣掉碰巧一致后的 κ：{kappa}',
   },
 }
 
@@ -1131,6 +1145,13 @@ const en: EvidenceMessageCatalog = {
     frame_new: 'New frame: {title} — {view}',
     frame_changed: '{title}: {before} → {after} ({what})',
     frame_unchanged: '{title}: unchanged ({view})',
+    quality_none: 'No reference labels yet, so quality cannot be computed.',
+    quality_summary: 'Precision {precision} · recall {recall} · F1 {f1} ({tp} correct, {fp} extra, {fn} missed)',
+    quality_coverage: '{gold} works have reference labels; {covered} of them have suggestions ({coverage})',
+    quality_macro: 'F1 averaged over tags: {f1}',
+    quality_tag: '{label}: precision {precision} · recall {recall} · F1 {f1} ({support} works in the reference)',
+    quality_agreement: '{agreed} of {n} pairs agree ({agreement})',
+    quality_kappa: 'κ after removing chance agreement: {kappa}',
   },
 }
 

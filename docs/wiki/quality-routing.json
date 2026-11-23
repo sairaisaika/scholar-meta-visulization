@@ -7,15 +7,15 @@
     "min_tasks": 10,
     "min_unknown": 2
   },
-  "task_count": 40,
+  "task_count": 41,
   "top1": {
-    "numerator": 38,
-    "denominator": 38,
+    "numerator": 39,
+    "denominator": 39,
     "rate": 1.0
   },
   "top2": {
-    "numerator": 38,
-    "denominator": 38,
+    "numerator": 39,
+    "denominator": 39,
     "rate": 1.0
   },
   "unknown_rejection": {
@@ -24,8 +24,8 @@
     "rate": 1.0
   },
   "location_success": {
-    "numerator": 40,
-    "denominator": 40,
+    "numerator": 41,
+    "denominator": 41,
     "rate": 1.0
   },
   "max_response_words": 449,
@@ -749,6 +749,25 @@
       "locations_ok": true,
       "response_words": 245,
       "response_bytes": 4709,
+      "candidate_count": 2,
+      "truncated": false
+    },
+    {
+      "id": "q-tagging-quality",
+      "query": "模型标得准不准 精确率 召回率 scoreTagSets 在哪",
+      "expected": [
+        "tagging-quality"
+      ],
+      "actual": [
+        "tagging-quality",
+        "verification-baseline"
+      ],
+      "top1": true,
+      "top2": true,
+      "unknown_rejected": null,
+      "locations_ok": true,
+      "response_words": 202,
+      "response_bytes": 4384,
       "candidate_count": 2,
       "truncated": false
     }

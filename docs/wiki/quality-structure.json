@@ -436,10 +436,35 @@
       },
       "engineering": null,
       "gaps": []
+    },
+    {
+      "id": "tagging-quality",
+      "valid": true,
+      "score": {
+        "total": 100,
+        "categories": {
+          "location": 20,
+          "contract": 15,
+          "rules": 15,
+          "impact": 15,
+          "validation": 15,
+          "boundary": 10,
+          "findability": 5,
+          "freshness": 5
+        }
+      },
+      "locations": 4,
+      "edit_targets": {
+        "located": 0,
+        "semantic_accuracy": "not verified"
+      },
+      "plan_coverage": null,
+      "engineering": null,
+      "gaps": []
     }
   ],
-  "route_count": 17,
-  "structural_average": 99.12,
+  "route_count": 18,
+  "structural_average": 99.17,
   "structural_minimum": 85,
   "required_per_route": 85,
   "diagram_coverage": {

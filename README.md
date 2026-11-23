@@ -143,7 +143,7 @@ flowchart LR
 
 ```bash
 # 编译好的安装包，挂在每个 GitHub release 上（npm、yarn 同样用这个链接）
-pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.6.1/scholar-meta-0.6.1.tgz
+pnpm add https://github.com/sairaisaika/scholar-meta-visulization/releases/download/v0.6.2/scholar-meta-0.6.2.tgz
 ```
 
 各版本见 [Releases](https://github.com/sairaisaika/scholar-meta-visulization/releases)，改动见 [CHANGELOG](CHANGELOG.md)。

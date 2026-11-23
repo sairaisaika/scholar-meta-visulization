@@ -23,7 +23,7 @@ import type {
 } from './types'
 import { EVIDENCE_CITATION_DECLARERS, EVIDENCE_CITATION_FUNCTIONS, EVIDENCE_STUDY_DESIGNS } from './types'
 import type {
-  EvidenceCommunityDecision, EvidenceCommunityWork, EvidenceFrame, EvidenceFrameChange, EvidenceLadderGap, EvidenceQuorum, EvidenceWorkCard,
+  EvidenceCommunityDecision, EvidenceCommunityWork, EvidenceLabelAgreement, EvidenceTagQuality, EvidenceFrame, EvidenceFrameChange, EvidenceLadderGap, EvidenceQuorum, EvidenceWorkCard,
 } from './types'
 import { pointEstimate } from './effects'
 import { groupTags, normalizeTag } from './tags'
@@ -1452,4 +1452,44 @@ export function presentChangeRequests(requests: readonly EvidenceTagChangeReques
 export function presentContributionIssues(issues: readonly EvidenceContributionIssue[], opts: PresentOptions = {}) {
   const c = context(opts)
   return issues.map((i) => ({ ...i, text: c.m.contributionIssue[i.code] }))
+}
+
+// ── 打标签质量 ─────────────────────────────────────────────────────────────────
+
+export interface TagQualityView {
+  /** 没有标准答案时只有这一句，其余为空 */
+  none_text: string | null
+  summary_text: string | null
+  coverage_text: string | null
+  macro_text: string | null
+  tags: Array<{ tag_key: string; text: string }>
+}
+
+/** 质量表的人话。算不出的指标写「—」，不写 0。 */
+export function presentTagQuality(q: EvidenceTagQuality, opts: PresentOptions = {}): TagQualityView {
+  const c = context(opts)
+  const pct = (x: number | null) => (x === null ? '—' : c.pct(x))
+  if (q.works.gold === 0) return { none_text: c.m.text.quality_none, summary_text: null, coverage_text: null, macro_text: null, tags: [] }
+  return {
+    none_text: null,
+    summary_text: formatMessage(c.m.text.quality_summary, {
+      precision: pct(q.micro.precision), recall: pct(q.micro.recall), f1: pct(q.micro.f1), tp: c.int(q.micro.tp), fp: c.int(q.micro.fp), fn: c.int(q.micro.fn),
+    }),
+    coverage_text: formatMessage(c.m.text.quality_coverage, { gold: c.int(q.works.gold), covered: c.int(q.works.with_predictions), coverage: pct(q.coverage) }),
+    macro_text: q.macro_f1 === null ? null : formatMessage(c.m.text.quality_macro, { f1: pct(q.macro_f1) }),
+    tags: q.per_tag.map((t) => ({
+      tag_key: t.tag_key,
+      text: formatMessage(c.m.text.quality_tag, { label: t.label, precision: pct(t.precision), recall: pct(t.recall), f1: pct(t.f1), support: c.int(t.support) }),
+    })),
+  }
+}
+
+/** 单选项一致程度的人话 */
+export function presentLabelAgreement(a: EvidenceLabelAgreement, opts: PresentOptions = {}): { agreement_text: string | null; kappa_text: string | null } {
+  const c = context(opts)
+  if (a.n === 0) return { agreement_text: null, kappa_text: null }
+  return {
+    agreement_text: formatMessage(c.m.text.quality_agreement, { n: c.int(a.n), agreed: c.int(a.agreed), agreement: a.agreement === null ? '—' : c.pct(a.agreement) }),
+    kappa_text: a.kappa === null ? null : formatMessage(c.m.text.quality_kappa, { kappa: c.fixed(a.kappa, 2) }),
+  }
 }

@@ -237,6 +237,28 @@ const tags = resolveWorkTags(assertions, { ...DEFAULT_LEDGER_POLICY, quorum: DEF
 没写原文出处的研究设计 / 数字最多到 pending。平台把裁决发成静态导出，宿主用 `readCommunityExport` + `createCommunityPorts` 装进端口（接入指南第 9 节）。
 设计全文见 Wiki：[标签模型](wiki/Tagging-model.md)、[社区标注平台](wiki/Community-annotation.md)。
 
+## 10. 标得对不对（0.6.2）
+
+模型或某位贡献者打的标签准不准，要有人标的标准答案才能说。引擎只管算，标准答案由使用方准备：
+
+```ts
+import { scoreTagSets, scoreLabelAgreement, presentTagQuality } from 'scholar-meta'
+
+const q = scoreTagSets(gold, predicted)     // 两边都是 [{ work_id, tags }]；标签与作品键函数里归一
+presentTagQuality(q, { locale: 'zh' })      // 「精确率 70% · 召回率 63.6% · F1 66.7%（命中 7，多给 3，漏掉 4）」
+scoreLabelAgreement(pairs)                  // 单选项（如研究设计）：一致率与 Cohen κ
+```
+
+规则：
+
+- 单位是（作品, 标签键）。只评标准答案覆盖到的作品；标准答案没标的作品上，建议对不对这里不知道，不算对也不算错。
+- 标准答案里某篇写了空集合，表示「这篇确实没有这些标签」，这篇上的建议都算多给的。
+- 分母为 0 的指标是 null：没有任何建议时精确率是算不出，不是 0。展示时写「—」。
+- 微平均把全部（作品, 标签）对合在一起算，常见标签占的份量大；按标签平均的 F1 让冷门标签与常见标签同等份量，只对标准答案里出现过的标签取平均。
+- κ 扣掉了碰巧一致的部分；两边都只用了同一个取值时算不出，给 null。
+
+这些数只说明「与这份标准答案有多一致」。标准答案本身标得对不对、够不够有代表性，不在引擎能判断的范围里。
+
 ## 函数一览
 
 | 角色 | 函数 |
@@ -247,4 +269,5 @@ const tags = resolveWorkTags(assertions, { ...DEFAULT_LEDGER_POLICY, quorum: DEF
 | 门面与存储 | `createTagLedger` · `createMemoryTagLedgerStore` · `ledgerPolicyFromSettings` |
 | 用到统计上 | `applyWorkTags` · 服务选项 `workTags` |
 | 公开社区（0.6.0） | `assessQuorum` · `resolveWorkTagsWithPending` · `resolveAnnotations` · `matchReExtraction` · `reconcileRows` · `readCommunityExport` · `createCommunityPorts` · `mergeWorkTagSources` · `presentCommunityWork` |
+| 质量度量（0.6.2） | `scoreTagSets` · `scoreLabelAgreement` · `presentTagQuality` · `presentLabelAgreement` |
 | 视图模型 | `presentTagSuggestions` · `presentWorkTags` · `presentChangeRequests` · `presentContributionIssues` |

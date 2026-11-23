@@ -3,6 +3,30 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
+## 0.6.2（2026-11-23）
+
+只有加法：**打标签质量度量**——把一组标签建议与人标的标准答案对照，标得对不对能量出来。
+
+### 新增（契约，加法）
+- `EvidenceQualityScore`（tp / fp / fn 与精确率、召回率、F1）、`EvidenceTagQuality`（覆盖率、微平均、按标签平均的 F1、逐标签）、`EvidenceLabelAgreement`（单选项的一致率与 Cohen κ）。
+- `EVIDENCE_CONTRACT_VERSION = '0.6.2'`。社区导出的读取只核对主次版本，0.6.0 / 0.6.1 产出的导出照常能读。
+
+### 新增（代码）
+- `src/quality.ts`（主入口导出）：`scoreTagSets(gold, predicted)`——单位是（作品, 标签键），两边都归一，只评标准答案覆盖到的作品；`scoreLabelAgreement(pairs)`——单选项（如研究设计）的一致率与 κ。
+  分母为 0 的指标是 null，不是 0。数值与 scikit-learn 1.9.1 的 `precision_recall_fscore_support`、`f1_score`、`cohen_kappa_score` 对过。
+- 展示：`presentTagQuality`、`presentLabelAgreement`（中英；算不出的写「—」；没有标准答案只说一句）。
+- 功能登记：`tagging_quality`（`scoreTagSets` → `presentTagQuality`）。
+
+### 公开接口
+- 主入口新增 `scoreTagSets`、`scoreLabelAgreement`、`presentTagQuality`、`presentLabelAgreement` 与类型 `TagSetInput`、`TagQualityView`；没有删除或改签名。
+
+### 行为变化
+- 无；回归快照未变。
+
+### 文档
+- Wiki 新页「检测基本盘」（七个目标与退出证据）；打标签文档第 10 节「标得对不对」；架构文档功能表多一行。
+- 新增 `SECURITY.md` 与依赖更新配置。
+
 ## 0.6.1（2026-11-03）
 
 只有加法，契约（`src/types.ts`）没变，`EVIDENCE_CONTRACT_VERSION` 仍是 0.6.0：**宿主插件层**——不走服务层、自己装配图谱的宿主接社区导出时，只需调两个函数。

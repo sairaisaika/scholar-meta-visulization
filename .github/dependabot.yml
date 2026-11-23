@@ -1,0 +1,19 @@
+# 依赖更新：每周看一次 Actions 与开发依赖。src/ 没有运行时依赖，这里更新的只是工具链。
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      dev-tooling:
+        patterns: ["*"]

@@ -65,6 +65,11 @@ export const EVIDENCE_FEATURES: readonly EvidenceFeature[] = [
     producer: main('synthesis', 'previewFrameChange'), consumer: main('present', 'presentFrameChange'),
   },
   {
+    id: 'tagging_quality', audience: 'editor', route: null, payload: 'EvidenceTagQuality',
+    answers: '一组标签建议（某个模型或某位贡献者的）对人标的标准答案有多准：精确率、召回率、F1、覆盖了多少篇、哪些标签常错',
+    producer: main('quality', 'scoreTagSets'), consumer: main('present', 'presentTagQuality'),
+  },
+  {
     id: 'community_export', audience: 'editor', route: null, payload: 'EvidenceCommunityWork',
     answers: '一篇公开论文现在被社区说成什么：标签、研究设计、结果行各自的裁决、票数与区间、复录档、争议理由',
     producer: main('community', 'readCommunityExport'), consumer: main('present', 'presentCommunityWork'),

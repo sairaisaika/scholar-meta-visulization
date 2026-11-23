@@ -282,6 +282,13 @@
       "expected_routes": [
         "verification-baseline"
       ]
+    },
+    {
+      "id": "q-tagging-quality",
+      "query": "模型标得准不准 精确率 召回率 scoreTagSets 在哪",
+      "expected_routes": [
+        "tagging-quality"
+      ]
     }
   ],
   "task_map_cases": [
