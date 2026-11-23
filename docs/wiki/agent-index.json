@@ -3746,7 +3746,7 @@
         "tagger-contribution（贡献包成为平台的批量入口）、community-engine（导出多两个旁路文件）、compatibility（新增导出与快照）"
       ],
       "unknowns": [
-        "真人路径与真实标准答案需要人；仓库规则需要管理员权限；GitHub 定时调度实际频率不可控；宿主快照在 20 万篇时的存法未设计"
+        "真人路径与真实标准答案需要人；仓库规则需要管理员在页面上建；保活能否重置 GitHub 的 60 天计时待观察；贡献包标签是否显示在页面上未定；宿主快照在 20 万篇时的存法未设计"
       ],
       "reviewed_at": "2026-11-23",
       "evidence": {
@@ -3946,7 +3946,14 @@
             "level": "offline-tested",
             "reference": "test/quality.test.ts",
             "claim": "逐标签与微平均 precision / recall / F1、macro F1、κ 与 scikit-learn 1.9.1 参考值一致；边界给 null",
-            "revision": "working tree before the 0.6.2 release commit",
+            "revision": "72342c73e961e7bfcc19cf1bd8905de2e9fc0397",
+            "observed_at": "2026-11-23"
+          },
+          {
+            "level": "installed",
+            "reference": "scripts/check-package.mjs",
+            "claim": "0.6.2 安装包 CJS / ESM / TS 两种解析与端到端（本机 pnpm check）；平台仓已从发布安装包里调用 scoreTagSets",
+            "revision": "72342c73e961e7bfcc19cf1bd8905de2e9fc0397",
             "observed_at": "2026-11-23"
           }
         ]

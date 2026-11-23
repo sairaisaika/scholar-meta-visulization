@@ -728,8 +728,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 92,
-      "response_bytes": 2261,
+      "response_words": 95,
+      "response_bytes": 2329,
       "candidate_count": 1,
       "truncated": false
     },
@@ -747,8 +747,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 245,
-      "response_bytes": 4709,
+      "response_words": 248,
+      "response_bytes": 4777,
       "candidate_count": 2,
       "truncated": false
     },
@@ -766,8 +766,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 202,
-      "response_bytes": 4384,
+      "response_words": 205,
+      "response_bytes": 4452,
       "candidate_count": 2,
       "truncated": false
     }
