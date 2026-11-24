@@ -26,7 +26,7 @@
 - [x] **R24 / P2：公开仓常规件（G7）**。安全政策、依赖更新配置、平台仓贡献规则、第三方 Action 钉提交号。依赖更新 PR 由维护者逐个决定。
 - [x] **R25 / P0：第一批真实规模的模型标签（A / B）**。已在线上观察：平台 `tag` 运行 45296167865 → PR #11 → `import` 45296399407，账本 15413 条、11 月分成 4 片，导出 2623 篇；入库后的只追加检查 45296627695 与重放 45296630207（差异 0）通过。见[第一批真实规模的模型打标签](Tagging-at-scale.md)的结束对照。
 - [x] **R26 / P0：模型建议上页（C）**。导出有 `suggestions` 旁路文件，作品页标明「模型建议 · 不计票」；浏览器测试（夹具导出与真实导出各一组）随 check 跑；线上页面冒烟随 replay 跑（运行 45300124138：6/6）。人还没有亲眼看过线上页面。
-- [x] **R27 / P1：社区裁决对标准答案（D）**。`quality.json` 与 `pnpm evaluate` 有 `consensus`，夹具测试覆盖。线上仍是「没有标准答案」——真实数字要等 R22 的人标标准答案。
+- [x] **R27 / P1：社区裁决对标准答案（D）**。`quality.json` 与 `pnpm evaluate` 有 `consensus`，夹具测试覆盖。线上的标准答案一节仍是「没有」——真实数字要等 R22 的人标标准答案。另加了一条分开的「模型参考标注」轨道（80 篇，不是人标；一致程度 F1 77.7%），只作参照。
 - [x] **R28 / P1：宿主分片存储（E）**。引擎 0.6.3：端口类型 `CommunityShardStore` 与四个函数 `refreshCommunityShards`、`readCommunityShards`、`mergeCommunityRecordsFromShards`、`createMemoryShardStore`；2 万篇合成实测写在接入指南。没有宿主用上；装配一张图不比常驻内存的整份快照快。
 - [ ] **R29 / P2：批量打标签的已知边界**。从本仓打标签器的包里整条拿掉一篇不被可复现检查判为不一致；模型不能撤回对某篇的回答；首页不能按模型建议的标签浏览；只有一个种子主题。
 - [ ] **R16 / P2：OpenAlex 单实体 `/works/{id}` 计费探针**。`probe-openalex.mjs` 实测 `x-ratelimit-credits-used` 后再决定是否把它加进 `isFreeOpenAlexPath`。
