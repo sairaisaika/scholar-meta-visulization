@@ -17,7 +17,7 @@
 - [ ] **R14 / P0：标注平台仓（SMT）**。骨架、`scripts/`（intake · export · sample · replay · check · redact · release-export，node:test 25 例含端到端）与 `site/`（静态标注页，Playwright 29 例）已提交到 SMT `main`，依赖钉 v0.6.0 release 安装包。`sample` 已在 CI 真跑并并入（35 张名片 / 207 条模型建议，导出 35 篇）。Pages（来源 GitHub Actions）与「允许 Actions 创建 PR」已于 2026-11-01 由维护者开通并核实（`export` 部署成功，Pages 上 `export/v1/` 可读；`sample` 手动运行自动开出 PR #2，仅刷新时间戳，已关闭未并入）。sample / replay 三个运维修补已入 SMT `main`（3147657 书架没变时不重写 sample.json；cc14f8d 已发布导出整个拉不到时不比对、不开 issue；2ae73e2 读远端文件缺失或失败时重试最多三次），CI check 与 export 均成功。剩余：用一条真实 issue 走通入库 → 导出 → `readCommunityExport`；归档片读回；下次 sample 真有新内容开 PR 时核对 PR 上的 `check` 正常跑（PR #2 上的 check 曾显示 failure 且 0 个作业，推测是 PR 排队时被关闭所致，未查明）。
 - [ ] **R15 / P1：演示页与宿主接真实数据**。`build-demo` 在有 `COMMUNITY_EXPORT_URL` 时下载导出，失败退回夹具并挂横幅；宿主按交接文件接 `createCommunityPorts`。
 - [x] **R17 / P1：宿主插件层（0.6.1）**。已落地：本机 `pnpm check` 全绿（Jest 589 passed / 12 skipped，快照 15 未变，安装包闸过）；见社区标注平台页实现核对 M14。`refreshCommunityExport`（注入 `fetch` / `sha256`，失败交回上一份）与 `mergeCommunityRecords`（换引擎键、取社区记录、与外部示例去重）；服务层共用同一份去重。计划见[社区标注平台](Community-annotation.md)「宿主插件层」。
-- [ ] **R18 / P0：真人路径走通（G1）**。两个真实账号各一条 issue → 入库 → 比例裁决 → 导出 → 读回 → 当周重放通过。要人。见[检测基本盘](Verification-baseline.md)。
+- [ ] **R18 / P0：真人路径走通（G1）**。两个真实账号各一条 issue → 入库 → 比例裁决 → 导出 → 读回 → 当周重放通过。要人。见[检测基本盘](Verification-baseline.md)。 2026-11-24：平台 issue #12（AI 助手受维护者委托用其账号代提，正文已写明）走通了「issue → 入库 → 按管理员层级裁决 → 导出 → 重放一致」；仍缺第二个独立账号与比例规则那条路，所以本项未完成。
 - [ ] **R19 / P0：改写能被发现（G2）**。已落地并观察到：只追加闸（CI）、`ledger.json`、当天存档 `data-2026-11-23`。剩余：平台主干禁止强推的仓库规则要维护者在页面上建；连续第二天的存档待观察。
 - [x] **R20 / P0：检测节点进 CI（G3）**。标注页浏览器测试 28 例进仓并随 check 跑（CI 已观察）；样本 PR 开出前自检（下次样本运行时观察）。
 - [x] **R21 / P1：批量入口与分片（G4）**。`pnpm bulk` 与 `import` 工作流；断言分片（20 MB）。还没有真实贡献包跑过；贡献包的标签目前只进质量评估、页面不显示。
