@@ -2881,6 +2881,13 @@
      "needle": "export async function refreshCommunityExport",
      "role": "contract",
      "reason": "现有整份快照的刷新；分片存储是它的增量版本，旧接口保留"
+    },
+    {
+     "id": "shard-refresh",
+     "path": "src/community.ts",
+     "needle": "export async function refreshCommunityShards",
+     "role": "contract",
+     "reason": "分片存储的增量刷新：按内容寻址、先记 pending 再写分片、最后换索引；读取与合并在同一文件"
     }
    ],
    "docs": [
@@ -2890,12 +2897,13 @@
    ],
    "tests": [
     "test/tagging.test.ts",
-    "test/community-plugin.test.ts"
+    "test/community-plugin.test.ts",
+    "test/community-shards.test.ts"
    ],
    "checks": [
     {
-     "command": "pnpm exec jest --runInBand test/tagging.test.ts test/community-plugin.test.ts",
-     "scope": "引擎侧的打标签器、贡献包与现有快照刷新；批量管道、旁路文件、页面与质量表在平台仓验收"
+     "command": "pnpm exec jest --runInBand test/tagging.test.ts test/community-plugin.test.ts test/community-shards.test.ts",
+     "scope": "引擎侧的打标签器、贡献包、现有快照刷新与分片存储；批量管道、旁路文件、页面与质量表在平台仓验收"
     }
    ],
    "boundary": "引擎提供打标签器、贡献包校验、度量与宿主存储接口；取名片、开 PR、写账本、导出旁路文件与页面都在平台仓。模型层断言永不计票。",
@@ -2915,7 +2923,7 @@
       "刷新结果的 failed 与原因；贡献包 issues；度量里的 null"
      ],
      "thrown": [
-      "引擎函数不抛（宿主端口抛错按 host_error 回）；平台脚本对坏行抛错并让工作流失败"
+      "引擎函数不抛（宿主传入的取数 / 哈希 / 时钟函数抛错按 unreachable 或 host_error 回，存储端口抛错按 store_error 回）；平台脚本对坏行抛错并让工作流失败"
      ],
      "unsupported": [
       "引擎不取名片、不开 PR、不判断标得准不准；不替宿主选存储"

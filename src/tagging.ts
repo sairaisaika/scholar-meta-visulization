@@ -7,6 +7,7 @@
  *   · `vocabulary` 非空时是受控词表：词表外的标签一律丢掉（模型「发明」出来的标签进不了统计）；
  *   · 模型的输出一律过 `runTagger`：标签归一、置信度夹到 [0, 1]、同一标签取最高、词表外丢掉、封顶；模型失败回 null（≠「没有标签」）。
  * 参考实现 `createVocabularyTagger`：按词表（含别名）在关键词 / 标题 / 摘要里找整词，透明、可复现，当基线或冷启动用。
+ *   正文与词条用「匹配用归一」比对（不设标签长度上限、`/` 当分隔），与标签键的归一（`normalizeTag`）分开。
  * 模型给出的只是**建议**：写进标签账本（ledger.ts）时按信任层级裁决，人工结论永远压过模型。
  * 交换包：愿意共享的人用 `buildTagContribution` 把结果打包，托管账本的一方用 `validateTagContribution` 验（不可信输入、从不抛错、用收包方自己的词表）。
  */
@@ -14,6 +15,7 @@ import type { EvidenceContributionIssue, EvidenceTagContribution } from './types
 import { EVIDENCE_CONTRACT_VERSION } from './types'
 import { normalizeDoi } from './doi'
 import { normalizeTag } from './tags'
+import { foldOrthography, nfkc } from './orthography'
 
 export interface EvidenceTaggerInput {
   /** 作品 id：`<source>:<external_id>`（openalex:W123、onsite:42），或 `doi:<doi>` */
@@ -202,24 +204,51 @@ export interface VocabularyEntry {
 const FIELD_CONFIDENCE = { keywords: 0.9, topics: 0.8, title: 0.7, abstract: 0.5 } as const
 const hasLatin = (s: string) => /[a-z0-9]/.test(s)
 
-/** 词表匹配：在关键词 / 外部主题 / 标题 / 摘要里找整词（拉丁文按词边界，中日韩按子串），置信度按命中的字段定。 */
+/** 匹配用归一的保护上限（字符）：超了**截断**而不是丢弃——长标题、长摘要照样参与匹配。 */
+const MATCH_MAX_LENGTH = 200_000
+// 当分隔的标点：句读、括号、引号，以及斜杠（`a/b` 与 `a b` 等价）。先过 NFKC，全角的写法（．［］＂…）已经折成半角
+const MATCH_PUNCTUATION = /[.,;:!?()[\]{}"'“”‘’、，。；：！？（）《》〈〉「」『』【】\/]/g
+// 换行、制表符之类的控制字符在正文里是分隔（摘要常带换行）；标签键的折叠会把它们直接删掉，所以这里先换成空格
+const MATCH_BREAKS = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g
+
+/**
+ * 匹配用归一：只用来比对正文与词条，**不是标签键**（标签键仍是 `normalizeTag`，有 100 字符上限）。
+ * 先 NFKC（全角折成半角），换行 / 制表符与标点、斜杠换成空格，再过与标签键同一份正字法折叠（小写、连字符 / 下划线 / 空白折成一个空格）。
+ * 不是字符串或折叠后为空 ⇒ 空串（不参与匹配）。超过保护上限时截断，并丢掉截断处那半个词（免得半个词被当成整词命中）。
+ */
+function matchForm(raw: unknown): string {
+  if (typeof raw !== 'string' || raw.length === 0) return ''
+  let s = raw
+  if (s.length > MATCH_MAX_LENGTH) {
+    s = s.slice(0, MATCH_MAX_LENGTH)
+    const cut = Math.max(s.lastIndexOf(' '), s.lastIndexOf('\n'))
+    if (cut > 0) s = s.slice(0, cut)
+  }
+  return foldOrthography(nfkc(s).replace(MATCH_BREAKS, ' ').replace(MATCH_PUNCTUATION, ' '))
+}
+
+/**
+ * 词表匹配：在关键词 / 外部主题 / 标题 / 摘要里找整词（拉丁文按词边界，中日韩按子串），置信度按命中的字段定。
+ * 正文与词条（标签与别名）过同一个匹配用归一（`matchForm`）：正文不受标签长度上限限制，`/` 与标点一样当分隔。
+ * 输出的 `tag` 是词条原文，标签键仍由 `runTagger` 按 `normalizeTag` 归一。
+ */
 export function createVocabularyTagger(input: { entries: readonly VocabularyEntry[]; id?: string; version?: string }): EvidenceTagger {
   const entries = input.entries
-    .map((e) => ({ tag: e.tag, patterns: [e.tag, ...(e.aliases ?? [])].map(normalizeTag).filter((k): k is string => k !== null) }))
+    .map((e) => ({ tag: e.tag, patterns: [...new Set([e.tag, ...(e.aliases ?? [])].map(matchForm).filter((k) => k.length > 0))] }))
     .filter((e) => e.patterns.length > 0)
-  const find = (text: string, pattern: string) =>
-    hasLatin(pattern) ? ` ${text} `.includes(` ${pattern} `) : text.includes(pattern)
-  const norm = (s: string | null | undefined) => (s ? normalizeTag(s.replace(/[.,;:!?()[\]{}"'“”‘’、，。；：！？（）《》]/g, ' ')) ?? '' : '')
+  // 正文两头各垫一个空格：拉丁词条按 ` 词 ` 找（词边界），中日韩词条按子串找
+  const pad = (raw: unknown) => { const t = matchForm(raw); return t ? ` ${t} ` : '' }
+  const find = (padded: string, pattern: string) => padded.includes(hasLatin(pattern) ? ` ${pattern} ` : pattern)
   return {
     id: input.id ?? 'vocabulary',
     version: input.version ?? '1',
     vocabulary: entries.map((e) => e.tag),
     async tag(doc) {
       const fields: Array<[keyof typeof FIELD_CONFIDENCE, string[]]> = [
-        ['keywords', (doc.keywords ?? []).map(norm)],
-        ['topics', (doc.topics ?? []).map(norm)],
-        ['title', [norm(doc.title)]],
-        ['abstract', [norm(doc.abstract ?? '')]],
+        ['keywords', (doc.keywords ?? []).map(pad)],
+        ['topics', (doc.topics ?? []).map(pad)],
+        ['title', [pad(doc.title)]],
+        ['abstract', [pad(doc.abstract)]],
       ]
       const out: EvidenceTagSuggestion[] = []
       for (const e of entries) {

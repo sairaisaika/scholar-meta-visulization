@@ -3,6 +3,36 @@
 版本号遵循 semver 的 0.x 约定：0.x 期间，**次版本号**变化可能带破坏性改动，这里逐条写明。
 契约（`src/types.ts`）默认只做加法；破坏性改动只在这里登记过的地方发生。
 
+## 0.6.3（2026-11-24）
+
+契约（`src/types.ts`）没变，`EVIDENCE_CONTRACT_VERSION` 仍是 0.6.2。两件事：**宿主分片存储**（公开接口加法）与**词表打标签器的正文匹配**（行为变化）。
+
+### 新增（代码）
+- `CommunityShardStore`（类型）：宿主实现的分片存储端口，五个动作——读 / 写索引，读 / 写 / 删一个分片。键是不透明字符串，值可直接存成 JSON；`writeIndex` 与 `writeShard` 各自原子即可，不需要事务，也不需要「列出所有键」。
+- `CommunityShardIndex`（类型，另有 `CommunityShardEntry`）：索引——导出根、取数时刻、清单、生效的分片（路径 → 存储键 / 哈希 / 作品数 / 这一片里出现过的标签键）、附带文件的哈希与值，以及两张待清理的键清单（`pending` 写到一半的、`retired` 上一版退下来的）。
+- `refreshCommunityShards({ base, get, sha256, store, now? })`：增量刷新——清掉上次留下的待清理键 → 拉清单与附带文件 → 同路径同哈希的分片不下载 → 变了的逐片下载、核 sha256、逐行解析、验形、核作品数（同一次下载的分片之间有同一篇作品 ⇒ 失败）→ 全部验过之后才动存储：先把要写的键记进 `pending`，再逐片写到按内容寻址的新键 → 最后换索引，旧键记进 `retired`、下一次刷新开头才删。
+  返回 `updated` / `unchanged` / `failed`，带原因（整份快照的那几种，再加 `store_error`）、出问题的文件、下载 / 复用 / 移除的分片数与清理数（`CommunityShardRefreshResult`）。**任何一步不成，索引里生效的分片清单不动**，读到的还是上一版完整数据；清理绝不删生效的键；从不抛。索引读回形状不可用时当没有来刷，它里面还认得出的分片键在下一次刷新被清掉。
+- `readCommunityShards(store, { tags })`：按标签键只读含这些标签的分片；跨片重复的作品只留先读到的一条并记数；索引指着的分片读不到 ⇒ `missing_shard`，没有可用的索引 ⇒ `no_index`，端口抛了 ⇒ `store_error`。
+- `mergeCommunityRecordsFromShards(store, input)`：与 `mergeCommunityRecords` 同一段代码、同样的参数与结果，数据从分片存储来；`community.apply` 关着或没有标签时不读存储；读不成（含存储读回的作品缺字段、参数形状不对）⇒ 社区为空、外部示例原样、`ok: false` 并带原因；从不抛。标签键只归一一次，与整份快照那条路用同一组键。
+- `createMemoryShardStore()`：端口的内存参考实现（测试与示例用）。
+- `scripts/bench-community-shards.mjs`：两条路在同一份合成导出上的实测脚本（不进 `pnpm check`）。
+
+### 公开接口
+- 主入口新增 `refreshCommunityShards`、`readCommunityShards`、`mergeCommunityRecordsFromShards`、`createMemoryShardStore` 四个函数与类型 `CommunityShardStore`、`CommunityShardIndex`、`CommunityShardEntry`、`CommunityShardRefreshOptions`、`CommunityShardRefreshResult`、`CommunityShardReadResult`、`CommunityShardReadFailure`；没有删除或改签名。
+
+### 行为变化
+- **`createVocabularyTagger` 的正文匹配变了**（修 bug）。以前它拿标签归一去归一正文：归一后超过 100 个字符的正文（长标题、几乎所有摘要）整个不参与匹配，原文超过 1000 个字符的也一样；`/` 不当分隔，词条里的标点也不折叠。
+  现在正文与词条（标签与别名）过同一个「匹配用归一」：先 NFKC（全角标点折成半角），换行、制表符、句读、括号、引号与 `/` 当分隔，其余折叠规则与标签键相同；正文不设标签长度上限（只有 20 万字符的保护上限，超了在词边界截断）。
+  结果：同一批文献会**多打出一些标签**——长标题里的命中、摘要里的命中（置信度 0.5）、斜杠写法（「attention-deficit/hyperactivity disorder」、「ADHD/ASD」）、带标点的词条（如 `St. John's wort`）。以前能命中的现在照旧命中；
+  输出的 `tag`、各字段的置信度、`rationale` 的格式不变（带标点或斜杠的词条，`rationale` 里引的是折叠后的写法）。按版本区分新旧结论的宿主，升级时把打标签器的 `version` 一起换。
+- `normalizeTag` 没变（标签键是契约）；回归快照未变。
+
+### 不变
+- 契约、整份快照的接口（`refreshCommunityExport` / `mergeCommunityRecords` / `CommunityExportSnapshot`）与它们的行为都没变；小站照旧能用，不必迁移。
+
+### 文档
+- 接入指南第 9 节加「作品多了以后：按分片存」（实测表、端口要求、示例、失败语义）；打标签文档写明词表打标签器的匹配规则。
+
 ## 0.6.2（2026-11-23）
 
 只有加法：**打标签质量度量**——把一组标签建议与人标的标准答案对照，标得对不对能量出来。

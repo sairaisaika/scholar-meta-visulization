@@ -48,6 +48,60 @@ describe('① 词表匹配', () => {
     ])
     expect(tagger.vocabulary).toEqual(['ADHD', 'Sleep', 'Anxiety'])
   })
+  it('长标题照样参与匹配（正文不受标签的 100 字符上限限制）', async () => {
+    const title = `A randomised, double-blind, placebo-controlled, multicentre trial of a twelve-week behavioural programme ${'with extended follow-up '.repeat(3)}for insomnia in adolescents`
+    expect(title.length).toBeGreaterThan(150)
+    expect(await tagger.tag({ work_id: 'openalex:W2', title })).toEqual([{ tag: 'Sleep', confidence: 0.7, rationale: 'matched "insomnia" in title' }])
+    // 摘要通常上千字符：以前整段被丢掉，现在照样匹配（命中在末尾也算）
+    const abstract = `${'Background and methods are described at length here. '.repeat(40)}Anxiety was a secondary outcome.`
+    expect(abstract.length).toBeGreaterThan(2000)
+    expect(await tagger.tag({ work_id: 'openalex:W3', title: 'Untitled', abstract })).toEqual([{ tag: 'Anxiety', confidence: 0.5, rationale: 'matched "anxiety" in abstract' }])
+  })
+  it('换行、制表符是分隔；全角标点先折成半角；超长正文在词边界截断', async () => {
+    const t = createVocabularyTagger({ entries: [{ tag: 'Insomnia' }, { tag: 'Anxiety' }, { tag: 'ADHD' }] })
+    const tags = async (title: string, abstract: string | null = null) => ((await t.tag({ work_id: 'x:1', title, abstract })) ?? []).map((x) => x.tag).sort()
+    expect(await tags('therapy for\ninsomnia\nin adults')).toEqual(['Insomnia'])
+    expect(await tags('Outcome\tanxiety\tscore')).toEqual(['Anxiety'])
+    expect(await tags('x', 'Background:\r\nADHD is common.\r\nMethods: …')).toEqual(['ADHD'])
+    for (const title of ['结论：ADHD．', '［ADHD］ in adults', 'What about ADHD…', '＂ADHD＂ revisited', '〈ADHD〉与「Insomnia」'])
+      expect(await tags(title)).toEqual(expect.arrayContaining(['ADHD']))
+    // 20 万字符处正好切在一个词中间：那半个词不算命中；完整的词照样命中
+    const filler = 'lorem '.repeat(33_333) // 199 998 个字符
+    expect(await tags('x', `${filler}adhdology and more`)).toEqual([])
+    expect(await tags('x', `insomnia ${filler}`)).toEqual(['Insomnia'])
+  })
+
+  it('斜杠当分隔：正文里的 a/b 与词条里的 a b 等价，反过来也一样', async () => {
+    expect(await tagger.tag({ work_id: 'openalex:W4', title: 'Attention-deficit/hyperactivity disorder in adults' }))
+      .toEqual([{ tag: 'ADHD', confidence: 0.7, rationale: 'matched "attention deficit hyperactivity disorder" in title' }])
+    expect(await tagger.tag({ work_id: 'openalex:W5', title: 'ADHD/ASD comorbidity' }))
+      .toEqual([{ tag: 'ADHD', confidence: 0.7, rationale: 'matched "adhd" in title' }])
+    expect(await tagger.tag({ work_id: 'openalex:W5', title: 'Comorbidity', keywords: ['ＡＤＨＤ／ＡＳＤ'] }))
+      .toEqual([{ tag: 'ADHD', confidence: 0.9, rationale: 'matched "adhd" in keywords' }])
+    const slashed = createVocabularyTagger({ entries: [{ tag: 'Sleep/wake disorders', aliases: ['sleep-wake disorder'] }, { tag: 'COVID-19', aliases: ['SARS-CoV-2'] }] })
+    expect(await slashed.tag({ work_id: 'openalex:W6', title: 'Sleep wake disorders after SARS‐CoV‐2 infection' })).toEqual([
+      { tag: 'Sleep/wake disorders', confidence: 0.7, rationale: 'matched "sleep wake disorders" in title' },
+      { tag: 'COVID-19', confidence: 0.7, rationale: 'matched "sars cov 2" in title' },
+    ])
+    // 整词规则不因分隔变宽：adhdx/asd 里没有 adhd
+    expect(await tagger.tag({ work_id: 'openalex:W7', title: 'adhdx/asd markers' })).toEqual([])
+  })
+  it('全角、连字符、中日韩子串照旧', async () => {
+    expect(await tagger.tag({ work_id: 'openalex:W8', title: 'Ｉｎｓｏｍｎｉａ and ＡＤＨＤ: a cohort' })).toEqual([
+      { tag: 'ADHD', confidence: 0.7, rationale: 'matched "adhd" in title' },
+      { tag: 'Sleep', confidence: 0.7, rationale: 'matched "insomnia" in title' },
+    ])
+    expect(await tagger.tag({ work_id: 'openalex:W9', title: 'Attention_deficit hyperactivity–disorder (review)' }))
+      .toEqual([{ tag: 'ADHD', confidence: 0.7, rationale: 'matched "attention deficit hyperactivity disorder" in title' }])
+    expect(await tagger.tag({ work_id: 'openalex:W10', title: '成人注意力缺陷多动障碍的睡眠问题' }))
+      .toEqual([{ tag: 'ADHD', confidence: 0.7, rationale: 'matched "注意力缺陷" in title' }])
+  })
+  it('输出过 runTagger 后标签键不变（匹配用归一不进标签键）', async () => {
+    const slashed = createVocabularyTagger({ entries: [{ tag: 'Sleep/wake disorders' }] })
+    const r = (await runTagger(slashed, { work_id: 'openalex:W11', title: 'Sleep wake disorders' }))!
+    expect(r.suggestions).toEqual([{ tag_key: 'sleep/wake disorders', label: 'Sleep/wake disorders', confidence: 0.7, rationale: 'matched "sleep wake disorders" in title' }])
+    expect(r.dropped).toEqual({ invalid: 0, out_of_vocabulary: 0, below_threshold: 0, over_limit: 0 })
+  })
 })
 
 describe('② runTagger', () => {

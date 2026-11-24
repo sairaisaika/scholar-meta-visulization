@@ -1054,8 +1054,8 @@
           "id": "s1",
           "role": "implementation",
           "reason": "export function normalizeTag",
-          "line": 45,
-          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+          "line": 33,
+          "sha256": "8cc11dd14abe7406a4405b17086e41a33a600fa155aa2fe4e8188908580367a2"
         },
         {
           "path": "src/tags.ts",
@@ -1063,8 +1063,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export function resolveTagBinding",
-          "line": 176,
-          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+          "line": 158,
+          "sha256": "8cc11dd14abe7406a4405b17086e41a33a600fa155aa2fe4e8188908580367a2"
         },
         {
           "path": "src/tags.ts",
@@ -1072,8 +1072,8 @@
           "id": "s3",
           "role": "implementation",
           "reason": "export function createCuratedBinding",
-          "line": 211,
-          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+          "line": 193,
+          "sha256": "8cc11dd14abe7406a4405b17086e41a33a600fa155aa2fe4e8188908580367a2"
         },
         {
           "path": "src/tags.ts",
@@ -1081,8 +1081,8 @@
           "id": "s4",
           "role": "implementation",
           "reason": "export const MACHINE_BINDING_POLICIES",
-          "line": 159,
-          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+          "line": 141,
+          "sha256": "8cc11dd14abe7406a4405b17086e41a33a600fa155aa2fe4e8188908580367a2"
         },
         {
           "path": "src/service.ts",
@@ -1099,8 +1099,8 @@
           "id": "contract",
           "role": "declaration",
           "reason": "函数公开签名或契约常量",
-          "line": 45,
-          "sha256": "9e0f3791d869d2a7056b097b7b2de031072192e6b7a77addc20119338afa1699"
+          "line": 33,
+          "sha256": "8cc11dd14abe7406a4405b17086e41a33a600fa155aa2fe4e8188908580367a2"
         }
       ]
     },
@@ -1267,8 +1267,8 @@
           "id": "s1",
           "role": "declaration",
           "reason": "export interface EvidenceTagger {",
-          "line": 38,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 40,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "path": "src/tagging.ts",
@@ -1276,8 +1276,8 @@
           "id": "s2",
           "role": "implementation",
           "reason": "export async function runTagger",
-          "line": 94,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 96,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "path": "src/tagging.ts",
@@ -1285,8 +1285,8 @@
           "id": "s3",
           "role": "implementation",
           "reason": "export function validateTagContribution",
-          "line": 159,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 161,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "path": "src/tagging.ts",
@@ -1294,8 +1294,8 @@
           "id": "s4",
           "role": "implementation",
           "reason": "export function buildTagContribution",
-          "line": 131,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 133,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "path": "src/tagging.ts",
@@ -1303,8 +1303,8 @@
           "id": "s5",
           "role": "implementation",
           "reason": "export function normalizeWorkId",
-          "line": 113,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 115,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "path": "src/ledger.ts",
@@ -1325,8 +1325,8 @@
             "模型与贡献包共用的清洗、门槛、去重、计数规则"
           ],
           "visibility": "internal",
-          "line": 70,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 72,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         }
       ]
     },
@@ -2588,7 +2588,7 @@
           "role": "contract",
           "reason": "六视图的当前边界和行为定位",
           "line": 2,
-          "sha256": "e538f015c0aa94962a4b07bd512cb4f2c311df45169a8680634bf63f106ec64b"
+          "sha256": "23e67ee014358e54317edbfe62441bb703bbfd847ae13ca6acff62ce9e67ae82"
         },
         {
           "id": "ports",
@@ -2614,8 +2614,8 @@
           "needle": "export async function runTagger",
           "role": "contract",
           "reason": "图中具体交互或类型的权威位置",
-          "line": 94,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 96,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "id": "adapter",
@@ -3626,7 +3626,7 @@
           "role": "implementation",
           "reason": "全部断言种类的裁决（标签 / 分面单选 / 结果行整行原子）",
           "line": 116,
-          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
         },
         {
           "id": "read",
@@ -3635,7 +3635,7 @@
           "role": "implementation",
           "reason": "导出验形：契约主次版本、摘要置空、坏条目逐条报",
           "line": 504,
-          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
         },
         {
           "id": "ports",
@@ -3643,8 +3643,8 @@
           "needle": "export function createCommunityPorts",
           "role": "implementation",
           "reason": "把导出装成文章 / 账本 / 绑定端口与结果行、记录",
-          "line": 618,
-          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
+          "line": 632,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
         },
         {
           "id": "service",
@@ -3830,8 +3830,8 @@
           "needle": "export function validateTagContribution",
           "role": "contract",
           "reason": "批量入口复用的贡献包校验（词表、门槛、上限、逐条问题）",
-          "line": 159,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 161,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "id": "export-reader",
@@ -3840,7 +3840,7 @@
           "role": "contract",
           "reason": "导出读回自检与宿主读取共用的验形",
           "line": 504,
-          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
         }
       ]
     },
@@ -4062,6 +4062,13 @@
           "needle": "export async function refreshCommunityExport",
           "role": "contract",
           "reason": "现有整份快照的刷新；分片存储是它的增量版本，旧接口保留"
+        },
+        {
+          "id": "shard-refresh",
+          "path": "src/community.ts",
+          "needle": "export async function refreshCommunityShards",
+          "role": "contract",
+          "reason": "分片存储的增量刷新：按内容寻址、先记 pending 再写分片、最后换索引；读取与合并在同一文件"
         }
       ],
       "docs": [
@@ -4071,12 +4078,13 @@
       ],
       "tests": [
         "test/tagging.test.ts",
-        "test/community-plugin.test.ts"
+        "test/community-plugin.test.ts",
+        "test/community-shards.test.ts"
       ],
       "checks": [
         {
-          "command": "pnpm exec jest --runInBand test/tagging.test.ts test/community-plugin.test.ts",
-          "scope": "引擎侧的打标签器、贡献包与现有快照刷新；批量管道、旁路文件、页面与质量表在平台仓验收"
+          "command": "pnpm exec jest --runInBand test/tagging.test.ts test/community-plugin.test.ts test/community-shards.test.ts",
+          "scope": "引擎侧的打标签器、贡献包、现有快照刷新与分片存储；批量管道、旁路文件、页面与质量表在平台仓验收"
         }
       ],
       "boundary": "引擎提供打标签器、贡献包校验、度量与宿主存储接口；取名片、开 PR、写账本、导出旁路文件与页面都在平台仓。模型层断言永不计票。",
@@ -4096,7 +4104,7 @@
             "刷新结果的 failed 与原因；贡献包 issues；度量里的 null"
           ],
           "thrown": [
-            "引擎函数不抛（宿主端口抛错按 host_error 回）；平台脚本对坏行抛错并让工作流失败"
+            "引擎函数不抛（宿主传入的取数 / 哈希 / 时钟函数抛错按 unreachable 或 host_error 回，存储端口抛错按 store_error 回）；平台脚本对坏行抛错并让工作流失败"
           ],
           "unsupported": [
             "引擎不取名片、不开 PR、不判断标得准不准；不替宿主选存储"
@@ -4194,8 +4202,8 @@
           "needle": "export function createVocabularyTagger",
           "role": "contract",
           "reason": "平台批量打标签用的参考打标签器；只读名片字段，可复现",
-          "line": 206,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 235,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "id": "contribution-builder",
@@ -4203,8 +4211,8 @@
           "needle": "export function buildTagContribution",
           "role": "contract",
           "reason": "贡献包的成形；入库前再经 validateTagContribution",
-          "line": 131,
-          "sha256": "0dd242fe74d794cba5cd2e69ae2e778145ef9d400bd93ab49ba5616db8e4177f"
+          "line": 133,
+          "sha256": "45f16592a4fbfe38c9307d2c4acaf99512ca6808508fcd249fdd50b28f57e0ae"
         },
         {
           "id": "snapshot-refresh",
@@ -4212,8 +4220,17 @@
           "needle": "export async function refreshCommunityExport",
           "role": "contract",
           "reason": "现有整份快照的刷新；分片存储是它的增量版本，旧接口保留",
-          "line": 784,
-          "sha256": "d329a340f271d9c591568f8633c717ba9ba2fafb0c53da3c2ed749d604c060ab"
+          "line": 801,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
+        },
+        {
+          "id": "shard-refresh",
+          "path": "src/community.ts",
+          "needle": "export async function refreshCommunityShards",
+          "role": "contract",
+          "reason": "分片存储的增量刷新：按内容寻址、先记 pending 再写分片、最后换索引；读取与合并在同一文件",
+          "line": 1058,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
         }
       ]
     }

@@ -18,24 +18,12 @@
  *    所以机器绑定永远带着 `machine_binding` 图注，且**不参与跨标签聚合**（主题级只汇总人工绑定的标签）。
  */
 import type { EvidenceExternalMatch, EvidenceTagBinding, EvidenceTagBindingConfidence } from './types'
+import { foldOrthography } from './orthography'
 
 /** 归一后的最大长度（与外部源查询的上限一致）。 */
 export const TAG_MAX_LENGTH = 100
 /** 原文超过这个长度直接拒绝（防止超长输入拖慢归一化）。 */
 const RAW_MAX_LENGTH = 1000
-
-// C0/C1 控制字符、软连字符、零宽字符、方向控制符、BOM
-const INVISIBLE = /[\u0000-\u001f\u007f-\u009f­​-‏‪-‮⁠-⁯﻿]/g
-// 空白、下划线、ASCII 连字符、Unicode 连字符 / 破折号 / 减号
-const SEPARATORS = /[\s_\-‐-―−﹘﹣]+/g
-
-/**
- * NFKC；运行环境没有 `String.prototype.normalize`（比如关掉 Intl 的 Hermes）时原样返回——
- * 只是少折叠全角 / 兼容字符，不会崩（移动端也能直接用这个入口）。
- */
-function nfkc(s: string): string {
-  try { return typeof s.normalize === 'function' ? s.normalize('NFKC') : s } catch { return s }
-}
 
 /**
  * 标签键：正字法归一后的形式；不是字符串、空、或太长 ⇒ null。
@@ -44,13 +32,7 @@ function nfkc(s: string): string {
  */
 export function normalizeTag(raw: unknown): string | null {
   if (typeof raw !== 'string' || raw.length > RAW_MAX_LENGTH) return null
-  const key = nfkc(raw)
-    .replace(INVISIBLE, '')
-    .trim()
-    .replace(/^#+/, '')
-    .toLowerCase()
-    .replace(SEPARATORS, ' ')
-    .trim()
+  const key = foldOrthography(raw)
   return key.length > 0 && key.length <= TAG_MAX_LENGTH ? key : null
 }
 

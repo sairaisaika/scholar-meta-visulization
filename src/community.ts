@@ -505,10 +505,17 @@ export function readCommunityExport(manifest: unknown, shards: readonly unknown[
   const issues: EvidenceCommunityExportIssue[] = []
   const m = readManifest(manifest, issues)
   if (!m) return { ok: false, issues }
+  const works = readWorkShards(shards, issues)
+  return { ok: true, value: { manifest: m, works, ...readExtras(extras, issues) }, issues }
+}
+
+/** 若干分片 → 验过形的作品（坏条目逐条报并跳过；同一批里重复的作品只留第一条）。`first`：问题路径里分片下标的起点。 */
+function readWorkShards(shards: readonly unknown[], issues: EvidenceCommunityExportIssue[], first = 0): EvidenceCommunityWork[] {
   const works: EvidenceCommunityWork[] = []
   const seen = new Set<string>()
   let total = 0
-  outer: for (const [si, shard] of shards.entries()) {
+  outer: for (const [i, shard] of shards.entries()) {
+    const si = first + i
     const list = Array.isArray(shard) ? shard : isRecord(shard) && Array.isArray(shard.works) ? shard.works : null
     if (!list) { issues.push({ code: 'not_an_object', path: `shards[${si}]` }); continue }
     for (const [wi, raw] of list.entries()) {
@@ -521,6 +528,13 @@ export function readCommunityExport(manifest: unknown, shards: readonly unknown[
       works.push(w)
     }
   }
+  return works
+}
+
+/** 附带文件（绑定 / 概念 / frame）→ 验过形的值；不是数组的当没有，坏条目逐条报并跳过。 */
+function readExtras(
+  extras: { bindings?: unknown; concepts?: unknown; frames?: unknown }, issues: EvidenceCommunityExportIssue[],
+): Pick<EvidenceCommunityExport, 'bindings' | 'concepts' | 'frames'> {
   const bindings: EvidenceTagBinding[] = []
   for (const [i, b] of (Array.isArray(extras.bindings) ? extras.bindings : []).entries()) {
     if (!isRecord(b) || !text(b.tag_key) || !text(b.kind) || !(EVIDENCE_TAG_BINDING_KINDS as readonly string[]).includes(b.kind) || b.kind === 'machine') {
@@ -547,7 +561,7 @@ export function readCommunityExport(manifest: unknown, shards: readonly unknown[
     })
   }
   const frames = Array.isArray(extras.frames) ? (extras.frames.filter((f) => isRecord(f) && text(f.key) && Array.isArray(f.record_ids)) as EvidenceCommunityExport['frames']) : []
-  return { ok: true, value: { manifest: m, works, bindings, concepts, frames }, issues }
+  return { bindings, concepts, frames }
 }
 
 // ── 宿主端口 ──────────────────────────────────────────────────────────────────────
@@ -776,6 +790,9 @@ export interface CommunityRefreshOptions {
 
 const EXTRA_FILES = ['bindings', 'concepts', 'frames'] as const
 const SAFE_PATH = /^[A-Za-z0-9_\-.]+(\/[A-Za-z0-9_\-.]+)*$/
+/** 清单里「变了就算内容变了」的元信息：生成时间、来源提交、计数不算（它们每次导出都可能变，而作品与裁决没变） */
+const manifestMeta = (m: EvidenceCommunityExportManifest) =>
+  JSON.stringify([m.contract, m.label, m.license, m.repository, m.policy, m.facet_vocab, m.concepts_version, m.maintainers])
 
 /**
  * 拉一次社区导出：清单 → 附带文件 → 分片（分片集合与哈希都没变就复用上一份的作品，不下载）→ 逐个核 sha256 → 逐行解析 → `readCommunityExport`。
@@ -871,9 +888,7 @@ async function refreshOnce(opts: CommunityRefreshOptions, previous: CommunityExp
   if (r.issues.some((i) => i.code === 'not_an_object' || i.code === 'too_many_works')) return fail('bad_export', null, r.issues)
   if (r.value.works.length !== expected || r.value.works.length !== r.value.manifest.counts.works) return fail('incomplete', null, r.issues)
 
-  const meta = (m: EvidenceCommunityExportManifest) =>
-    JSON.stringify([m.contract, m.label, m.license, m.repository, m.policy, m.facet_vocab, m.concepts_version, m.maintainers])
-  if (reuse && previous && meta(previous.export.manifest) === meta(r.value.manifest)
+  if (reuse && previous && manifestMeta(previous.export.manifest) === manifestMeta(r.value.manifest)
     && EXTRA_FILES.every((n) => previous.extras[n] === extraHashes[n])) {
     return { status: 'unchanged', snapshot: previous, reason: null, path: null, issues: r.issues }
   }
@@ -890,6 +905,23 @@ export interface CommunityMergeInput {
   settings?: Readonly<Record<string, unknown>> | null
 }
 
+/** 合并前的两样准备：设置（缺的取缺省，不合法的退回缺省）与这张图的标签键（引擎 `normalizeTag` 形，去重）。 */
+function mergePlan(input: CommunityMergeInput) {
+  const values = validateSettings(input.settings ?? {}).values
+  const keys = [...new Set(input.tags.map((t) => normalizeTag(t)).filter((k): k is string => k !== null))]
+  return { on: values['community.apply'] === 'tags_and_records' && keys.length > 0, keys, minVerification: values['community.minVerification'] }
+}
+
+/** 合并的那一段（整份快照与分片存储两条路共用，只有这一份）：导出里带这些标签键的作品 → 记录，再从外部示例里去掉同一篇。 */
+function mergeExportRecords(
+  exp: EvidenceCommunityExport, fetchedAt: string, keys: readonly string[], minVerification: EvidenceVerification, external: readonly EvidenceRecord[],
+): { community: EvidenceRecord[]; external: EvidenceRecord[] } {
+  const rows = communityArticles(exp, keys, minVerification)
+  // 行已经按导出里的 tag_key 挑过；不再按标签显示名二次过滤（显示名与键可以不同）
+  const { records } = communityRecordsFromRows(rows, { label: exp.manifest.label, license: exp.manifest.license, retrieved_at: fetchedAt }, null)
+  return { community: records, external: dropExternalDuplicates(external, records) }
+}
+
 /**
  * 把社区导出并进一张图：`community.apply` 是 `tags_and_records` 且有快照时，取带这些标签的社区作品（一篇一条记录，来源 community，
  * 出处是导出的来源名与 CC0），并从外部示例里去掉同一篇（同 DOI 或同 OpenAlex 编号）；否则社区为空、外部示例原样。纯函数，零 IO。
@@ -898,12 +930,392 @@ export function mergeCommunityRecords(
   snapshot: Pick<CommunityExportSnapshot, 'export' | 'fetched_at'> | null | undefined,
   input: CommunityMergeInput,
 ): { community: EvidenceRecord[]; external: EvidenceRecord[] } {
-  const values = validateSettings(input.settings ?? {}).values
-  const keys = [...new Set(input.tags.map((t) => normalizeTag(t)).filter((k): k is string => k !== null))]
-  if (!snapshot || values['community.apply'] !== 'tags_and_records' || keys.length === 0) return { community: [], external: [...input.external] }
-  const exp = snapshot.export
-  const rows = communityArticles(exp, keys, values['community.minVerification'])
-  // 行已经按导出里的 tag_key 挑过；不再按标签显示名二次过滤（显示名与键可以不同）
-  const { records } = communityRecordsFromRows(rows, { label: exp.manifest.label, license: exp.manifest.license, retrieved_at: snapshot.fetched_at }, null)
-  return { community: records, external: dropExternalDuplicates(input.external, records) }
+  const plan = mergePlan(input)
+  if (!snapshot || !plan.on) return { community: [], external: [...input.external] }
+  return mergeExportRecords(snapshot.export, snapshot.fetched_at, plan.keys, plan.minVerification, input.external)
+}
+
+// ── 宿主分片存储：作品多了以后按分片存、只下载变了的分片（0.6.3） ──────────────────────────────
+// 整份快照把全部作品放进一个 JSON：每张图都要把它整份读出来，改一篇也要整份重写。这里换一种存法——
+// 宿主实现一个五个动作的存储端口（读 / 写索引，读 / 写 / 删一个分片），引擎负责刷新与读取：
+//   · 分片按内容寻址（键 = 清单里的路径 + `@` + sha256），哈希没变的分片不下载、不重写；
+//   · 生效的分片清单在索引里，**最后才换**：读的人看到的总是完整的一版，任何一步不成索引都不动；
+//   · 写到一半被杀：动手写分片之前先把要写的键记进索引的 `pending`；下次刷新开头把其中没生效的删掉（端口不需要「列出所有键」）；
+//   · 有人正在读旧版：换索引时旧键不马上删，记进 `retired`，下一次刷新开头才删——正在读的请求有一个刷新周期的时间读完。
+// 整份快照的两个函数（`refreshCommunityExport` / `mergeCommunityRecords`）照旧保留，小站照旧能用。
+
+/** 索引里的一片：存储键、哈希、作品数、这一片里出现过的标签键 */
+export interface CommunityShardEntry {
+  /** 存储键：`${清单里的路径}@${sha256}`（对端口来说是不透明字符串） */
+  key: string
+  sha256: string
+  works: number
+  /** 这一片里出现过的全部 `tag_key`（不分状态，排序去重）。读取时用它挑分片——是超集：列着的标签不一定「有」，没列的一定没有 */
+  tags: string[]
+}
+
+/** 分片存储的索引（可直接存成 JSON）。读取与合并只认索引里「生效」的那份清单 */
+export interface CommunityShardIndex {
+  /** 导出根，末尾不带 `/` */
+  base: string
+  /** 内容最后一次真的变了、被取回的时刻（记录脚注的取数时间用它） */
+  fetched_at: string
+  /** 引擎读回的清单 */
+  manifest: EvidenceCommunityExportManifest
+  /** 生效的分片：清单里的路径 → 这一片 */
+  shards: Record<string, CommunityShardEntry>
+  /** 附带文件：哈希与读回后的值（没有该文件 ⇒ sha256 为 null、值为空数组） */
+  extras: {
+    bindings: { sha256: string | null; value: EvidenceTagBinding[] }
+    concepts: { sha256: string | null; value: EvidenceConcept[] }
+    frames: { sha256: string | null; value: EvidenceCommunityExport['frames'] }
+  }
+  /** 写到一半的键（动手写分片之前先记在这里；下次刷新开头删掉其中没生效的） */
+  pending: string[]
+  /** 上一版退下来的键（下一次刷新开头才删，给正在读的请求留一个刷新周期） */
+  retired: string[]
+}
+
+/**
+ * 宿主实现的分片存储端口：键是不透明字符串，值可直接存成 JSON。宿主用自己的表或键值存储实现。
+ * 要求：`writeIndex` 与 `writeShard` 各自原子（要么整个写进去、要么没写；不需要跨调用的事务）；`readShard` 没有这个键回 null；
+ * `deleteShard` 删不存在的键不算错（清理可能重复做）；存储不能自己淘汰分片（不要设过期时间）；失败就抛，引擎接住。
+ */
+export interface CommunityShardStore {
+  readIndex(): Promise<CommunityShardIndex | null>
+  writeIndex(index: CommunityShardIndex): Promise<void>
+  readShard(key: string): Promise<readonly EvidenceCommunityWork[] | null>
+  writeShard(key: string, works: readonly EvidenceCommunityWork[]): Promise<void>
+  deleteShard(key: string): Promise<void>
+}
+
+export interface CommunityShardRefreshOptions {
+  /** 导出根地址，例如 `https://<平台>/export/v1` */
+  base: string
+  /** 取一个文件；宿主传自己的服务端取数（只要有 `status` 与 `text()`） */
+  get: CommunityRefreshOptions['get']
+  /** 对 UTF-8 文本算 sha256（十六进制小写） */
+  sha256: CommunityRefreshOptions['sha256']
+  store: CommunityShardStore
+  now?: () => Date
+}
+
+export interface CommunityShardRefreshResult {
+  /** `updated` 内容变了，索引已换成新的一版；`unchanged` 没变，什么都没写（开头的清理除外）；`failed` 这次没成，生效的那一版原样还在 */
+  status: 'updated' | 'unchanged' | 'failed'
+  /** 失败原因：整份快照的那几种，再加 `store_error`（存储端口抛了） */
+  reason: CommunityRefreshFailure | 'store_error' | null
+  /** 出问题的文件（相对导出根）；没有为 null */
+  path: string | null
+  /** 引擎读回时的逐条问题（只含这次下载的分片与附带文件；成功时也可能有不致命的） */
+  issues: EvidenceCommunityExportIssue[]
+  /** `downloaded` 这次下载并验过的分片数；`reused` 哈希没变、没下载的分片数；`removed` 上一版有、这一版清单里没有的路径数 */
+  shards: { downloaded: number; reused: number; removed: number }
+  /** 开头清理掉的键数（上次写到一半的、上一版退下来的） */
+  cleaned: number
+  /** 没清成的次数（端口抛了：没删掉的键留到下次；清理后的索引没写回也算一次）。不致命 */
+  cleanup_failed: number
+}
+
+export type CommunityShardReadFailure = 'no_index' | 'missing_shard' | 'store_error'
+
+export type CommunityShardReadResult =
+  | { ok: true; index: CommunityShardIndex; works: EvidenceCommunityWork[]; shards_read: number; duplicates: number }
+  /** `no_index` 还没刷新成功过（或索引读回形状不可用）；`missing_shard` 索引指着的分片读不到或与索引对不上；`store_error` 端口抛了 */
+  | { ok: false; reason: CommunityShardReadFailure; path: string | null }
+
+const shardKey = (path: string, sha256: string) => `${path}@${sha256}`
+const own = <T>(o: Record<string, T>, k: string): T | undefined => (Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined)
+const keyList = (v: unknown): string[] => (Array.isArray(v) ? [...new Set(v.filter((k): k is string => typeof k === 'string' && k.length > 0))] : [])
+const workKey = (w: EvidenceCommunityWork) => normalizeWorkId(w.work_id) ?? w.work_id
+const shardEntries = (index: CommunityShardIndex): CommunityShardEntry[] => Object.keys(index.shards).map((p) => index.shards[p]!)
+
+/**
+ * 索引的形状能不能当「生效的一版」用（存储读回的可能缺字段）。与 `reusableSnapshot` 同样宽松，另加一条：
+ * 清单里的每一片都得在生效清单里——首次刷新写到一半留下的占位索引不满足这一条，所以读的人看到的是「还没有」，不是「空的」。
+ */
+function usableShardIndex(x: unknown): x is CommunityShardIndex {
+  if (!isRecord(x) || typeof x.base !== 'string' || typeof x.fetched_at !== 'string') return false
+  const m = x.manifest
+  const shards = x.shards
+  const extras = x.extras
+  if (!isRecord(m) || !Array.isArray(m.shards) || typeof m.label !== 'string' || typeof m.license !== 'string') return false
+  if (!isRecord(shards) || !isRecord(extras)) return false
+  for (const k of Object.keys(shards)) {
+    const e = shards[k]
+    if (!isRecord(e) || !text(e.key) || !text(e.sha256) || typeof e.works !== 'number' || !Array.isArray(e.tags)) return false
+  }
+  for (const sh of m.shards) if (!isRecord(sh) || typeof sh.path !== 'string' || own(shards, sh.path) === undefined) return false
+  return EXTRA_FILES.every((n) => { const e = extras[n]; return isRecord(e) && Array.isArray(e.value) })
+}
+
+/**
+ * 增量刷新分片存储：清掉上次留下的待清理键 → 拉清单与附带文件 → 哈希没变的分片不下载 → 变了的逐片下载、核 sha256、验形
+ * → **全部验过之后**才动存储：先把要写的键记进 `pending`，再逐片写到新键 → 最后换索引（旧键记进 `retired`）。
+ * 任何一步不成：返回 `failed` 与原因，索引里生效的分片清单不动，读到的还是上一版完整数据——失败不等于没有数据。从不抛。
+ * 同一时刻只应有一个刷新在跑（宿主的定时任务自己保证）；清理与写入绝不删除生效清单里的键。
+ */
+export async function refreshCommunityShards(opts: CommunityShardRefreshOptions): Promise<CommunityShardRefreshResult> {
+  const progress: ShardProgress = { shards: { downloaded: 0, reused: 0, removed: 0 }, cleaned: 0, cleanup_failed: 0, issues: [] }
+  try {
+    return await refreshShardsOnce(opts, progress)
+  } catch {
+    // 存储端口的抛错都在里面接住了；到这里的只会是宿主传进来的函数（sha256 / now）抛了。它们都在写 pending 与分片之前调用，所以没有留下写到一半的东西
+    return shardResult(progress, 'failed', 'host_error', null)
+  }
+}
+
+interface ShardProgress { shards: { downloaded: number; reused: number; removed: number }; cleaned: number; cleanup_failed: number; issues: EvidenceCommunityExportIssue[] }
+const shardResult = (
+  p: ShardProgress, status: CommunityShardRefreshResult['status'], reason: CommunityShardRefreshResult['reason'], path: string | null,
+): CommunityShardRefreshResult =>
+  ({ status, reason, path, issues: p.issues, shards: { ...p.shards }, cleaned: p.cleaned, cleanup_failed: p.cleanup_failed })
+/** 调一次存储端口：抛了（同步或异步）都接住 */
+async function port<T>(call: () => Promise<T>): Promise<{ ok: true; value: T } | { ok: false }> {
+  try { return { ok: true, value: await call() } } catch { return { ok: false } }
+}
+
+async function refreshShardsOnce(opts: CommunityShardRefreshOptions, progress: ShardProgress): Promise<CommunityShardRefreshResult> {
+  const base = opts.base.replace(/\/+$/, '')
+  const store = opts.store
+  const issues = progress.issues
+  const fail = (reason: CommunityRefreshFailure | 'store_error', path: string | null = null) => shardResult(progress, 'failed', reason, path)
+  const load = async (path: string): Promise<{ status: number; text: string } | null> => {
+    try {
+      const res = await opts.get(`${base}/${path}`)
+      return { status: res.status, text: res.status === 200 ? await res.text() : '' }
+    } catch {
+      return null
+    }
+  }
+  const parse = (t: string): { ok: true; value: unknown } | { ok: false } => {
+    try { return { ok: true, value: JSON.parse(t) } } catch { return { ok: false } }
+  }
+
+  // ① 读索引（形状不可用就当没有），清掉上次留下的：写到一半的、上一版退下来的——生效清单里的键不删
+  const got = await port<unknown>(() => store.readIndex())
+  if (!got.ok) return fail('store_error')
+  const raw = got.value
+  const prev = usableShardIndex(raw) ? raw : null
+  const active = new Set(prev ? shardEntries(prev).map((e) => e.key) : [])
+  let pending = isRecord(raw) ? keyList(raw.pending) : []
+  let retired = isRecord(raw) ? keyList(raw.retired) : []
+  // 索引在但形状不可用（当没有来刷）：它里面还认得出的分片键也算退下来的，免得那些分片永远留在存储里
+  if (!prev && isRecord(raw) && isRecord(raw.shards)) {
+    const stale = Object.keys(raw.shards).map((p) => { const e = (raw.shards as Record<string, unknown>)[p]; return isRecord(e) && text(e.key) ? e.key : '' })
+    retired = [...new Set([...retired, ...stale.filter((k) => k.length > 0)])]
+  }
+  if (pending.length + retired.length > 0) {
+    const kept = new Set<string>()
+    for (const key of new Set([...pending, ...retired])) {
+      if (active.has(key)) continue
+      if ((await port(() => store.deleteShard(key))).ok) progress.cleaned++
+      else { progress.cleanup_failed++; kept.add(key) }
+    }
+    pending = pending.filter((k) => kept.has(k))
+    retired = retired.filter((k) => kept.has(k) && !pending.includes(k))
+    // 残缺的索引不写回（后面写新索引时会整个换掉；这次没走到那一步，下次再删一遍也无妨）
+    if (prev && !(await port(() => store.writeIndex({ ...prev, pending, retired }))).ok) progress.cleanup_failed++
+  }
+
+  // ② 清单：路径只接受相对路径；清单读不回、各片作品数之和对不上 counts.works ⇒ 不往下走
+  const mres = await load('manifest.json')
+  if (!mres || mres.status !== 200) return fail('unreachable', 'manifest.json')
+  const mjson = parse(mres.text)
+  if (!mjson.ok) return fail('bad_json', 'manifest.json')
+  const rawShards = isRecord(mjson.value) && Array.isArray(mjson.value.shards) ? mjson.value.shards : null
+  if (!rawShards) return fail('bad_export', 'manifest.json')
+  const plan: Array<{ path: string; sha256: string; works: number }> = []
+  const paths = new Set<string>()
+  let expected = 0
+  for (const sh of rawShards) {
+    const path = isRecord(sh) && text(sh.path) ? sh.path : ''
+    if (!SAFE_PATH.test(path) || path.split('/').includes('..')) return fail('bad_path', path || null)
+    if (paths.has(path)) return fail('bad_export', path) // 同一个路径列了两次
+    paths.add(path)
+    const works = isRecord(sh) && typeof sh.works === 'number' ? sh.works : 0
+    plan.push({ path, sha256: isRecord(sh) && text(sh.sha256) ? sh.sha256.toLowerCase() : '', works })
+    expected += works
+  }
+  const manifest = readManifest(mjson.value, issues)
+  if (!manifest) return fail('bad_export', 'manifest.json')
+  if (expected !== manifest.counts.works) return fail('incomplete', 'manifest.json')
+
+  // 附带文件：200 或 404（当没有）；别的状态 ⇒ 没问成
+  const extraRaw: Record<(typeof EXTRA_FILES)[number], unknown> = { bindings: undefined, concepts: undefined, frames: undefined }
+  const extraHashes: Record<(typeof EXTRA_FILES)[number], string | null> = { bindings: null, concepts: null, frames: null }
+  for (const name of EXTRA_FILES) {
+    const res = await load(`${name}.json`)
+    if (!res || (res.status !== 200 && res.status !== 404)) return fail('unreachable', `${name}.json`)
+    if (res.status === 404) continue
+    const j = parse(res.text)
+    if (!j.ok) return fail('bad_json', `${name}.json`)
+    if (!Array.isArray(j.value)) return fail('bad_export', `${name}.json`)
+    extraRaw[name] = j.value
+    extraHashes[name] = String(await opts.sha256(res.text)).toLowerCase()
+  }
+  const extraValues = readExtras(extraRaw, issues)
+
+  // ③ 逐片：同路径、同哈希 ⇒ 复用（不下载）；否则下载、核哈希、逐行解析、验形、核作品数；这次下载的各片之间不许有同一篇
+  const reusable = prev !== null && prev.base === base ? prev : null
+  const entries = new Map<string, CommunityShardEntry>()
+  const fresh: Array<{ path: string; key: string; works: EvidenceCommunityWork[] }> = []
+  const seen = new Set<string>()
+  for (const [si, sh] of plan.entries()) {
+    const key = shardKey(sh.path, sh.sha256)
+    const old = reusable ? own(reusable.shards, sh.path) : undefined
+    if (old && old.key === key && old.sha256 === sh.sha256) {
+      if (old.works !== sh.works) return fail('incomplete', sh.path)
+      entries.set(sh.path, old)
+      progress.shards.reused++
+      continue
+    }
+    const res = await load(sh.path)
+    if (!res || res.status !== 200) return fail('unreachable', sh.path)
+    if (String(await opts.sha256(res.text)).toLowerCase() !== sh.sha256) return fail('hash_mismatch', sh.path)
+    const rows: unknown[] = []
+    for (const line of res.text.split('\n')) {
+      if (!line.trim()) continue
+      const j = parse(line)
+      if (!j.ok) return fail('bad_json', sh.path)
+      rows.push(j.value)
+    }
+    const found: EvidenceCommunityExportIssue[] = []
+    const works = readWorkShards([rows], found, si)
+    for (const i of found) issues.push(i)
+    if (found.some((i) => i.code === 'not_an_object' || i.code === 'too_many_works')) return fail('bad_export', sh.path)
+    if (works.length !== sh.works) return fail('incomplete', sh.path)
+    for (const w of works) {
+      const k = workKey(w)
+      if (seen.has(k)) { issues.push({ code: 'duplicate_work', path: `shards[${si}]` }); return fail('incomplete', sh.path) }
+      seen.add(k)
+    }
+    progress.shards.downloaded++
+    fresh.push({ path: sh.path, key, works })
+    entries.set(sh.path, { key, sha256: sh.sha256, works: works.length, tags: [...new Set(works.flatMap((w) => w.tags.map((t) => t.tag_key)))].sort() })
+  }
+  progress.shards.removed = prev ? Object.keys(prev.shards).filter((p) => !paths.has(p)).length : 0
+
+  // 都没变（分片集合与次序、每个哈希、附带文件哈希、清单元信息）⇒ unchanged，什么都不写
+  if (reusable && fresh.length === 0 && progress.shards.removed === 0
+    && reusable.manifest.shards.length === plan.length && reusable.manifest.shards.every((sh, i) => sh.path === plan[i]!.path)
+    && manifestMeta(reusable.manifest) === manifestMeta(manifest)
+    && EXTRA_FILES.every((n) => reusable.extras[n].sha256 === extraHashes[n])) {
+    return shardResult(progress, 'unchanged', null, null)
+  }
+  // 宿主的时钟在动存储之前问：它抛了也不会留下写到一半的东西
+  const at = (opts.now ?? (() => new Date()))().toISOString()
+
+  // ④ 动存储：先把要写的新键记进 pending（生效清单仍是旧的），再逐片写
+  if (fresh.length > 0) {
+    pending = [...new Set([...pending, ...fresh.map((f) => f.key)])]
+    const holding: CommunityShardIndex = prev
+      ? { ...prev, pending, retired }
+      // 还没有生效的一版：占位索引只为记住 pending（清单里的分片不在生效清单里 ⇒ 读的人看到「还没有」）
+      : { base, fetched_at: '', manifest, shards: {}, extras: { bindings: { sha256: null, value: [] }, concepts: { sha256: null, value: [] }, frames: { sha256: null, value: [] } }, pending, retired }
+    if (!(await port(() => store.writeIndex(holding))).ok) return fail('store_error')
+    for (const f of fresh) {
+      if (!(await port(() => store.writeShard(f.key, f.works))).ok) return fail('store_error', f.path)
+    }
+  }
+
+  // ⑥ 最后换索引：生效清单换成新的；旧清单里不再被引用的键退下来，下一次刷新开头才删
+  const shards = Object.fromEntries(plan.map((sh) => [sh.path, entries.get(sh.path)!]))
+  const nowActive = new Set(plan.map((sh) => entries.get(sh.path)!.key))
+  const index: CommunityShardIndex = {
+    base, fetched_at: at, manifest, shards,
+    extras: {
+      bindings: { sha256: extraHashes.bindings, value: extraValues.bindings },
+      concepts: { sha256: extraHashes.concepts, value: extraValues.concepts },
+      frames: { sha256: extraHashes.frames, value: extraValues.frames },
+    },
+    pending: pending.filter((k) => !nowActive.has(k)),
+    retired: [...new Set([...retired, ...active])].filter((k) => !nowActive.has(k)),
+  }
+  if (!(await port(() => store.writeIndex(index))).ok) return fail('store_error')
+  return shardResult(progress, 'updated', null, null)
+}
+
+/**
+ * 按标签读分片存储：`tags` 过 `normalizeTag` 去重，只读索引里列着这些标签键的分片（按清单的次序）。
+ * 多片之间同一篇作品只留先读到的一条并记数（`duplicates`）。返回的只是这些分片里的作品——不保证都带所要的标签（分片的标签清单是超集）。
+ * 索引指着的分片读不到（或条数与索引对不上、不成形）⇒ `missing_shard`：如实报失败，不拿残缺的数据凑数。从不抛。
+ */
+export async function readCommunityShards(store: CommunityShardStore, opts: { tags: readonly string[] }): Promise<CommunityShardReadResult> {
+  const tags = opts && Array.isArray(opts.tags) ? opts.tags : []
+  return readShardsByKeys(store, tags.map((t) => normalizeTag(t)).filter((k): k is string => k !== null))
+}
+
+/** 按已经归一好的标签键读（合并函数用它：键只归一一次，与整份快照那条路用的是同一组键） */
+async function readShardsByKeys(store: CommunityShardStore, keys: readonly string[]): Promise<CommunityShardReadResult> {
+  const got = await port<unknown>(() => store.readIndex())
+  if (!got.ok) return { ok: false, reason: 'store_error', path: null }
+  const index = got.value
+  if (!usableShardIndex(index)) return { ok: false, reason: 'no_index', path: null }
+  const want = new Set(keys)
+  const works: EvidenceCommunityWork[] = []
+  const seen = new Set<string>()
+  const done = new Set<string>()
+  let shardsRead = 0
+  let duplicates = 0
+  for (const sh of index.manifest.shards) {
+    const entry = own(index.shards, sh.path)
+    if (!entry || done.has(sh.path)) continue
+    done.add(sh.path)
+    if (!entry.tags.some((t) => want.has(t))) continue
+    const r = await port<unknown>(() => store.readShard(entry.key))
+    if (!r.ok) return { ok: false, reason: 'store_error', path: sh.path }
+    const list = r.value
+    if (!Array.isArray(list) || list.length !== entry.works || !list.every((w) => isRecord(w) && typeof w.work_id === 'string' && Array.isArray(w.tags))) {
+      return { ok: false, reason: 'missing_shard', path: sh.path }
+    }
+    shardsRead++
+    for (const w of list as EvidenceCommunityWork[]) {
+      const k = workKey(w)
+      if (seen.has(k)) { duplicates++; continue }
+      seen.add(k)
+      works.push(w)
+    }
+  }
+  return { ok: true, index, works, shards_read: shardsRead, duplicates }
+}
+
+/**
+ * `mergeCommunityRecords` 的分片存储版：结果与对整份快照调 `mergeCommunityRecords` 相同，数据只从含这些标签的分片来。
+ * `community.apply` 不是 `tags_and_records` 或没有标签 ⇒ 不读存储，社区为空、外部示例原样（`ok: true`）。
+ * 读不成（还没有索引、分片读不到、端口抛了）⇒ 社区为空、外部示例原样、`ok: false` 并带原因——调用方据此区分「没有」与「没读成」。从不抛。
+ */
+export async function mergeCommunityRecordsFromShards(
+  store: CommunityShardStore, input: CommunityMergeInput,
+): Promise<{ community: EvidenceRecord[]; external: EvidenceRecord[]; ok: boolean; reason: CommunityShardReadFailure | null }> {
+  const external = input && Array.isArray(input.external) ? [...input.external] : []
+  try {
+    const plan = mergePlan(input)
+    if (!plan.on) return { community: [], external, ok: true, reason: null }
+    const r = await readShardsByKeys(store, plan.keys)
+    if (!r.ok) return { community: [], external, ok: false, reason: r.reason }
+    const x = r.index.extras
+    const exp: EvidenceCommunityExport = { manifest: r.index.manifest, works: r.works, bindings: x.bindings.value, concepts: x.concepts.value, frames: x.frames.value }
+    return { ...mergeExportRecords(exp, r.index.fetched_at, plan.keys, plan.minVerification, input.external), ok: true, reason: null }
+  } catch {
+    // 存储读回的作品缺字段（引擎写进去的不会这样；值被别的东西改过）或参数形状不对：当没读成，不让装配图的地方崩
+    return { community: [], external, ok: false, reason: 'store_error' }
+  }
+}
+
+/**
+ * 分片存储端口的内存参考实现（测试与示例用）。值进出都过一遍 JSON：存进去的与调用方手里的对象互不牵连，也顺带证明值能存成 JSON。
+ * `keys()` 列出现存的分片键（排序），只给测试观察用——端口本身不需要「列出所有键」。
+ */
+export function createMemoryShardStore(): CommunityShardStore & { keys(): string[] } {
+  let index: string | null = null
+  const shards = new Map<string, string>()
+  return {
+    async readIndex() { return index === null ? null : (JSON.parse(index) as CommunityShardIndex) },
+    async writeIndex(value) { index = JSON.stringify(value) },
+    async readShard(key) { const t = shards.get(key); return t === undefined ? null : (JSON.parse(t) as EvidenceCommunityWork[]) },
+    async writeShard(key, works) { shards.set(key, JSON.stringify(works)) },
+    async deleteShard(key) { shards.delete(key) },
+    keys() { return [...shards.keys()].sort() },
+  }
 }

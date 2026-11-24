@@ -784,8 +784,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 89,
-      "response_bytes": 2651,
+      "response_words": 109,
+      "response_bytes": 3026,
       "candidate_count": 1,
       "truncated": false
     },
@@ -802,8 +802,8 @@
       "top2": true,
       "unknown_rejected": null,
       "locations_ok": true,
-      "response_words": 89,
-      "response_bytes": 2651,
+      "response_words": 109,
+      "response_bytes": 3026,
       "candidate_count": 1,
       "truncated": false
     }

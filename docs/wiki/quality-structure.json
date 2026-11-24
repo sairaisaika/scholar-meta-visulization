@@ -478,7 +478,7 @@
           "freshness": 5
         }
       },
-      "locations": 3,
+      "locations": 4,
       "edit_targets": {
         "located": 0,
         "semantic_accuracy": "not verified"
