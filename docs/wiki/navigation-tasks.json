@@ -299,9 +299,16 @@
     },
     {
       "id": "q-scale-shards",
-      "query": "宿主分片存储 增量刷新 refreshCommunityShards 计划",
+      "query": "宿主分片存储 增量刷新 refreshCommunityShards 在哪",
       "expected_routes": [
-        "tagging-at-scale"
+        "community-shard-store"
+      ]
+    },
+    {
+      "id": "q-shard-store-snapshot-too-big",
+      "query": "快照太大 只下载变了的分片 CommunityShardStore",
+      "expected_routes": [
+        "community-shard-store"
       ]
     }
   ],

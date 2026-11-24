@@ -4024,7 +4024,7 @@
     },
     {
       "id": "tagging-at-scale",
-      "title": "第一批真实规模的模型打标签：批量管道、建议上页、宿主分片存储",
+      "title": "第一批真实规模的模型打标签：批量管道、建议上页、检测节点",
       "kind": "plan",
       "aliases": [
         "批量打标签",
@@ -4034,10 +4034,6 @@
         "vocabulary tagger",
         "模型建议 不计票",
         "suggestions 旁路文件",
-        "宿主分片存储",
-        "增量刷新",
-        "分片快照",
-        "refreshCommunityShards",
         "社区裁决对标准答案",
         "打标签管道 检测节点"
       ],
@@ -4115,9 +4111,9 @@
         "tagger-contribution（第一次有真实的包）、community-engine（宿主多一种存法）、verification-baseline（G4 / G5 的线上观察）、compatibility（新增导出与快照）"
       ],
       "unknowns": [
-        "真人路径、真实标准答案、仓库规则都要人；词表打标签器的准确度没有数字；宿主是否换存法由接入方定"
+        "真人路径、真实标准答案、仓库规则都要人；词表打标签器的准确度没有数字；从包里整条拿掉一篇不被可复现检查判为不一致；模型不能撤回；宿主是否换存法由接入方定"
       ],
-      "reviewed_at": "2026-11-23",
+      "reviewed_at": "2026-11-24",
       "evidence": {
         "implementation": "planned",
         "observations": []
@@ -4156,7 +4152,8 @@
         "unknowns": [
           "标准答案的规模与标注人",
           "模型建议要不要进引擎契约让宿主也能读",
-          "词表之外的打标签器（语言模型）怎样保证可复现"
+          "词表之外的打标签器（语言模型）怎样保证可复现",
+          "首页怎样按模型建议的标签浏览"
         ]
       },
       "diagrams": [
@@ -4230,6 +4227,238 @@
           "role": "contract",
           "reason": "分片存储的增量刷新：按内容寻址、先记 pending 再写分片、最后换索引；读取与合并在同一文件",
           "line": 1058,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
+        }
+      ]
+    },
+    {
+      "id": "community-shard-store",
+      "title": "宿主分片存储：按分片存、增量刷新、按标签读",
+      "kind": "interface",
+      "aliases": [
+        "宿主分片存储",
+        "分片存储",
+        "增量刷新",
+        "分片快照",
+        "按分片存",
+        "refreshCommunityShards",
+        "readCommunityShards",
+        "mergeCommunityRecordsFromShards",
+        "CommunityShardStore",
+        "createMemoryShardStore",
+        "快照太大",
+        "只下载变了的分片",
+        "pending retired"
+      ],
+      "sources": [
+        {
+          "id": "port",
+          "path": "src/community.ts",
+          "needle": "export interface CommunityShardStore",
+          "role": "declaration",
+          "reason": "宿主实现的存储端口：读 / 写索引，读 / 写 / 删一个分片"
+        },
+        {
+          "id": "index",
+          "path": "src/community.ts",
+          "needle": "export interface CommunityShardIndex",
+          "role": "declaration",
+          "reason": "索引：生效的分片清单、附带文件、两张待清理的键清单"
+        },
+        {
+          "id": "refresh",
+          "path": "src/community.ts",
+          "needle": "export async function refreshCommunityShards",
+          "role": "implementation",
+          "reason": "增量刷新：按内容寻址、先记 pending 再写分片、最后换索引",
+          "visibility": "public"
+        },
+        {
+          "id": "read",
+          "path": "src/community.ts",
+          "needle": "export async function readCommunityShards",
+          "role": "implementation",
+          "reason": "按标签键只读相关分片，跨片去重，读不到如实报",
+          "visibility": "public"
+        },
+        {
+          "id": "merge",
+          "path": "src/community.ts",
+          "needle": "export async function mergeCommunityRecordsFromShards",
+          "role": "consumer",
+          "reason": "与整份快照的合并共用同一段代码；读不成返回原因，不抛"
+        },
+        {
+          "id": "memory",
+          "path": "src/community.ts",
+          "needle": "export function createMemoryShardStore",
+          "role": "implementation",
+          "reason": "端口的内存参考实现（测试与示例）",
+          "visibility": "public"
+        }
+      ],
+      "docs": [
+        "docs/integration.md",
+        "docs/wiki/Tagging-at-scale.md"
+      ],
+      "tests": [
+        "test/community-shards.test.ts",
+        "test/community-plugin.test.ts",
+        "test/api-surface.test.ts"
+      ],
+      "checks": [
+        {
+          "command": "pnpm exec jest --runInBand test/community-shards.test.ts test/community-plugin.test.ts test/api-surface.test.ts",
+          "scope": "离线：内存参考实现上的刷新 / 读取 / 合并与各条失败路径；不含任何真实存储或真实宿主"
+        }
+      ],
+      "boundary": "引擎负责刷新、读取与合并的顺序与校验；存储本身（表、键值库、原子性）由宿主实现。同一时刻只应有一个刷新在跑。",
+      "interface": {
+        "inputs": [
+          "导出根地址、宿主的取数函数与 sha256 函数、宿主实现的 CommunityShardStore；读取与合并时的站内标签"
+        ],
+        "outputs": [
+          "刷新结果（updated / unchanged / failed、原因、下载 / 复用 / 移除的分片数、清理数）；按标签读到的作品；与整份快照路径相同的合并结果"
+        ],
+        "errors": [
+          "取不到、哈希不符、坏 JSON、作品数不符、路径不安全 ⇒ failed，生效清单不动；端口抛错 ⇒ store_error；索引指着的分片读不到 ⇒ missing_shard"
+        ],
+        "compatibility": "公开接口加法（0.6.3）；契约不变；整份快照的 refreshCommunityExport / mergeCommunityRecords 保留",
+        "failure_modes": {
+          "returned": [
+            "failed 与原因；读取的 ok: false 与原因；合并的 ok: false、社区为空、外部示例原样"
+          ],
+          "thrown": [
+            "不抛：宿主的取数 / 哈希 / 时钟 / 存储端口抛错都被接住"
+          ],
+          "unsupported": [
+            "并发刷新；存储自己丢分片后的自愈（要删掉索引再刷新）；跨片重复只在读取时去重"
+          ]
+        }
+      },
+      "impact": [
+        "host-ports（宿主多一种存法）、community-engine（合并的那一段被两条路共用）、compatibility（API 快照多四个函数名；新增的类型列在 CHANGELOG）"
+      ],
+      "unknowns": [
+        "没有任何宿主用上；真实存储下的耗时未测（实测用内存参考实现）；索引随分片数与标签种类增长，每次合并都要整读"
+      ],
+      "reviewed_at": "2026-11-24",
+      "evidence": {
+        "implementation": "implemented",
+        "observations": [
+          {
+            "level": "offline-tested",
+            "reference": "test/community-shards.test.ts",
+            "claim": "首次全量、无变化零下载、改一篇只下载一片、各条失败路径上生效清单不动、清理不删生效键、A→B→A、按标签只读相关分片、与整份快照路径结果相同、从不抛",
+            "revision": "39c29aa4285f4843e1de2ced7af27e0f24e344d3",
+            "observed_at": "2026-11-24"
+          },
+          {
+            "level": "offline-tested",
+            "reference": "scripts/bench-community-shards.mjs",
+            "claim": "2 万篇合成导出的一次本机实测：无变化刷新 5 ms 对 182 ms，改一篇下载 0.19 MB 对 52 MB；装配一张图不比常驻内存的整份快照快",
+            "revision": "39c29aa4285f4843e1de2ced7af27e0f24e344d3",
+            "observed_at": "2026-11-24"
+          },
+          {
+            "level": "installed",
+            "reference": "scripts/check-package.mjs",
+            "claim": "0.6.3 安装包 CJS / ESM / TS 两种解析与端到端（本机与 CI 的 pnpm check）",
+            "revision": "39c29aa4285f4843e1de2ced7af27e0f24e344d3",
+            "observed_at": "2026-11-24"
+          }
+        ]
+      },
+      "rules": [
+        {
+          "id": "active-list-last",
+          "statement": "生效的分片清单最后才换；任何一步不成，读到的还是上一版完整数据",
+          "source_ids": [
+            "refresh"
+          ],
+          "tests": [
+            "test/community-shards.test.ts"
+          ]
+        },
+        {
+          "id": "never-delete-active",
+          "statement": "清理只删写到一半的与上一版退下来的键，绝不删生效清单里的键；退下来的键延后一个刷新周期才删",
+          "source_ids": [
+            "refresh",
+            "index"
+          ],
+          "tests": [
+            "test/community-shards.test.ts"
+          ]
+        },
+        {
+          "id": "same-result-as-snapshot",
+          "statement": "分片路径的合并结果与整份快照路径逐字段相同；读不成时说明原因而不是给空结果冒充没有",
+          "source_ids": [
+            "merge",
+            "read"
+          ],
+          "tests": [
+            "test/community-shards.test.ts"
+          ]
+        }
+      ],
+      "locations": [
+        {
+          "id": "port",
+          "path": "src/community.ts",
+          "needle": "export interface CommunityShardStore",
+          "role": "declaration",
+          "reason": "宿主实现的存储端口：读 / 写索引，读 / 写 / 删一个分片",
+          "line": 984,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
+        },
+        {
+          "id": "index",
+          "path": "src/community.ts",
+          "needle": "export interface CommunityShardIndex",
+          "role": "declaration",
+          "reason": "索引：生效的分片清单、附带文件、两张待清理的键清单",
+          "line": 958,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
+        },
+        {
+          "id": "refresh",
+          "path": "src/community.ts",
+          "needle": "export async function refreshCommunityShards",
+          "role": "implementation",
+          "reason": "增量刷新：按内容寻址、先记 pending 再写分片、最后换索引",
+          "visibility": "public",
+          "line": 1058,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
+        },
+        {
+          "id": "read",
+          "path": "src/community.ts",
+          "needle": "export async function readCommunityShards",
+          "role": "implementation",
+          "reason": "按标签键只读相关分片，跨片去重，读不到如实报",
+          "visibility": "public",
+          "line": 1244,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
+        },
+        {
+          "id": "merge",
+          "path": "src/community.ts",
+          "needle": "export async function mergeCommunityRecordsFromShards",
+          "role": "consumer",
+          "reason": "与整份快照的合并共用同一段代码；读不成返回原因，不抛",
+          "line": 1288,
+          "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
+        },
+        {
+          "id": "memory",
+          "path": "src/community.ts",
+          "needle": "export function createMemoryShardStore",
+          "role": "implementation",
+          "reason": "端口的内存参考实现（测试与示例）",
+          "visibility": "public",
+          "line": 1310,
           "sha256": "94f7deb11048b53ac6bd8956f24284f5ce3bc3d26d425b9b730be871fe63c897"
         }
       ]
