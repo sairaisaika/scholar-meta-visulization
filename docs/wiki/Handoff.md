@@ -111,7 +111,7 @@ bash scripts/check-private-terms.sh                                 # 平台仓�
 - **`imports/` 里的包是模型当前的回答**。改了 `vocab/tags.json`、置信门槛、每篇标签上限或所钉的引擎版本，要在同一个提交里 `pnpm tag` 重新出包，否则 `pnpm tag --check` 不过、`import` 会在写入前停住。
 - `pnpm import` 是 pnpm 的内置命令；贡献包入库的脚本叫 `pnpm bulk`。
 - 定时触发实测每天约 4 次，不是写的每小时 / 每 15 分钟；issue 事件仍然即时触发入库。
-- 平台的依赖更新 PR（#5–#10）与引擎的（#1–#6）都没合；两个是红的：平台 #10（升级后 `pnpm typecheck` 不过）、引擎 #6（Wiki 路由快照过期那一步不过）；其余是绿的。不要批量合，逐个验证。
+- 依赖更新 PR：2026-11-26 逐个合并了绿的 9 个（引擎 #1–#5、平台 #5–#9，都是 CI 用的 action 升大版本），每合一个都等主干 CI 通过再合下一个；最后一次主干运行：引擎 `check` 45746030662、`pages` 45746030647、`release` 45746099133，平台 `check` 45745994603。**合并后的 CI 跑不到的**：平台的 `export`（含升级后的 deploy-pages）、`intake`、`import`、`replay`、`tag`、`sample`（后两个含升级后的开 PR 的 action）——这些还没在升级后真实跑过，下一次定时运行或手动触发时盯一下，红了先看是不是 action 升级带来的。两个红的没合、也不该直接合：引擎 #6 捆着 TypeScript 5→7、tsup 8→9、`@types/node` 20→26；平台 #10 捆着 TypeScript 5→7、pdfjs 4→6（`site/src/pdf.ts` 用的两个接口没了，类型检查报错）、`@types/node` 20→26。它们是迁移工作，要单独做。
 - 平台仓有两个机器人留下的分支 `tag/batch`、`sample/refresh`，可以删。
 
 ## 不要做的
