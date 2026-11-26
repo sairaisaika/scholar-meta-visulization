@@ -11,20 +11,20 @@
 | 仓 | 主干 | 状态 |
 |---|---|---|
 | 引擎 scholar-meta-visulization | 本页所在的提交；包版本 0.6.3（已发版，tag `v0.6.3` 在主干上） | `check` 绿；工作区干净 |
-| 平台 scholar-meta-tags | 数据停在 `367cc9b`（issue #12 入库）；之后只有加交接指针的一个文档提交 | `check` / `export` / `replay` 绿；11-24、11-25 两天的定时运行（入库 5 次、导出 5 次、导入 2 次）全部成功、都没有新东西要写；每日存档 `data-2026-11-23`、`-24`、`-25` 都在 |
+| 平台 scholar-meta-tags | 数据停在 `367cc9b`（issue #12 入库）；之后只有加交接指针的一个文档提交，和加 `pnpm-workspace.yaml` 的一个修复提交（`7a9ba48`，`check` 运行 45742492341 绿） | `check` / `export` / `replay` 绿；11-24、11-25 两天的定时运行（入库 5 次、导出 5 次、导入 2 次）全部成功、都没有新东西要写；每日存档 `data-2026-11-23`、`-24`、`-25` 都在 |
 
 平台账本：15415 条断言。其中 15176 条是词表打标签器 `smt-vocabulary` 给 2623 篇论文的建议（模型层，不计票），237 条是早先样本脚本的两个模型的，
 2 条是按账号的（issue #12，来历见结束对照）。导出 2623 篇、256 片；作品页显示「模型建议 · 不计票」。
 
-## 还剩三件，都要人
+## 还剩两件半，都要人
 
-目标的七个条件里，A、B、C、E、F、G 有证据；**D 差真实数字**，另有两件「需要人的事」没做。上一轮在云端做不了它们的原因各不相同：
+目标的七个条件里，A、B、C、E、F、G 有证据；**D 差真实数字**，另有两件「需要人的事」。第 3 件的规则已在本机建成（2026-11-26），只差一次观察；前两件没动。上一轮在云端做不了它们的原因各不相同：
 
 | 事 | 为什么上一轮没做成 | 本地有没有帮助 |
 |---|---|---|
 | 1 标准答案（解锁 D） | 必须是人读论文后标；模型代标就是模型给模型打分 | 有一点：本地能直接打开论文、能让会话帮你把题录调出来看；判断仍然要人做 |
 | 2 两个真实账号的标注走到比例裁决（R18） | 会话只有维护者一个账号，而且它是管理员（按层级一票定，走不到比例规则） | 没有：缺的是第二个人，不是工具 |
-| 3 默认分支规则（R19） | 云端的接口代理与会话的安全层都不让改仓库保护设置 | 有：本地用自己的 `gh` 登录就能建，或在设置页点 |
+| 3 默认分支规则（R19）——**规则已建，差一次观察** | 云端的接口代理与会话的安全层都不让改仓库保护设置 | 有：本地用自己的 `gh` 登录后建成了 |
 
 ### 1 标准答案
 
@@ -58,8 +58,9 @@
 
 ### 3 默认分支规则（R19）
 
+- **已建**（2026-11-26，维护者本机的 `gh`）：规则 `protect-default-branch`（id 28129797）已于 2026-11-26 由维护者本机的 `gh` 建成：状态 `active`、目标是默认分支、两条规则 `deletion` 与 `non_fast_forward`、没有任何可绕过的角色；`repos/…/rules/branches/main` 读回的正是这两条。下面的命令就是当时用的，实测可用。还没观察的两件：一次真的写了提交的机器人推送没被挡住（没有新东西要写时它们不推送）；一次强推确实被拒（没有拿主干去试）。
 - 设置页：平台仓 Settings → Rules → Rulesets → New branch ruleset，目标选默认分支，勾 Restrict deletions 与 Block force pushes，并把 Enforcement status 设成 Active（新建时默认可能不是生效状态——这一点没能在页面上核实，建完看一眼）。
-- 或命令行（**这条命令上一轮没能执行过，载荷没验证；以 GitHub 文档为准**）：
+- 或命令行（2026-11-26 实测可用）：
 
   ```bash
   gh api -X POST repos/sairaisaika/scholar-meta-tags/rulesets --input - <<'JSON'
@@ -69,7 +70,7 @@
   JSON
   ```
 
-- 建完要确认两件事：`gh api repos/sairaisaika/scholar-meta-tags/rulesets` 列得出来且 `enforcement` 是 `active`；机器人的普通推送没被挡住。后一件**不能靠定时运行是绿的来判断**——没有新东西要写时它们根本不推送（11-24、11-25 就是这样），`export` 也从不往主干推。要看一次真的写了提交的运行：一条被接受的标注 issue 触发的 `intake`（R18 的那两条正好），或合并了 `imports/` 改动后的 `import`。
+- 建完要确认两件事（第一件已确认，第二件还没有）：`gh api repos/sairaisaika/scholar-meta-tags/rulesets` 列得出来且 `enforcement` 是 `active`；机器人的普通推送没被挡住。后一件**不能靠定时运行是绿的来判断**——没有新东西要写时它们根本不推送（11-24、11-25 就是这样），`export` 也从不往主干推。要看一次真的写了提交的运行：一条被接受的标注 issue 触发的 `intake`（R18 的那两条正好），或合并了 `imports/` 改动后的 `import`。
 - 做完把规则名与观察到的运行号写回[检测基本盘](Verification-baseline.md)的 G2 与 TODO 的 R19。
 
 ## 本地怎么搭
@@ -85,6 +86,7 @@ pnpm exec playwright install chromium && pnpm site:test             # 标注页�
 bash scripts/check-private-terms.sh                                 # 平台仓的私有词闸要单独跑，pnpm check 不带它
 ```
 
+- 平台仓原先没有自己的 `pnpm-workspace.yaml`：上级目录里恰好有别的工程留下的一份时，`pnpm install --frozen-lockfile` 会报锁文件过期。`7a9ba48` 已补上（引擎仓早就有）。
 - **私有词表要自己建**：两个仓根各放一份 `.private-terms`（已 gitignore；每行一个不分大小写的正则），列上你自己接入的站点的私有词。内容问维护者，不要写进任何会进仓的文件。没有这份文件，私有词闸什么都拦不住。引擎仓的 `pnpm check` 带着这道闸；平台仓的不带，提交前要自己跑 `bash scripts/check-private-terms.sh`。
 - **改了 Wiki 要另外过 Wiki 的闸**（要 Python 3；引擎仓的 `pnpm check` 不带它，CI 里是单独一步）：`python tools/wiki.py build && python tools/wiki.py check`，`python tools/wiki_route.py --build && python tools/wiki_route.py --check`，`python -m unittest discover -s tools -p test_wiki_route.py`。
 - 平台仓要求提交用 GitHub 的 noreply 邮箱（见它的 `CONTRIBUTING.md`）；本地克隆默认用的是你机器上的 git 身份，先设好。

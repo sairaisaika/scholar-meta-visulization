@@ -9,7 +9,7 @@ from pathlib import Path
 
 def local(root,name):
     path=(root/name).resolve()
-    if not path.is_relative_to(root):raise ValueError(f'Path escapes project: {name}')
+    if not path.is_relative_to(root.resolve()):raise ValueError(f'Path escapes project: {name}')
     return path
 
 
