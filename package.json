@@ -118,11 +118,11 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^20",
+    "@types/node": "^26",
     "jest": "^30.3.0",
-    "ts-jest": "^29.4.9",
-    "tsup": "^8.5.1",
-    "typescript": "^5"
+    "ts-jest": "^29.4.15",
+    "tsup": "^9.0.0",
+    "typescript": "^7"
   },
   "engines": {
     "node": ">=20"
